@@ -344,7 +344,7 @@ export function openComponentInfo(compId) {
 
   bodyEl.scrollTop = 0;
 
-  bodyEl.querySelector<any>('#btnInfoCopyLib')?.addEventListener('click', async (e: any) => {
+  bodyEl.querySelector('#btnInfoCopyLib')?.addEventListener('click', async (e: any) => {
     const btn = e.currentTarget;
     try {
       await navigator.clipboard.writeText(libText);
@@ -544,7 +544,7 @@ export function openPrintStopSheet() {
   const clone = svg.cloneNode(true);
   clone.removeAttribute('id');
   clone.setAttribute('viewBox', `${bounds.x.toFixed(1)} ${bounds.y.toFixed(1)} ${bounds.w.toFixed(1)} ${bounds.h.toFixed(1)}`);
-  clone.querySelectorAll<any>('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
+  clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
   const svgMarkup = new XMLSerializer().serializeToString(clone);
 
   state.focusedId = prevFocused;

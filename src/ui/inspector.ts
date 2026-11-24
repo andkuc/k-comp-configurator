@@ -136,8 +136,8 @@ export function syncOnboardWrapLayout(force = false) {
   if (!force && availW === lastOnboardStripWidth) return;
   lastOnboardStripWidth = availW;
 
-  const pills = Array.from(strip.querySelectorAll<any>('.ob-pill'));
-  const brk = strip.querySelector<any>('.ob-row-break');
+  const pills = Array.from<any>(strip.querySelectorAll('.ob-pill'));
+  const brk = strip.querySelector('.ob-row-break');
   if (!pills.length || !brk) return;
 
   const gap = 5; // matches CSS column-gap: 5px
@@ -236,7 +236,7 @@ export function renderOnboardBar(dipStates) {
   }
 
   strip.innerHTML = chips.join('') + '<span class="ob-row-break hidden" aria-hidden="true"></span>';
-  strip.querySelectorAll<any>('[data-ob-toggle]').forEach((btn) => {
+  strip.querySelectorAll('[data-ob-toggle]').forEach((btn) => {
     const obId = btn.dataset.obToggle;
     btn.addEventListener('click', () => toggleOnboardComponent(obId));
     btn.addEventListener('mouseenter', () => hooks.setHwHover(obId));
@@ -252,7 +252,7 @@ export function renderDipStrip(dipStates) {
   strip.innerHTML = dipStates.map((d) =>
     `<button class="dip-pill ${d.on ? 'on' : 'off'} ${d.lockedOn ? 'locked' : ''}" data-dip-btn="${d.id}" title="S1-${d.id} (${d.pin}): ${escapeHtml(d.reason)}">${d.id}:${d.on ? 'ON' : 'OFF'}</button>`
   ).join('');
-  strip.querySelectorAll<any>('[data-dip-btn]').forEach((btn) => {
+  strip.querySelectorAll('[data-dip-btn]').forEach((btn) => {
     btn.addEventListener('click', () => toggleDipSwitch(parseInt(btn.dataset.dipBtn, 10)));
   });
 }
@@ -271,7 +271,7 @@ export function renderCategoryTabs() {
   container.innerHTML = cats.map((c) =>
     `<button class="cat-btn ${state.category === c ? 'active' : ''}" data-cat="${escapeHtml(c)}">${escapeHtml(tCategory(c))}</button>`
   ).join('');
-  container.querySelectorAll<any>('.cat-btn').forEach((btn) => {
+  container.querySelectorAll('.cat-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.category = btn.dataset.cat;
       renderCategoryTabs();
@@ -352,7 +352,7 @@ export function renderCatalogList() {
       </div>`;
   }).join('');
 
-  container.querySelectorAll<any>('.cat-locate-btn').forEach((btn) => {
+  container.querySelectorAll('.cat-locate-btn').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       const cid = btn.dataset.catLocate;
@@ -367,14 +367,14 @@ export function renderCatalogList() {
     });
   });
 
-  container.querySelectorAll<any>('.cat-info-btn').forEach((btn) => {
+  container.querySelectorAll('.cat-info-btn').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       hooks.openComponentInfo(btn.dataset.info);
     });
   });
 
-  container.querySelectorAll<any>('.cat-item').forEach((item) => {
+  container.querySelectorAll('.cat-item').forEach((item) => {
     const cid = item.dataset.add;
     item.addEventListener('click', (e: any) => {
       if (e.target.closest('.cat-info-btn') || e.target.closest('.cat-locate-btn')) return;
@@ -444,13 +444,13 @@ export function renderWarnings(warns) {
     const cls = `warn-item${w.actionNeeded ? ' action-needed' : ''}${w.advisory ? ' is-advisory' : ''}${hasTarget ? ' is-clickable' : ''}`;
     return `<div class="${cls}" data-warn-idx="${idx}"${locateHint}><span>${ico}</span><span class="warn-text">${escapeHtml(w.text)}</span>${quickHtml}${jumpIcon}</div>`;
   }).join('');
-  bar.querySelectorAll<any>('[data-quick-free]').forEach((btn) => {
+  bar.querySelectorAll('[data-quick-free]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       toggleOnboardComponent(btn.dataset.quickFree);
     });
   });
-  bar.querySelectorAll<any>('.warn-item.is-clickable').forEach((row) => {
+  bar.querySelectorAll('.warn-item.is-clickable').forEach((row) => {
     row.addEventListener('click', (e: any) => {
       if (e.target.closest('[data-quick-free]')) return;
       const w = warns[parseInt(row.dataset.warnIdx, 10)];
@@ -884,7 +884,7 @@ export function renderActiveComponentsInspector(dipStates) {
 
   list.innerHTML = `${subNavHtml}${bodyHtml}`;
 
-  list.querySelectorAll<any>('[data-wsub]').forEach((btn) => {
+  list.querySelectorAll('[data-wsub]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.wiringSubTab = btn.dataset.wsub;
       hooks.recomputeAndRender();
@@ -915,17 +915,17 @@ export function renderActiveComponentsInspector(dipStates) {
     setTimeout(() => { $('#searchInput')?.focus(); }, 40);
   });
 
-  list.querySelectorAll<any>('[data-empty-preset]').forEach((btn) => {
+  list.querySelectorAll('[data-empty-preset]').forEach((btn) => {
     btn.addEventListener('click', () => hooks.loadPreset(btn.dataset.emptyPreset));
   });
 
-  list.querySelectorAll<any>('[data-card-hover]').forEach((card) => {
+  list.querySelectorAll('[data-card-hover]').forEach((card) => {
     const id = card.dataset.cardHover;
     card.addEventListener('mouseenter', () => hooks.setHwHover(id));
     card.addEventListener('mouseleave', () => hooks.setHwHover(null));
   });
 
-  list.querySelectorAll<any>('[data-focus]').forEach((el) => {
+  list.querySelectorAll('[data-focus]').forEach((el) => {
     el.addEventListener('click', (e: any) => {
       if (e.target.closest('[data-remove]') || e.target.closest('[data-card-info]')) return;
       const id = el.dataset.focus;
@@ -935,7 +935,7 @@ export function renderActiveComponentsInspector(dipStates) {
       if (next) hooks.panToComponent(next);
     });
   });
-  list.querySelectorAll<any>('[data-focus-pin]').forEach((el) => {
+  list.querySelectorAll('[data-focus-pin]').forEach((el) => {
     el.addEventListener('click', () => {
       const id = el.dataset.focusPin;
       const next = state.focusedId === id ? null : id;
@@ -944,19 +944,19 @@ export function renderActiveComponentsInspector(dipStates) {
       if (next) hooks.flashTarget({ instanceId: next, panIfOffscreen: true });
     });
   });
-  list.querySelectorAll<any>('[data-free-ob]').forEach((btn) => {
+  list.querySelectorAll('[data-free-ob]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       toggleOnboardComponent(btn.dataset.freeOb);
     });
   });
-  list.querySelectorAll<any>('[data-pin-filter]').forEach((btn) => {
+  list.querySelectorAll('[data-pin-filter]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.pinFilter = btn.dataset.pinFilter;
       hooks.recomputeAndRender();
     });
   });
-  list.querySelectorAll<any>('[data-pin-group]').forEach((head) => {
+  list.querySelectorAll('[data-pin-group]').forEach((head) => {
     head.addEventListener('click', () => {
       const grp = head.dataset.pinGroup;
       if (state.collapsedPinGroups.has(grp)) state.collapsedPinGroups.delete(grp);
@@ -964,13 +964,13 @@ export function renderActiveComponentsInspector(dipStates) {
       hooks.recomputeAndRender();
     });
   });
-  list.querySelectorAll<any>('[data-card-info]').forEach((btn) => {
+  list.querySelectorAll('[data-card-info]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       hooks.openComponentInfo(btn.dataset.cardInfo);
     });
   });
-  list.querySelectorAll<any>('[data-remove]').forEach((btn) => {
+  list.querySelectorAll('[data-remove]').forEach((btn) => {
     btn.addEventListener('click', () => removeComponent(btn.dataset.remove));
   });
 }

@@ -211,7 +211,7 @@ async function copyTextWithFeedback(text, btnEl, toastLabel) {
     }
     if (btnEl) {
       btnEl.classList.add('is-copied');
-      const tag = btnEl.querySelector<any>('.api-copy-tag');
+      const tag = btnEl.querySelector('.api-copy-tag');
       if (tag) tag.textContent = '✓';
       setTimeout(() => {
         btnEl.classList.remove('is-copied');
@@ -361,7 +361,7 @@ export function renderApiBrowserUI() {
     <div class="api-drawer-hint">${escapeHtml(t('api.drawerHint'))}</div>
     <div class="api-list">${bodyHtml}</div>`;
 
-  const inp = drawer.querySelector<any>('#apiSearchInput');
+  const inp = drawer.querySelector('#apiSearchInput');
   if (inp) {
     inp.addEventListener('input', (ev: any) => {
       state.apiSearch = ev.target.value;
@@ -375,13 +375,13 @@ export function renderApiBrowserUI() {
     });
   }
 
-  drawer.querySelector<any>('#btnApiScope')?.addEventListener('click', () => {
+  drawer.querySelector('#btnApiScope')?.addEventListener('click', () => {
     state.apiShowAll = !state.apiShowAll;
     renderApiBrowserUI();
   });
 
   // Strict single-open accordion + bidirectional hardware spotlight on hover/open
-  drawer.querySelectorAll<any>('[data-api-toggle]').forEach((head) => {
+  drawer.querySelectorAll('[data-api-toggle]').forEach((head) => {
     const key = head.dataset.apiToggle;
     head.addEventListener('mouseenter', () => hooks.setHwHover(key));
     head.addEventListener('mouseleave', () => hooks.setHwHover(null));
@@ -402,7 +402,7 @@ export function renderApiBrowserUI() {
     });
   });
 
-  drawer.querySelectorAll<any>('[data-api-inc]').forEach((btnInc) => {
+  drawer.querySelectorAll('[data-api-inc]').forEach((btnInc) => {
     btnInc.addEventListener('click', (ev: any) => {
       ev.stopPropagation();
       const inc = btnInc.dataset.apiInc;
@@ -411,7 +411,7 @@ export function renderApiBrowserUI() {
   });
 
   const entryMap = new Map(filtered.map((e) => [e.key, e]));
-  drawer.querySelectorAll<any>('[data-api-copy-key]').forEach((row) => {
+  drawer.querySelectorAll('[data-api-copy-key]').forEach((row) => {
     row.addEventListener('click', () => {
       const ent = entryMap.get(row.dataset.apiCopyKey);
       const fn = ent && ent.functions[parseInt(row.dataset.apiFnIdx, 10)];
@@ -421,7 +421,7 @@ export function renderApiBrowserUI() {
     });
   });
 
-  drawer.querySelectorAll<any>('[data-api-macro]').forEach((chip) => {
+  drawer.querySelectorAll('[data-api-macro]').forEach((chip) => {
     chip.addEventListener('click', () => {
       const mac = chip.dataset.apiMacro;
       copyTextWithFeedback(mac, chip, mac);
@@ -562,11 +562,11 @@ export function bindComponentApiCardEvents(containerEl, compKey) {
   const api = LIBRARY_API[compKey];
   if (!api) return;
 
-  const card = containerEl.querySelector<any>(`[data-info-api-card="${compKey}"]`);
+  const card = containerEl.querySelector(`[data-info-api-card="${compKey}"]`);
   if (!card) return;
-  const head = card.querySelector<any>('[data-info-api-toggle]');
-  const body = card.querySelector<any>('.info-api-body');
-  const caret = card.querySelector<any>('.api-caret');
+  const head = card.querySelector('[data-info-api-toggle]');
+  const body = card.querySelector('.info-api-body');
+  const caret = card.querySelector('.api-caret');
 
   const toggleCard = () => {
     const willOpen = body.classList.contains('hidden');
@@ -593,7 +593,7 @@ export function bindComponentApiCardEvents(containerEl, compKey) {
     });
   }
 
-  card.querySelectorAll<any>('[data-info-api-inc]').forEach((btnInc) => {
+  card.querySelectorAll('[data-info-api-inc]').forEach((btnInc) => {
     btnInc.addEventListener('click', (ev: any) => {
       ev.stopPropagation();
       const inc = btnInc.dataset.infoApiInc;
@@ -602,7 +602,7 @@ export function bindComponentApiCardEvents(containerEl, compKey) {
   });
 
   const fns = api.functions || [];
-  card.querySelectorAll<any>('[data-info-api-fn]').forEach((row) => {
+  card.querySelectorAll('[data-info-api-fn]').forEach((row) => {
     row.addEventListener('click', () => {
       const fn = fns[parseInt(row.dataset.infoApiFn, 10)];
       if (!fn) return;
@@ -611,7 +611,7 @@ export function bindComponentApiCardEvents(containerEl, compKey) {
     });
   });
 
-  card.querySelectorAll<any>('[data-info-api-macro]').forEach((chip) => {
+  card.querySelectorAll('[data-info-api-macro]').forEach((chip) => {
     chip.addEventListener('click', () => {
       const mac = chip.dataset.infoApiMacro;
       copyTextWithFeedback(mac, chip, mac);

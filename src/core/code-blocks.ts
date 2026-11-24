@@ -316,13 +316,13 @@ export function removeCodeBlock(blockId) {
 export function setSpotlightBlock(blockId) {
   const codePre = $('#codeOutput');
   if (!codePre) return;
-  codePre.querySelectorAll<any>('.code-line.is-spotlit').forEach((el) => el.classList.remove('is-spotlit'));
+  codePre.querySelectorAll('.code-line.is-spotlit').forEach((el) => el.classList.remove('is-spotlit'));
   if (!blockId) {
     codePre.classList.remove('code-block-hovering');
     return;
   }
   codePre.classList.add('code-block-hovering');
-  codePre.querySelectorAll<any>(`.code-line[data-block-id="${blockId}"]`).forEach((el) => {
+  codePre.querySelectorAll(`.code-line[data-block-id="${blockId}"]`).forEach((el) => {
     el.classList.add('is-spotlit');
   });
 }
@@ -506,18 +506,18 @@ export function renderCodeBlocksUI() {
         </div>`;
     }).join('');
 
-    activeBar.querySelectorAll<any>('[data-cb-chip]').forEach((chip) => {
+    activeBar.querySelectorAll('[data-cb-chip]').forEach((chip) => {
       const bid = chip.dataset.cbChip;
       chip.addEventListener('mouseenter', () => setSpotlightBlock(bid));
       chip.addEventListener('mouseleave', () => setSpotlightBlock(null));
     });
-    activeBar.querySelectorAll<any>('[data-cb-info]').forEach((btn) => {
+    activeBar.querySelectorAll('[data-cb-info]').forEach((btn) => {
       btn.addEventListener('click', (e: any) => {
         e.stopPropagation();
         hooks.openBlockInfo(btn.dataset.cbInfo);
       });
     });
-    activeBar.querySelectorAll<any>('[data-cb-edit]').forEach((btn) => {
+    activeBar.querySelectorAll('[data-cb-edit]').forEach((btn) => {
       btn.addEventListener('click', (e: any) => {
         e.stopPropagation();
         const bid = btn.dataset.cbEdit;
@@ -525,7 +525,7 @@ export function renderCodeBlocksUI() {
         renderCodeBlocksUI();
       });
     });
-    activeBar.querySelectorAll<any>('[data-cb-del]').forEach((btn) => {
+    activeBar.querySelectorAll('[data-cb-del]').forEach((btn) => {
       btn.addEventListener('click', (e: any) => {
         e.stopPropagation();
         removeCodeBlock(btn.dataset.cbDel);
@@ -543,11 +543,11 @@ export function renderCodeBlocksUI() {
     } else {
       editorBox.classList.remove('hidden');
       editorBox.innerHTML = buildConfigEditorHtml(editBlk);
-      editorBox.querySelector<any>('#btnCloseCbEditor')?.addEventListener('click', () => {
+      editorBox.querySelector('#btnCloseCbEditor')?.addEventListener('click', () => {
         state.editingBlockId = null;
         renderCodeBlocksUI();
       });
-      editorBox.querySelectorAll<any>('[data-cb-key]').forEach((inp) => {
+      editorBox.querySelectorAll('[data-cb-key]').forEach((inp) => {
         const key = inp.dataset.cbKey;
         const evt = (inp.tagName === 'SELECT' || inp.type === 'checkbox') ? 'change' : 'input';
         inp.addEventListener(evt, () => {
@@ -599,18 +599,18 @@ export function renderCodeBlocksUI() {
     </div>`;
   drawer.innerHTML = drawerHeadHtml + groupsHtml;
 
-  drawer.querySelector<any>('#btnOpenBlocksGuide')?.addEventListener('click', (e: any) => {
+  drawer.querySelector('#btnOpenBlocksGuide')?.addEventListener('click', (e: any) => {
     e.stopPropagation();
     hooks.openBlocksOverview();
   });
-  drawer.querySelectorAll<any>('[data-cb-info]').forEach((btn) => {
+  drawer.querySelectorAll('[data-cb-info]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
       hooks.openBlockInfo(btn.dataset.cbInfo);
     });
   });
 
-  drawer.querySelectorAll<any>('[data-cb-add]').forEach((btn) => {
+  drawer.querySelectorAll('[data-cb-add]').forEach((btn) => {
     const btype = btn.dataset.cbAdd;
     btn.addEventListener('click', (e: any) => {
       if (e.target.closest('[data-cb-info]')) return;

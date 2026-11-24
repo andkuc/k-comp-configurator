@@ -175,19 +175,19 @@ export function tCategory(rawName) {
 }
 
 export function applyI18nToDom(root: any = document) {
-  root.querySelectorAll<any>('[data-i18n]').forEach((el) => {
+  root.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
-  root.querySelectorAll<any>('[data-i18n-html]').forEach((el) => {
+  root.querySelectorAll('[data-i18n-html]').forEach((el) => {
     el.innerHTML = t(el.dataset.i18nHtml);
   });
-  root.querySelectorAll<any>('[data-i18n-title]').forEach((el) => {
+  root.querySelectorAll('[data-i18n-title]').forEach((el) => {
     el.setAttribute('title', t(el.dataset.i18nTitle));
   });
-  root.querySelectorAll<any>('[data-i18n-placeholder]').forEach((el) => {
+  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
     el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
   });
-  root.querySelectorAll<any>('[data-i18n-aria]').forEach((el) => {
+  root.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
 }

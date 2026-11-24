@@ -42,14 +42,14 @@ export function mountBoardSvg(svgText) {
   mount.appendChild(imported);
   state.boardSvgEl = imported;
 
-  imported.querySelectorAll<any>('.kcomp-pin-hit').forEach((hit) => {
+  imported.querySelectorAll('.kcomp-pin-hit').forEach((hit) => {
     const pinId = hit.getAttribute('data-pin');
     hit.addEventListener('mouseenter', (e: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.showPinTooltip(pinId, e); });
     hit.addEventListener('mousemove', (e: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.moveTooltip(e); });
     hit.addEventListener('mouseleave', () => hooks.hideTooltip());
   });
 
-  imported.querySelectorAll<any>('[data-dip]').forEach((el) => {
+  imported.querySelectorAll('[data-dip]').forEach((el) => {
     el.addEventListener('click', (e: any) => {
       e.stopPropagation();
       toggleDipSwitch(parseInt(el.getAttribute('data-dip'), 10));
@@ -57,7 +57,7 @@ export function mountBoardSvg(svgText) {
   });
 
   // Inject permanent breadboard internal-connection visual layer right before #kcomp-pin-highlights
-  const pinHl = imported.querySelector<any>('#kcomp-pin-highlights');
+  const pinHl = imported.querySelector('#kcomp-pin-highlights');
   const bbBaseG = document.createElementNS(SVG_NS, 'g');
   bbBaseG.setAttribute('id', 'kcomp-breadboard-base');
   const bbRailsG = document.createElementNS(SVG_NS, 'g');
@@ -158,7 +158,7 @@ export function setHwHover(hwId) {
   if (state.hoveredHwId === norm) return;
   state.hoveredHwId = norm;
 
-  svg.querySelectorAll<any>('.hw-hl').forEach((el) => el.classList.remove('hw-hl'));
+  svg.querySelectorAll('.hw-hl').forEach((el) => el.classList.remove('hw-hl'));
   if (!norm) {
     svg.classList.remove('hw-hovering');
     return;
@@ -176,7 +176,7 @@ export function setHwHover(hwId) {
       ? [norm]
       : state.active.filter((i) => i.compId === norm).map((i) => i.instanceId);
     for (const id of instIds) {
-      svg.querySelectorAll<any>(`[data-inst-id="${id}"]`).forEach((el) => {
+      svg.querySelectorAll(`[data-inst-id="${id}"]`).forEach((el) => {
         el.classList.add('hw-hl');
         matched = true;
       });
@@ -217,7 +217,7 @@ export function flashTarget(opts: any = {}) {
   if (opts.instanceId && opts.panIfOffscreen) {
     panToComponent(opts.instanceId);
   }
-  svg.querySelectorAll<any>('.hw-flash-group').forEach((n) => n.remove());
+  svg.querySelectorAll('.hw-flash-group').forEach((n) => n.remove());
   clearTimeout(flashTimer);
 
   const g = document.createElementNS(SVG_NS, 'g');
@@ -287,14 +287,14 @@ export function setHoveredNet(netId) {
   if (state.hoveredNet === netId) return;
   state.hoveredNet = netId || null;
 
-  svg.querySelectorAll<any>('.net-active').forEach((el) => el.classList.remove('net-active'));
+  svg.querySelectorAll('.net-active').forEach((el) => el.classList.remove('net-active'));
   if (!state.hoveredNet) {
     svg.classList.remove('net-hovering');
     renderPinFlags();
     return;
   }
   svg.classList.add('net-hovering');
-  svg.querySelectorAll<any>(`[data-net-id="${state.hoveredNet}"]`).forEach((el) => {
+  svg.querySelectorAll(`[data-net-id="${state.hoveredNet}"]`).forEach((el) => {
     el.classList.add('net-active');
   });
   renderPinFlags();
@@ -341,13 +341,13 @@ export function zoomAt(factor, centerX, centerY) {
 }
 
 export function prepareCardFlipTexts(cardG, box) {
-  const hdrContent = cardG.querySelector<any>('.card-hdr-content');
+  const hdrContent = cardG.querySelector('.card-hdr-content');
   if (hdrContent) {
     hdrContent.dataset.flipCx = (box.x + box.w / 2).toFixed(1);
     hdrContent.dataset.flipCy = (box.y + 11.5).toFixed(1);
   }
 
-  cardG.querySelectorAll<any>('.comp-svg-inner text').forEach((el) => {
+  cardG.querySelectorAll('.comp-svg-inner text').forEach((el) => {
     const origTr = el.getAttribute('transform') || '';
     el.dataset.origTransform = origTr;
     const rotMatch = origTr.match(/rotate\(\s*([-\d.]+)/);
@@ -382,7 +382,7 @@ export function updateCardTextOrientations(cardG, deg) {
   const normDeg = ((deg % 360) + 360) % 360;
   const flipHdr = normDeg > 90 && normDeg < 270;
 
-  const hdrContent = cardG.querySelector<any>('.card-hdr-content');
+  const hdrContent = cardG.querySelector('.card-hdr-content');
   if (hdrContent) {
     if (flipHdr) {
       hdrContent.setAttribute('transform', `rotate(180, ${hdrContent.dataset.flipCx}, ${hdrContent.dataset.flipCy})`);
@@ -391,7 +391,7 @@ export function updateCardTextOrientations(cardG, deg) {
     }
   }
 
-  cardG.querySelectorAll<any>('.comp-svg-inner text').forEach((el) => {
+  cardG.querySelectorAll('.comp-svg-inner text').forEach((el) => {
     const origAngle = parseFloat(el.dataset.origAngle || '0');
     const netAngle = (((origAngle + normDeg) % 360) + 360) % 360;
     const shouldFlip = netAngle > 90 && netAngle < 270;
@@ -1799,8 +1799,8 @@ export function renderDockedComponentsAndWires() {
       innerG.setAttribute('transform', `translate(${drawX.toFixed(1)}, ${drawY.toFixed(1)}) scale(${scale.toFixed(4)})`);
       const uid = box.inst.instanceId + '_';
       const clone = document.importNode(svgDocEl, true);
-      clone.querySelectorAll<any>('[id]').forEach((el) => el.setAttribute('id', uid + el.getAttribute('id')));
-      clone.querySelectorAll<any>('[fill^="url(#"]').forEach((el) => {
+      clone.querySelectorAll('[id]').forEach((el) => el.setAttribute('id', uid + el.getAttribute('id')));
+      clone.querySelectorAll('[fill^="url(#"]').forEach((el) => {
         el.setAttribute('fill', el.getAttribute('fill').replace('url(#', `url(#${uid}`));
       });
       while (clone.firstChild) innerG.appendChild(clone.firstChild);
@@ -2663,7 +2663,7 @@ export function exportMasterSvg() {
   const clone = svg.cloneNode(true);
   clone.setAttribute('width', String(Math.round(bounds.w)));
   clone.setAttribute('height', String(Math.round(bounds.h)));
-  clone.querySelectorAll<any>('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
+  clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
 
   // Inject Inkscape-safe Dublin Core / RDF authorship metadata (zero <filter> tags)
   const titleText = escapeHtml(getCleanProjectName() ? `${getCleanProjectName()} — K-Comp V2 Wiring` : 'K-Comp V2 Wiring Diagram');

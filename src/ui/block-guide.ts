@@ -316,7 +316,7 @@ export function openBlocksOverview() {
   }).join('');
 
   $('#blockModalBody').innerHTML = sectionsHtml;
-  $('#blockModalBody').querySelectorAll<any>('[data-bguide-open]').forEach((btn) => {
+  $('#blockModalBody').querySelectorAll('[data-bguide-open]').forEach((btn) => {
     btn.addEventListener('click', () => openBlockInfo(btn.dataset.bguideOpen));
   });
 

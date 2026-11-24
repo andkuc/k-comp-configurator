@@ -168,7 +168,7 @@ const defaultHooks: HooksRegistry = {
 
 export const hooks: HooksRegistry = (typeof window !== 'undefined' && window.__KCOMP_HOOKS) || (typeof window !== 'undefined' ? (window.__KCOMP_HOOKS = defaultHooks) : defaultHooks);
 
-export const $ = (sel) => document.querySelector<any>(sel);
+export const $ = (sel: string): any => document.querySelector(sel);
 
 export function escapeHtml(str: any): string {
   return String(str)
@@ -284,7 +284,7 @@ export function showToast(msg: string, opts: any = null) {
   if (opts && opts.actionLabel && typeof opts.onAction === 'function') {
     el.innerHTML = `<span class="toast-msg">${escapeHtml(msg)}</span><button type="button" class="toast-action-btn">${escapeHtml(opts.actionLabel)}</button>`;
     el.classList.add('has-action');
-    const btn = el.querySelector<any>('.toast-action-btn');
+    const btn = el.querySelector('.toast-action-btn');
     if (btn) {
       btn.addEventListener('click', (e: any) => {
         e.stopPropagation();
@@ -456,7 +456,7 @@ export async function loadComponentSvg(svgFile) {
 export function syncWorkbenchToggles() {
   const wm = $('#btnWireMode');
   if (wm) {
-    const val = wm.querySelector<any>('.hud-opt-val');
+    const val = wm.querySelector('.hud-opt-val');
     const lbl = state.wireMode === 'smart' ? t('hud.smart') : t('hud.curved');
     if (val) val.textContent = lbl;
     else wm.textContent = lbl;
@@ -464,7 +464,7 @@ export function syncWorkbenchToggles() {
   }
   const sg = $('#btnSnapGrid');
   if (sg) {
-    const val = sg.querySelector<any>('.hud-opt-val');
+    const val = sg.querySelector('.hud-opt-val');
     const lbl = state.snapToGrid ? t('hud.grid') : t('hud.free');
     if (val) val.textContent = lbl;
     else sg.textContent = lbl;
@@ -474,7 +474,7 @@ export function syncWorkbenchToggles() {
   if (prm) {
     const hasBb = !!getActiveBoard().breadboard;
     prm.classList.toggle('hidden', !hasBb);
-    const val = prm.querySelector<any>('.hud-opt-val');
+    const val = prm.querySelector('.hud-opt-val');
     const isRail = state.powerRailMode === 'rail';
     const lbl = isRail ? t('hud.powerRailBb') : t('hud.powerRailSmart');
     if (val) val.textContent = lbl;
