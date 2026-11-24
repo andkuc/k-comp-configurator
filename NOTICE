@@ -1,0 +1,20 @@
+K-Comp Configurator
+Copyright (c) 2025-2026 Andreas Kucher
+
+Author & Copyright Holder:
+  Andreas Kucher
+  Repository: https://github.com/andkuc/k-comp-configurator
+
+License:
+  PolyForm Noncommercial License 1.0.0 (SPDX: PolyForm-Noncommercial-1.0.0)
+  https://polyformproject.org/licenses/noncommercial/1.0.0/
+
+  - Free for personal, hobbyist, and noncommercial educational use.
+  - Commercial use requires prior written permission from Andreas Kucher.
+
+Attribution:
+  Copies, forks, and noncommercial deployments of this configurator must
+  retain this NOTICE file, LICENSE, and source SPDX copyright headers.
+  The name "K-Comp" identifies the separate hardware ecosystem by Andreas
+  Kucher (https://github.com/andkuc/k-comp) and is not granted as a
+  trademark by this license.

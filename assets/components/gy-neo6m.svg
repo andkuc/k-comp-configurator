@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 236 174" width="236" height="174" id="comp-gy-neo6m">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="servoBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="12" y="26" width="84" height="84" rx="8" fill="#fde68a" stroke="#b45309" stroke-width="2.5"/>
+  <rect x="22" y="36" width="64" height="64" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
+  <circle cx="54" cy="68" r="5" fill="#94a3b8" stroke="#64748b" stroke-width="1"/>
+  <text x="54" y="124" fill="#cbd5e1" font-family="monospace" font-size="7" font-weight="bold" text-anchor="middle">GPS ANTENNA</text>
+  <path d="M 96 42 Q 112 20, 128 32" fill="none" stroke="#1e293b" stroke-width="3"/>
+  <rect x="114" y="14" width="110" height="148" rx="6" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="2.5"/>
+  <circle cx="125" cy="25" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="125" cy="25" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="213" cy="25" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="213" cy="25" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="125" cy="151" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="125" cy="151" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="213" cy="151" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="213" cy="151" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <rect x="134" y="34" width="70" height="58" rx="3" fill="url(#metalCan)" stroke="#475569" stroke-width="1.5"/>
+  <text x="169" y="58" fill="#0f172a" font-family="monospace" font-size="8.5" font-weight="bold" text-anchor="middle">u-blox</text>
+  <text x="169" y="72" fill="#334155" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle">NEO-6M</text>
+  <circle cx="192" cy="112" r="13" fill="url(#metalCan)" stroke="#64748b" stroke-width="1.2"/>
+  <rect x="136" y="108" width="11" height="5.5" rx="1" fill="#cbd5e1"/><rect x="138" y="108" width="7" height="5.5" fill="#b45309"/>
+  <g data-pin="VCC" class="comp-pad"><rect x="139.0" y="143.0" width="10.0" height="10.0" rx="1.5" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="144.0" cy="148.0" r="2.6" fill="#1e293b"/></g>
+  <text x="144.0" y="137" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">VCC</text>
+  <g data-pin="RX" class="comp-pad"><circle cx="160.5" cy="148.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="160.5" cy="148.0" r="2.6" fill="#1e293b"/></g>
+  <text x="160.5" y="137" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">RX</text>
+  <g data-pin="TX" class="comp-pad"><circle cx="177.0" cy="148.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="177.0" cy="148.0" r="2.6" fill="#1e293b"/></g>
+  <text x="177.0" y="137" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">TX</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="193.5" cy="148.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="193.5" cy="148.0" r="2.6" fill="#1e293b"/></g>
+  <text x="193.5" y="137" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">GND</text>
+</svg>

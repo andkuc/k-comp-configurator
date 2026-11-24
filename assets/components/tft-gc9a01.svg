@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 196 218" width="196" height="218" id="comp-tft-gc9a01">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="tftScreen" cx="45%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="55%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+  </defs>
+  <rect x="16" y="148" width="164" height="60" rx="6" fill="#1e3a8a" stroke="#172554" stroke-width="2.5"/>
+  <circle cx="30" cy="162" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="30" cy="162" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="166" cy="162" r="6.5" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="166" cy="162" r="3.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="98" cy="84" r="74" fill="#1e3a8a" stroke="#0f172a" stroke-width="3"/>
+  <circle cx="98" cy="84" r="66" fill="#09090b" stroke="#475569" stroke-width="2"/>
+  <circle cx="98" cy="84" r="59" fill="url(#tftScreen)"/>
+  <path d="M 50 110 L 76 72 L 96 94 L 118 66 L 146 110 A 59 59 0 0 1 50 110 Z" fill="#0f172a" opacity="0.75"/>
+  <circle cx="120" cy="56" r="10" fill="#fde047" opacity="0.9"/>
+  <text x="98" y="124" fill="#ffffff" font-family="monospace" font-size="7.8" font-weight="bold" text-anchor="middle">1.28" TFT 240×240</text>
+  <text x="98" y="135" fill="#fde047" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">I2C RGB</text>
+  <g data-pin="VCC" class="comp-pad"><rect x="29.8" y="188.8" width="10.4" height="10.4" rx="1.5" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="35.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="35" y="182" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">VCC</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="56.0" cy="194.0" r="5.2" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="56.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="56" y="182" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">GND</text>
+  <g data-pin="SCL" class="comp-pad"><circle cx="77.0" cy="194.0" r="5.2" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="77.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="77" y="182" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">SCL</text>
+  <g data-pin="SDA" class="comp-pad"><circle cx="98.0" cy="194.0" r="5.2" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="98.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="98" y="182" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">SDA</text>
+  <g><circle cx="119.0" cy="194.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="119.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="119" y="182" fill="#94a3b8" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">DC</text>
+  <g><circle cx="140.0" cy="194.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="140.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="140" y="182" fill="#94a3b8" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">CS</text>
+  <g><circle cx="161.0" cy="194.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="161.0" cy="194.0" r="2.7" fill="#1e293b"/></g>
+  <text x="161" y="182" fill="#94a3b8" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">RST</text>
+</svg>

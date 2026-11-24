@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 160 160" width="160" height="160" id="comp-ir-tx">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="servoBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="14" y="26" width="132" height="120" rx="6" fill="#18181b" stroke="#3f3f46" stroke-width="2.5"/>
+  <circle cx="30" cy="42" r="8" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="30" cy="42" r="4.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="130" cy="42" r="8" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="130" cy="42" r="4.8" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <path d="M 64 56 L 64 22 A 16 16 0 0 1 96 22 L 96 56 Z" fill="#e0f2fe" opacity="0.88" stroke="#94a3b8" stroke-width="2"/>
+  <rect x="74" y="28" width="12" height="16" fill="#94a3b8"/>
+  <rect x="44" y="82" width="12" height="5.5" rx="1" fill="#cbd5e1"/><rect x="46.5" y="82" width="7" height="5.5" fill="#0f172a"/><text x="50.0" y="86.1" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">101</text>
+  <rect x="102" y="82" width="12" height="5.5" rx="1" fill="#cbd5e1"/><rect x="104.5" y="82" width="7" height="5.5" fill="#0f172a"/><text x="108.0" y="86.1" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">102</text>
+  <text x="80" y="108" fill="#f8fafc" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">IR TX 940nm</text>
+  <g data-pin="DAT" class="comp-pad"><circle cx="46.0" cy="132.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="46.0" cy="132.0" r="2.9" fill="#1e293b"/></g>
+  <text x="46" y="122" fill="#ffffff" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle">DAT</text>
+  <g data-pin="VCC" class="comp-pad"><circle cx="80.0" cy="132.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="80.0" cy="132.0" r="2.9" fill="#1e293b"/></g>
+  <text x="80" y="122" fill="#ffffff" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle">VCC</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="114.0" cy="132.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="114.0" cy="132.0" r="2.9" fill="#1e293b"/></g>
+  <text x="114" y="122" fill="#ffffff" font-family="monospace" font-size="7.5" font-weight="bold" text-anchor="middle">GND</text>
+</svg>

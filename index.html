@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<!-- SPDX-FileCopyrightText: 2025-2026 Andreas Kucher | SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="author" content="Andreas Kucher" />
+  <meta name="copyright" content="Copyright (c) 2025-2026 Andreas Kucher" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>K-Comp V2 — Hardware Configurator</title>
+  <link rel="stylesheet" href="css/style.css?v=0.1.0" />
+</head>
+<body data-mobile-view="board">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge">K2</div>
+      <h1>K-Comp V2 <span class="brand-sub" data-i18n="topbar.subtitle">Configurator</span></h1>
+      <span class="brand-sep" aria-hidden="true">/</span>
+      <input id="projectNameInput" class="project-name-input" type="text" maxlength="60"
+             placeholder="Untitled Project…" data-i18n-placeholder="topbar.projectPlaceholder"
+             aria-label="Project name" data-i18n-aria="topbar.projectAria"
+             title="Give your project a name (used in .ino header, saved files, shared links &amp; STOPP print sheet)"
+             data-i18n-title="topbar.projectTitle" autocomplete="off" />
+    </div>
+
+    <div class="topbar-controls">
+      <div class="undo-group">
+        <button id="btnUndo" class="btn btn-ghost btn-icon" type="button" title="Undo (Ctrl+Z)" data-i18n-title="topbar.undoTitle" disabled>↶</button>
+        <button id="btnRedo" class="btn btn-ghost btn-icon" type="button" title="Redo (Ctrl+Y)" data-i18n-title="topbar.redoTitle" disabled>↷</button>
+      </div>
+
+      <select id="presetSelect" class="select-ctrl" title="Load a lab preset" data-i18n-title="topbar.loadPresetTitle">
+        <option value="" data-i18n="topbar.loadPreset">Load Preset…</option>
+      </select>
+
+      <span class="topbar-sep" aria-hidden="true"></span>
+      <div id="topbarActions" class="topbar-actions">
+        <button id="btnPrintStop" class="btn btn-stop-ghost" type="button" title="Printable STOPP-Punkt pre-flight check sheet" data-i18n="topbar.stopPrint" data-i18n-title="topbar.stopPrintTitle">Lab Sheet</button>
+
+        <div class="project-menu-wrap">
+          <button id="btnProjectMenu" class="btn btn-ghost project-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false" title="Save, load, share, export or reset project" data-i18n-title="topbar.projectMenuTitle">
+            <span data-i18n="topbar.projectMenu">Project</span><span class="caret" aria-hidden="true">▾</span>
+          </button>
+          <div id="projectMenuPopover" class="project-menu-popover" role="menu">
+            <div class="pm-group-lbl" data-i18n="menu.groupProject">Project</div>
+            <button id="btnNewDesign" class="pm-item" type="button" role="menuitem"><span>✨</span><span class="pm-label" data-i18n="menu.newDesign">New Design (Blank Board)</span></button>
+            <button id="btnSaveProject" class="pm-item" type="button" role="menuitem"><span>💾</span><span class="pm-label" data-i18n="menu.save">Save Project (.kcomp.json)</span><kbd class="pm-kbd">Ctrl+S</kbd></button>
+            <button id="btnLoadProject" class="pm-item" type="button" role="menuitem"><span>📂</span><span class="pm-label" data-i18n="menu.load">Load Project (.kcomp.json)</span></button>
+            <button id="btnShareLink" class="pm-item" type="button" role="menuitem"><span>🔗</span><span class="pm-label" data-i18n="menu.share">Copy Shareable Link</span></button>
+            <div class="pm-sep" role="separator"></div>
+            <div class="pm-group-lbl" data-i18n="menu.groupExport">Export</div>
+            <button id="btnExportDiagram" class="pm-item" type="button" role="menuitem"><span>📐</span><span class="pm-label" data-i18n="menu.exportSvg">Export Diagram (SVG)</span></button>
+            <button id="btnSvgLibrary" class="pm-item" type="button" role="menuitem"><span>🗂</span><span class="pm-label" data-i18n="menu.svgLib">SVG Library (44 Files)</span></button>
+            <div class="pm-sep" role="separator"></div>
+            <div class="pm-group-lbl" data-i18n="menu.groupReset">Reset</div>
+            <button id="btnClearAll" class="pm-item pm-danger" type="button" role="menuitem"><span>✕</span><span class="pm-label" data-i18n="menu.clear">Clear External Modules</span></button>
+            <div class="pm-sep" role="separator"></div>
+            <button id="btnOpenAbout" class="pm-item" type="button" role="menuitem"><span>ⓘ</span><span class="pm-label" data-i18n="menu.about">About</span></button>
+          </div>
+        </div>
+
+        <span class="topbar-sep" aria-hidden="true"></span>
+        <div id="langSwitchSlot" class="lang-menu-wrap"></div>
+        <button id="btnThemeToggle" class="btn btn-ghost btn-icon theme-btn" type="button" title="Switch to White Mode (classic light style)" aria-label="Switch to White Mode (classic light style)" aria-pressed="false">☀</button>
+      </div>
+
+      <input id="projectFileInput" type="file" accept=".json,.kcomp.json,application/json" class="hidden" />
+      <button id="btnMobileMenu" class="btn btn-ghost mobile-menu-btn" type="button" aria-label="More actions" data-i18n-aria="topbar.moreActions" aria-expanded="false" title="More actions" data-i18n-title="topbar.moreActions">⋯</button>
+    </div>
+  </header>
+
+  <div id="corsBanner" class="cors-banner hidden">
+    <strong data-i18n="cors.lead">Local file mode blocked by browser:</strong> <span data-i18n-html="cors.body">Serve over HTTP (<code>python3 -m http.server 8000</code>) or host on GitHub Pages so external SVGs &amp; JSON can load.</span>
+  </div>
+
+  <main class="workspace" id="workspace">
+    <!-- LEFT SIDEBAR: EXTERNAL COMPONENTS -->
+    <aside class="sidebar">
+      <div class="catalog-section">
+        <div class="search-row">
+          <input id="searchInput" type="search" placeholder="Search sensors &amp; actuators…" data-i18n-placeholder="catalog.searchPlaceholder" autocomplete="off" />
+        </div>
+        <div class="group-mode-row" role="tablist" aria-label="Component grouping mode" data-i18n-aria="catalog.groupAria">
+          <button class="grp-mode-btn active" data-group-mode="topic" type="button" data-i18n="catalog.byTopic">By Topic</button>
+          <button class="grp-mode-btn" data-group-mode="bus" type="button" data-i18n="catalog.byBus">By Bus</button>
+        </div>
+        <div id="categoryTabs" class="category-tabs"></div>
+        <div id="catalogList" class="catalog-list"></div>
+      </div>
+    </aside>
+
+    <!-- DRAGGABLE RESIZER FOR LEFT SIDEBAR (SENSORS & ACTUATORS) -->
+    <div id="sidebarResizer" class="panel-resizer sidebar-resizer" title="Drag to resize Components panel" data-i18n-title="catalog.resizeTitle">
+      <button id="btnCollapseSidebar" class="resizer-collapse-btn" type="button" title="Collapse / expand components sidebar" data-i18n-title="catalog.collapseTitle" aria-label="Toggle components sidebar">◀</button>
+    </div>
+
+    <!-- CENTER STAGE: ZOOMABLE, PANNABLE, DRAG-TO-REWIRE DARK WORKBENCH -->
+    <section class="stage-area">
+      <div id="warningsBar" class="warnings-bar hidden"></div>
+
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <svg id="masterSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 690" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <pattern id="bgGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path id="bgGridPath" d="M 24 0 L 0 0 0 24" fill="none" stroke="#1e293b" stroke-width="0.7" />
+            </pattern>
+          </defs>
+
+          <!-- Dark workbench canvas backdrop -->
+          <rect id="canvasBackdropRect" x="-2000" y="-2000" width="5320" height="4690" fill="#0b1120" />
+          <rect x="-2000" y="-2000" width="5320" height="4690" fill="url(#bgGrid)" />
+
+          <!-- Exact K-Comp V2 Board (assets/kcomp-v2.svg — pure PCB, no outer box) -->
+          <g id="boardMount" transform="translate(354, 134) scale(1.15)"></g>
+
+          <!-- Docked External Components -->
+          <g id="componentsLayer"></g>
+
+          <!-- Jumper Wires -->
+          <g id="wiresLayer"></g>
+
+          <!-- Draggable Board Pin Handles -->
+          <g id="handlesLayer"></g>
+
+          <!-- Temporary Pin Callout Flags on Focus / Net Hover (stripped on SVG export) -->
+          <g id="pinFlagsLayer" pointer-events="none"></g>
+
+          <!-- Live Drag-to-Rewire Overlay -->
+          <g id="dragOverlayLayer" pointer-events="none"></g>
+        </svg>
+
+        <!-- Collapsible Pin Status Legend -->
+        <div id="pinLegend" class="pin-legend" aria-label="Pin status legend" data-i18n-aria="legend.aria">
+          <button id="btnPinLegendToggle" class="pin-legend-toggle" type="button" aria-expanded="true" title="Toggle pin legend" data-i18n-title="legend.collapseTitle">
+            <span class="leg-info-ico" aria-hidden="true">i</span>
+            <span class="leg-compact-lbl" data-i18n="legend.pinsShort">Pins</span>
+          </button>
+          <div class="pin-legend-items">
+            <span class="leg-item"><span class="leg-dot leg-free"></span><span data-i18n="legend.free">Free</span></span>
+            <span class="leg-item"><span class="leg-dot leg-onboard">×</span><span data-i18n="legend.onboard">Onboard</span></span>
+            <span class="leg-item"><span class="leg-dot leg-blocked">×</span><span data-i18n="legend.reserved">Reserved</span></span>
+            <span class="leg-item"><span class="leg-dot leg-wired"></span><span data-i18n="legend.wired">Wired</span></span>
+          </div>
+        </div>
+
+        <!-- Floating Zoom & Workbench Controls -->
+        <div class="zoom-hud-wrap">
+          <div id="hudOptionsPopover" class="hud-options-popover hidden" role="menu" aria-label="Workbench view options">
+            <div class="hud-opt-head" data-i18n="hud.optionsTitle">Workbench Options</div>
+            <button id="btnWireMode" class="hud-opt-item is-active" type="button" title="Toggle Smart Orthogonal Perimeter Routing vs Curved wires" data-i18n-title="hud.wireModeTitle">
+              <span class="hud-opt-lbl" data-i18n="hud.optRouting">Wire Routing</span>
+              <span class="hud-opt-val" data-i18n="hud.smart">Smart</span>
+            </button>
+            <button id="btnSnapGrid" class="hud-opt-item is-active" type="button" title="Toggle 12px Snap-to-Grid (hold Alt while dragging to bypass)" data-i18n-title="hud.snapGridTitle">
+              <span class="hud-opt-lbl" data-i18n="hud.optGrid">Snap to Grid</span>
+              <span class="hud-opt-val" data-i18n="hud.grid">Grid</span>
+            </button>
+            <div id="hudOptLayoutSep" class="hud-opt-sep hidden"></div>
+            <button id="btnAutoLayout" class="hud-opt-item hidden" type="button" title="Auto-arrange modules on the PCB side closest to their pins" data-i18n-title="hud.tidyTitle">
+              <span class="hud-opt-lbl" data-i18n="hud.tidy">Tidy Layout</span>
+              <span class="hud-opt-ico" aria-hidden="true">⊞</span>
+            </button>
+            <button id="btnResetPositions" class="hud-opt-item hidden" type="button" title="Reset all moved and rotated components back to default" data-i18n-title="hud.resetPosTitle">
+              <span class="hud-opt-lbl" data-i18n="hud.resetPos">Reset Positions</span>
+              <span class="hud-opt-ico" aria-hidden="true">↺</span>
+            </button>
+          </div>
+
+          <div class="zoom-hud">
+            <button id="btnZoomOut" class="zoom-btn" type="button" title="Zoom out" data-i18n-title="hud.zoomOut">−</button>
+            <button id="btnZoomPct" class="zoom-pct" type="button" title="Reset zoom (100%)" data-i18n-title="hud.zoomReset">100%</button>
+            <button id="btnZoomIn" class="zoom-btn" type="button" title="Zoom in" data-i18n-title="hud.zoomIn">+</button>
+            <span class="zoom-sep"></span>
+            <button id="btnZoomBoard" class="zoom-btn-text" type="button" title="Zoom closely into K-Comp V2 pin headers" data-i18n="hud.board" data-i18n-title="hud.boardTitle">Board</button>
+            <button id="btnZoomFit" class="zoom-btn-text" type="button" title="Fit board and all components" data-i18n="hud.fit" data-i18n-title="hud.fitTitle">Fit</button>
+            <span class="zoom-sep"></span>
+            <button id="btnHudOptions" class="zoom-btn hud-opt-trigger" type="button" aria-haspopup="true" aria-expanded="false" title="Routing, grid &amp; layout options" data-i18n-title="hud.optionsBtnTitle">⚙<span id="hudOptDot" class="hud-opt-dot hidden" aria-hidden="true"></span></button>
+          </div>
+        </div>
+
+        <div id="boardTooltip" class="board-tooltip hidden"></div>
+      </div>
+
+      <!-- COMPACT ONBOARD COMPONENTS STRIP -->
+      <div class="onboard-bar">
+        <span class="bar-label" data-i18n="onboard.label">ONBOARD</span>
+        <div id="onboardStrip" class="onboard-strip"></div>
+      </div>
+
+      <!-- COMPACT HINT + 5V CURRENT + SRAM + OLED MODE FOOTER -->
+      <div class="bottom-bar" id="bottomBar">
+        <div class="bottom-left-controls">
+          <div class="help-pop-wrap">
+            <button id="btnShortcutsHelp" class="btn-help-circle" type="button" aria-haspopup="true" aria-expanded="false" title="Keyboard shortcuts &amp; mouse gestures" data-i18n-title="help.btnTitle">?</button>
+            <div id="shortcutsPopover" class="shortcuts-popover hidden" role="dialog" aria-label="Controls &amp; Shortcuts">
+              <div class="sp-title" data-i18n="help.title">Controls &amp; Shortcuts</div>
+              <div class="sp-grid">
+                <span class="sp-key" data-i18n="help.kDrag">Drag card</span><span data-i18n="help.vDrag">Move (Alt = free grid)</span>
+                <span class="sp-key">R / ↻</span><span data-i18n="help.vRotate">Rotate focused card +90°</span>
+                <span class="sp-key" data-i18n="help.kDot">Drag dot</span><span data-i18n="help.vDot">Rewire to another pin</span>
+                <span class="sp-key" data-i18n="help.kDbl">Double-click</span><span data-i18n="help.vDbl">Fit board view</span>
+                <span class="sp-key">Del</span><span data-i18n="help.vDel">Remove focused module</span>
+                <span class="sp-key">Ctrl+Z / Y</span><span data-i18n="help.vUndo">Undo / Redo</span>
+                <span class="sp-key">Ctrl+S</span><span data-i18n="help.vSave">Save .kcomp.json</span>
+                <span class="sp-key">Enter</span><span data-i18n="help.vEnter">Add top catalog search match</span>
+              </div>
+            </div>
+          </div>
+          <button id="btnAutoSaveToggle" class="autosave-toggle" type="button" aria-pressed="false" title="Toggle automatic saving of your design in this browser" data-i18n-title="bottom.autoSaveToggleTitle"><span class="autosave-dot" aria-hidden="true"></span><span id="autoSaveLabel">Auto-Save: OFF</span></button>
+          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.1.0 · © Andreas Kucher</button>
+        </div>
+        <div class="bottom-right-controls">
+          <div class="sram-compact">
+            <span id="currentText" class="sram-pill current-pill" title="Estimated 5V USB current draw">5V ~0mA</span>
+            <span id="sramText" class="sram-pill">SRAM 0%</span>
+            <button id="btnOledMode" class="btn-oled-mode" type="button" title="Toggle OLED memory mode: Full (1024 B) vs Paged (160 B)">OLED: Full</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DRAGGABLE RESIZER FOR RIGHT SIDEBAR -->
+    <div id="inspectorResizer" class="panel-resizer inspector-resizer" title="Drag to resize Wiring / Code panel" data-i18n-title="inspector.resizeTitle">
+      <button id="btnCollapseInspector" class="resizer-collapse-btn" type="button" title="Collapse / expand wiring &amp; code panel" data-i18n-title="inspector.collapseTitle" aria-label="Toggle inspector panel">▶</button>
+    </div>
+
+    <!-- RIGHT INSPECTOR: WIRING + CODE (.INO) (RESIZABLE) -->
+    <aside class="inspector">
+      <div class="inspector-tabs">
+        <button class="itab active" data-tab="tabPins"><span data-i18n="inspector.tabWiring">Wiring</span><span id="wiringTabBadge" class="itab-badge hidden">0</span></button>
+        <button class="itab" data-tab="tabCode"><span data-i18n="inspector.tabCode">Code (.ino)</span></button>
+      </div>
+
+      <div id="tabPins" class="tab-panel active">
+        <div id="activeComponentsList" class="active-list"></div>
+      </div>
+
+      <div id="tabCode" class="tab-panel">
+        <div class="code-actions">
+          <div class="code-actions-left">
+            <button id="btnCopyCode" class="btn btn-primary btn-sm" data-i18n="inspector.copyCode">Copy Sketch</button>
+            <button id="btnDownloadIno" class="btn btn-ghost btn-sm" data-i18n="inspector.downloadIno">Download .ino</button>
+          </div>
+          <div class="code-actions-right">
+            <button id="btnToggleApiDrawer" class="btn btn-ghost btn-sm api-toggle-btn" type="button" aria-expanded="false" data-i18n-title="api.btnApiTitle"><span data-i18n="api.btnApi">ƒx API</span><span id="apiCountBadge" class="btn-count-badge hidden">0</span></button>
+            <button id="btnToggleBlocksDrawer" class="btn btn-accent-ghost btn-sm" type="button" aria-expanded="false" data-i18n-title="cb.btnBlocksTitle"><span data-i18n="cb.btnBlocks">+ Blocks</span><span id="blocksCountBadge" class="btn-count-badge hidden">0</span></button>
+            <button id="btnCodeHints" class="btn btn-ghost btn-sm cb-hints-btn active" type="button" aria-pressed="true" data-i18n="cb.btnHints" data-i18n-title="cb.btnHintsTitle">Tips</button>
+          </div>
+        </div>
+        <div id="codeBlocksActive" class="cb-active-bar is-empty"></div>
+        <div id="codeBlockEditor" class="cb-editor hidden"></div>
+        <div id="codeBlocksDrawer" class="cb-drawer hidden"></div>
+        <div id="apiRefDrawer" class="api-drawer hidden"></div>
+        <div id="apiCodeResizer" class="api-code-resizer hidden" title="Drag to resize API / Code split" data-i18n-title="api.resizeTitle"></div>
+        <div id="codeJumpBar" class="code-jump-bar" aria-label="Jump to code section">
+          <span class="code-jump-lbl" data-i18n="code.jumpLabel">Jump:</span>
+          <button type="button" class="code-jump-btn" data-jump-target="includes">#include</button>
+          <button type="button" class="code-jump-btn" data-jump-target="setup">setup()</button>
+          <button type="button" class="code-jump-btn" data-jump-target="loop">loop()</button>
+        </div>
+        <pre id="codeOutput" class="code-block"><code></code></pre>
+      </div>
+    </aside>
+  </main>
+
+  <!-- MOBILE BOTTOM APP NAVIGATION (Hidden on Desktop > 960px) -->
+  <nav class="mobile-nav" id="mobileNav" aria-label="Workspace sections" data-i18n-aria="mobile.aria">
+    <button class="mnav-btn active" data-mview="board" type="button">
+      <svg class="mnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <circle cx="8" cy="9" r="1.5"/>
+        <circle cx="16" cy="15" r="1.5"/>
+        <path d="M9.5 9H14v4.5"/>
+      </svg>
+      <span data-i18n="mobile.board">Board</span>
+      <span id="mnavWarnDot" class="mnav-warn-dot hidden"></span>
+    </button>
+    <button class="mnav-btn" data-mview="parts" type="button">
+      <svg class="mnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <path d="M17.5 14v7M14 17.5h7"/>
+      </svg>
+      <span data-i18n="mobile.parts">Parts</span>
+    </button>
+    <button class="mnav-btn" data-mview="wiring" type="button">
+      <svg class="mnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 7h10M18 7h2M4 17h4M12 17h8"/>
+        <circle cx="16" cy="7" r="2"/>
+        <circle cx="10" cy="17" r="2"/>
+      </svg>
+      <span data-i18n="mobile.wiring">Wiring</span>
+      <span id="mnavCountBadge" class="mnav-badge hidden">0</span>
+    </button>
+    <button class="mnav-btn" data-mview="code" type="button">
+      <svg class="mnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </svg>
+      <span data-i18n="mobile.code">Code</span>
+    </button>
+  </nav>
+
+  <div id="statusToast" class="status-toast hidden"></div>
+
+  <!-- PROGRAMMING TECHNIQUE KURZINFO & OVERVIEW MODAL -->
+  <div id="blockInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="blockModalTitle">
+    <div class="modal-card info-modal-card bguide-modal-card">
+      <div class="modal-head info-modal-head">
+        <div class="info-head-left">
+          <div id="blockModalIcon" class="bguide-hero-icon" aria-hidden="true">📖</div>
+          <div>
+            <h2 id="blockModalTitle">Technique Guide</h2>
+            <div id="blockModalSub" class="info-model-sub"></div>
+            <div id="blockModalBadges" class="info-badges-row"></div>
+          </div>
+        </div>
+        <button id="btnCloseBlockModal" class="btn btn-ghost" type="button" data-i18n="modal.close">Close</button>
+      </div>
+      <div id="blockModalBody" class="info-modal-body bguide-modal-body"></div>
+      <div class="info-modal-foot bguide-modal-foot">
+        <div class="bguide-foot-left">
+          <button id="btnBlockBackOverview" class="btn btn-ghost btn-sm hidden" type="button" data-i18n="bguide.backOverview">← All Techniques</button>
+          <div id="blockNavGroup" class="bguide-nav-group hidden">
+            <button id="btnBlockPrev" class="btn btn-ghost btn-sm" type="button" data-i18n="bguide.prev">← Prev</button>
+            <button id="btnBlockNext" class="btn btn-ghost btn-sm" type="button" data-i18n="bguide.next">Next →</button>
+          </div>
+        </div>
+        <div class="info-foot-right">
+          <button id="btnBlockModalAdd" class="btn btn-primary btn-sm hidden" type="button" data-i18n="bguide.btnAdd">+ Add to Code</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPONENT INFO POPUP MODAL (Scrollable student hardware guide) -->
+  <div id="compInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <div class="modal-card info-modal-card">
+      <div class="modal-head info-modal-head">
+        <div class="info-head-left">
+          <div class="info-head-meta">
+            <h2 id="infoModalTitle">Component</h2>
+            <div id="infoModalModel" class="info-model-sub"></div>
+            <div id="infoModalBadges" class="info-badges-row"></div>
+          </div>
+        </div>
+        <button id="btnCloseInfoModal" class="btn btn-ghost btn-sm" type="button" data-i18n="modal.close">Close</button>
+      </div>
+      <div id="infoModalBody" class="info-modal-body"></div>
+      <div class="info-modal-foot">
+        <a id="infoModalDocLink" class="btn btn-ghost btn-sm" href="#" target="_blank" rel="noopener noreferrer">K-Comp Docs ↗</a>
+        <div class="info-foot-right">
+          <button id="btnInfoAddComp" class="btn btn-primary btn-sm" type="button" data-i18n="info.btnAdd">+ Add to Board</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINTABLE STOPP-PUNKT PRE-FLIGHT CHECK MODAL -->
+  <div id="printModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="printModalHeading">
+    <div class="modal-card print-modal-card">
+      <div class="modal-head no-print">
+        <div>
+          <h2 id="printModalHeading" data-i18n="print.heading">Hardware Lab Sheet &amp; Pre-Flight Sign-Off</h2>
+          <p data-i18n="print.subtitle">Print or Save as PDF for classroom verification before connecting USB power.</p>
+        </div>
+        <div class="info-foot-right">
+          <button id="btnDoPrint" class="btn btn-primary btn-sm" type="button" data-i18n="print.btnPrint">🖨 Print / Save PDF</button>
+          <button id="btnClosePrintModal" class="btn btn-ghost btn-sm" type="button" data-i18n="modal.close">Close</button>
+        </div>
+      </div>
+      <div id="printSheet" class="print-sheet"></div>
+    </div>
+  </div>
+
+  <!-- STANDALONE SVG LIBRARY MODAL -->
+  <div id="svgModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 data-i18n="svgLib.title">Standalone SVG Library (44 Files)</h2>
+          <p data-i18n-html="svgLib.subtitle"><code>assets/kcomp-v2.svg</code> + 43 component SVGs in <code>assets/components/</code></p>
+        </div>
+        <button id="btnCloseModal" class="btn btn-ghost" data-i18n="modal.close">Close</button>
+      </div>
+      <div id="svgGallery" class="svg-gallery"></div>
+    </div>
+  </div>
+
+
+  <!-- ABOUT, COPYRIGHT & LICENSE MODAL -->
+  <div id="aboutModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+    <div class="modal-card about-modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="aboutModalTitle" data-i18n="about.title">About K-Comp Configurator</h2>
+          <p id="aboutModalSub" class="info-model-sub" data-i18n="about.subtitle">Interactive Hardware Configurator for K-Comp V2</p>
+        </div>
+        <button id="btnCloseAboutModal" class="btn btn-ghost btn-sm" type="button" data-i18n="modal.close">Close</button>
+      </div>
+      <div id="aboutModalBody" class="about-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="js/board-pinmap.js?v=0.1.0"></script>
+  <script type="module" src="js/main.js?v=0.1.0"></script>
+</body>
+</html>

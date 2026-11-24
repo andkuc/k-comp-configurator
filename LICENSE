@@ -1,0 +1,26 @@
+K-Comp Configurator
+Copyright (c) 2025-2026 Andreas Kucher. All rights reserved.
+
+SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
+This software (the K-Comp Configurator web application, its source code,
+interface assets, and bundled vector graphics) is licensed under the
+PolyForm Noncommercial License 1.0.0.
+
+You may use, copy, modify, and share this software for strictly
+noncommercial purposes (including personal projects, self-study, and
+noncommercial educational use), subject to all terms of the PolyForm
+Noncommercial License 1.0.0.
+
+Official full license text:
+  https://polyformproject.org/licenses/noncommercial/1.0.0/
+
+Commercial Use:
+  Any commercial use — including selling, commercial redistribution, or
+  paid hosted deployments — is not permitted under this license and
+  requires a separate written commercial license from Andreas Kucher
+  (https://github.com/andkuc/k-comp-configurator).
+
+Note for Repository Maintainer:
+  To enable full verbatim text storage in this repository, you may paste
+  the official license text from the URL above directly into this file.

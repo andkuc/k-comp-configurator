@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 236 118" width="236" height="118" id="comp-soil-moisture">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    
+  </defs>
+  <path d="M 14 59 L 48 24 L 194 24 Q 204 24 204 34 L 204 84 Q 204 94 194 94 L 48 94 Z" fill="#18181b" stroke="#52525b" stroke-width="2.5"/>
+  <path d="M 30 59 L 52 38 L 122 38 L 122 80 L 52 80 Z" fill="#27272a" stroke="#71717a" stroke-width="1.2"/>
+  <line x1="42" y1="59" x2="114" y2="59" stroke="#a1a1aa" stroke-width="2.5"/>
+  <line x1="126" y1="26" x2="126" y2="92" stroke="#f8fafc" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <rect x="136.8" y="44" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="136.8" y="70" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="141.5" y="44" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="141.5" y="70" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="146.1" y="44" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="146.1" y="70" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="150.8" y="44" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="150.8" y="70" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="134" y="48" width="22" height="22" rx="2" fill="url(#icBody)" stroke="#475569" stroke-width="1"/>
+  <circle cx="139" cy="53" r="1.8" fill="#64748b"/>
+  <text x="145.0" y="62.0" fill="#e2e8f0" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">555</text>
+  <rect x="182" y="34" width="22" height="50" rx="2" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+  <text x="82" y="54" fill="#e4e4e7" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">CAPACITIVE</text>
+  <text x="82" y="72" fill="#a1a1aa" font-family="monospace" font-size="7" text-anchor="middle">SOIL v1.2</text>
+  <line x1="204" y1="42" x2="220" y2="42" stroke="#eab308" stroke-width="3.5"/>
+  <g data-pin="AOUT" class="comp-pad"><circle cx="222.0" cy="42.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="222.0" cy="42.0" r="2.5" fill="#1e293b"/></g>
+  <text x="178" y="44.5" fill="#ffffff" font-family="monospace" font-size="6.0" font-weight="bold" text-anchor="end">AOUT</text>
+  <line x1="204" y1="59" x2="220" y2="59" stroke="#ef4444" stroke-width="3.5"/>
+  <g data-pin="VCC" class="comp-pad"><circle cx="222.0" cy="59.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="222.0" cy="59.0" r="2.5" fill="#1e293b"/></g>
+  <text x="178" y="61.5" fill="#ffffff" font-family="monospace" font-size="6.0" font-weight="bold" text-anchor="end">VCC</text>
+  <line x1="204" y1="76" x2="220" y2="76" stroke="#334155" stroke-width="3.5"/>
+  <g data-pin="GND" class="comp-pad"><circle cx="222.0" cy="76.0" r="5.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="222.0" cy="76.0" r="2.5" fill="#1e293b"/></g>
+  <text x="178" y="78.5" fill="#ffffff" font-family="monospace" font-size="6.0" font-weight="bold" text-anchor="end">GND</text>
+</svg>

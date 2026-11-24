@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 158 168" width="158" height="168" id="comp-gy302">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="12" y="10" width="134" height="148" rx="7" fill="#1d4ed8" stroke="#1e3a8a" stroke-width="2.5"/>
+  <circle cx="122" cy="34" r="11" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="122" cy="34" r="6.5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <circle cx="122" cy="134" r="11" fill="url(#goldPad)" stroke="#a16207" stroke-width="1"/><circle cx="122" cy="134" r="6.5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+  <rect x="86" y="62" width="32" height="36" rx="3" fill="#0f172a" stroke="#93c5fd" stroke-width="1.2"/>
+  <rect x="93" y="69" width="18" height="22" rx="2" fill="#38bdf8" opacity="0.55" stroke="#e0f2fe" stroke-width="1"/>
+  <circle cx="102" cy="80" r="4" fill="#fde047" opacity="0.8"/>
+  <rect x="84" y="24" width="16" height="10" rx="1" fill="#0f172a" stroke="#334155" stroke-width="0.6"/><rect x="86" y="21" width="3" height="3" fill="#cbd5e1"/><rect x="95" y="21" width="3" height="3" fill="#cbd5e1"/><rect x="90.5" y="34" width="3" height="3" fill="#cbd5e1"/><text x="92" y="31" fill="#cbd5e1" font-family="monospace" font-size="4.4" text-anchor="middle">662K</text>
+  <rect x="84" y="108" width="13" height="6" rx="1" fill="#cbd5e1"/><rect x="86.5" y="108" width="8" height="6" fill="#0f172a"/><text x="90.5" y="112.6" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">472</text>
+  <rect x="84" y="120" width="11" height="5.5" rx="1" fill="#cbd5e1"/><rect x="86" y="120" width="7" height="5.5" fill="#b45309"/>
+  <text x="102" y="54" fill="#ffffff" font-family="monospace" font-size="7.8" font-weight="bold" text-anchor="middle">GY-302</text>
+  <text x="82" y="148" fill="#bfdbfe" font-family="monospace" font-size="6.6" font-weight="bold" text-anchor="middle">BH1750 0x23</text>
+  <g data-pin="VCC" class="comp-pad"><rect x="22.0" y="24.0" width="12.0" height="12.0" rx="1.5" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="28.0" cy="30.0" r="3.1" fill="#1e293b"/></g>
+  <text x="40" y="33" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold">VCC</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="28.0" cy="56.0" r="6.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="28.0" cy="56.0" r="3.1" fill="#1e293b"/></g>
+  <text x="40" y="59" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold">GND</text>
+  <g data-pin="SCL" class="comp-pad"><circle cx="28.0" cy="82.0" r="6.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="28.0" cy="82.0" r="3.1" fill="#1e293b"/></g>
+  <text x="40" y="85" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold">SCL</text>
+  <g data-pin="SDA" class="comp-pad"><circle cx="28.0" cy="108.0" r="6.0" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="28.0" cy="108.0" r="3.1" fill="#1e293b"/></g>
+  <text x="40" y="111" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold">SDA</text>
+  <g><circle cx="28.0" cy="134.0" r="6.0" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="28.0" cy="134.0" r="3.1" fill="#1e293b"/></g>
+  <text x="40" y="137" fill="#93c5fd" font-family="monospace" font-size="8.2" font-weight="bold">ADDR</text>
+</svg>

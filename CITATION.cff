@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "K-Comp Configurator"
+message: "If you use the K-Comp Configurator in education, documentation, or noncommercial projects, please cite this software as below."
+type: software
+authors:
+  - family-names: "Kucher"
+    given-names: "Andreas"
+repository-code: "https://github.com/andkuc/k-comp-configurator"
+license: PolyForm-Noncommercial-1.0.0
+version: "0.1.0"
+date-released: "2026-11-24"
+keywords:
+  - "k-comp-configurator"
+  - "K-Comp"
+  - "hardware-configurator"
+  - "pin-constraint-solver"
+  - "embedded-education"
