@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 152 166" width="152" height="166" id="comp-rf433-tx">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="14" y="12" width="124" height="142" rx="6" fill="#16a34a" stroke="#14532d" stroke-width="2.5"/>
+  <text x="76" y="29" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold" text-anchor="middle">FS1000A 433MHz TX</text>
+  <circle cx="88" cy="68" r="24" fill="url(#metalCan)" stroke="#475569" stroke-width="2"/>
+  <text x="88" y="71" fill="#334155" font-family="monospace" font-size="7" font-weight="bold" text-anchor="middle">R433A</text>
+  <ellipse cx="42" cy="64" rx="14" ry="8" fill="none" stroke="#b45309" stroke-width="3.6"/>
+  <ellipse cx="42" cy="84" rx="12" ry="7" fill="none" stroke="#b45309" stroke-width="3.2"/>
+  <rect x="32" y="102" width="13" height="6" rx="1" fill="#cbd5e1"/><rect x="34.5" y="102" width="8" height="6" fill="#0f172a"/><text x="38.5" y="106.6" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">103</text>
+  <rect x="54" y="102" width="11" height="5.5" rx="1" fill="#cbd5e1"/><rect x="56" y="102" width="7" height="5.5" fill="#b45309"/>
+  <g><circle cx="120.0" cy="104.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="120.0" cy="104.0" r="2.6" fill="#1e293b"/></g>
+  <text x="108" y="107" fill="#dcfce7" font-family="monospace" font-size="6.6" font-weight="bold" text-anchor="end">ANT</text>
+  <g data-pin="DATA" class="comp-pad"><circle cx="42.0" cy="140.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="42.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="42" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">DATA</text>
+  <g data-pin="VCC" class="comp-pad"><rect x="70.4" y="134.4" width="11.2" height="11.2" rx="1.5" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="76.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="76" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">VCC</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="110.0" cy="140.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="110.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="110" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">GND</text>
+</svg>

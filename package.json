@@ -1,0 +1,27 @@
+{
+  "name": "k-comp-configurator",
+  "version": "0.2.4",
+  "private": true,
+  "description": "Interactive browser-based hardware configurator, pin-constraint solver, and flat-C scaffold generator for the K-Comp ecosystem.",
+  "author": "Andreas Kucher",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andkuc/k-comp-configurator.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.4.4",
+    "vitest": "^5.1.1"
+  }
+}

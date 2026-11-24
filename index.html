@@ -6,14 +6,14 @@
   <meta name="author" content="Andreas Kucher" />
   <meta name="copyright" content="Copyright (c) 2025-2026 Andreas Kucher" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>K-Comp V2 — Hardware Configurator</title>
-  <link rel="stylesheet" href="css/style.css?v=0.1.0" />
+  <title>K-Comp — Multi-Board Hardware Configurator</title>
 </head>
 <body data-mobile-view="board">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-badge">K2</div>
-      <h1>K-Comp V2 <span class="brand-sub" data-i18n="topbar.subtitle">Configurator</span></h1>
+      <div id="brandBadge" class="brand-badge">K2</div>
+      <h1><span id="brandBoardTitle">K-Comp V2</span> <span class="brand-sub" data-i18n="topbar.subtitle">Configurator</span></h1>
+      <select id="boardSelect" class="select-ctrl board-select" aria-label="Target board" title="Select target microcontroller board" data-i18n-title="topbar.boardSelectTitle"></select>
       <span class="brand-sep" aria-hidden="true">/</span>
       <input id="projectNameInput" class="project-name-input" type="text" maxlength="60"
              placeholder="Untitled Project…" data-i18n-placeholder="topbar.projectPlaceholder"
@@ -139,6 +139,8 @@
             <span class="leg-item"><span class="leg-dot leg-onboard">×</span><span data-i18n="legend.onboard">Onboard</span></span>
             <span class="leg-item"><span class="leg-dot leg-blocked">×</span><span data-i18n="legend.reserved">Reserved</span></span>
             <span class="leg-item"><span class="leg-dot leg-wired"></span><span data-i18n="legend.wired">Wired</span></span>
+            <span id="legHwUart" class="leg-item hidden" title="Hardware UART (dedicated peripheral controller)" data-i18n-title="legend.hwUartTitle"><span class="leg-wire-swatch is-hw-uart"></span><span data-i18n="legend.hwUart">HW-UART</span></span>
+            <span id="legSwUart" class="leg-item hidden" title="Software UART (bit-banged SoftwareSerial)" data-i18n-title="legend.swUartTitle"><span class="leg-wire-swatch is-sw-uart"></span><span data-i18n="legend.swUart">SW-UART</span></span>
           </div>
         </div>
 
@@ -153,6 +155,10 @@
             <button id="btnSnapGrid" class="hud-opt-item is-active" type="button" title="Toggle 12px Snap-to-Grid (hold Alt while dragging to bypass)" data-i18n-title="hud.snapGridTitle">
               <span class="hud-opt-lbl" data-i18n="hud.optGrid">Snap to Grid</span>
               <span class="hud-opt-val" data-i18n="hud.grid">Grid</span>
+            </button>
+            <button id="btnPowerRailMode" class="hud-opt-item" type="button" title="Smart (use free board pins first) vs Breadboard Rail (group shared GND/5V onto breadboard rails)" data-i18n-title="hud.powerRailTitle">
+              <span class="hud-opt-lbl" data-i18n="hud.optPowerRail">Power / GND</span>
+              <span class="hud-opt-val" data-i18n="hud.powerRailSmart">Smart</span>
             </button>
             <div id="hudOptLayoutSep" class="hud-opt-sep hidden"></div>
             <button id="btnAutoLayout" class="hud-opt-item hidden" type="button" title="Auto-arrange modules on the PCB side closest to their pins" data-i18n-title="hud.tidyTitle">
@@ -170,6 +176,7 @@
             <button id="btnZoomPct" class="zoom-pct" type="button" title="Reset zoom (100%)" data-i18n-title="hud.zoomReset">100%</button>
             <button id="btnZoomIn" class="zoom-btn" type="button" title="Zoom in" data-i18n-title="hud.zoomIn">+</button>
             <span class="zoom-sep"></span>
+            <button id="btnCarrierToggle" class="zoom-btn-text carrier-toggle-btn hidden" type="button" aria-pressed="true" title="Toggle centered breadboard mounting for this board" data-i18n-title="hud.carrierTitle">⊞ Breadboard</button>
             <button id="btnZoomBoard" class="zoom-btn-text" type="button" title="Zoom closely into K-Comp V2 pin headers" data-i18n="hud.board" data-i18n-title="hud.boardTitle">Board</button>
             <button id="btnZoomFit" class="zoom-btn-text" type="button" title="Fit board and all components" data-i18n="hud.fit" data-i18n-title="hud.fitTitle">Fit</button>
             <span class="zoom-sep"></span>
@@ -206,7 +213,7 @@
             </div>
           </div>
           <button id="btnAutoSaveToggle" class="autosave-toggle" type="button" aria-pressed="false" title="Toggle automatic saving of your design in this browser" data-i18n-title="bottom.autoSaveToggleTitle"><span class="autosave-dot" aria-hidden="true"></span><span id="autoSaveLabel">Auto-Save: OFF</span></button>
-          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.1.0 · © Andreas Kucher</button>
+          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.2.4 · © Andreas Kucher</button>
         </div>
         <div class="bottom-right-controls">
           <div class="sram-compact">
@@ -237,6 +244,7 @@
       <div id="tabCode" class="tab-panel">
         <div class="code-actions">
           <div class="code-actions-left">
+            <select id="codeProfileSelect" class="select-ctrl code-profile-select hidden" aria-label="Code generator profile" title="Select generated code profile" data-i18n-title="codeProfile.selectTitle"></select>
             <button id="btnCopyCode" class="btn btn-primary btn-sm" data-i18n="inspector.copyCode">Copy Sketch</button>
             <button id="btnDownloadIno" class="btn btn-ghost btn-sm" data-i18n="inspector.downloadIno">Download .ino</button>
           </div>
@@ -402,7 +410,6 @@
     </div>
   </div>
 
-  <script src="js/board-pinmap.js?v=0.1.0"></script>
-  <script type="module" src="js/main.js?v=0.1.0"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

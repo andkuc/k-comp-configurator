@@ -3,7 +3,7 @@
 Thank you for helping improve the **K-Comp Configurator**!
 
 ## Scope of This Repository
-This repository (`andkuc/k-comp-configurator`) contains **only the client-side web configurator** (UI, pin-constraint engine, SVG workbench, `.ino` scaffold generator, and i18n dictionaries).
+This repository (`andkuc/k-comp-configurator`) contains **only the client-side web configurator** (UI, pin-constraint engine, SVG workbench, `.ino` scaffold generator, unit tests, and i18n dictionaries).
 Hardware schematics, Gerber files, C/C++ libraries, and module manuals live in the separate companion repository [andkuc/k-comp](https://github.com/andkuc/k-comp).
 
 ## Authorship & License Grant for Contributions
@@ -14,7 +14,8 @@ This repository is licensed under the **PolyForm Noncommercial License 1.0.0** (
 3. **Attribution:** Contributors are credited in Git history and release notes while overall project authorship remains with Andreas Kucher.
 
 ## Technical Guidelines
-- Keep the application **zero-dependency** (native client-side ES modules, strictly acyclic import DAG).
+- Keep the codebase cleanly layered (`src/types`, `src/boards`, `src/catalog`, `src/core`, `src/i18n`, `src/ui`, `public/assets`) with a strictly acyclic module graph.
+- Run `npm test` and `npm run build` before opening a pull request.
 - Keep all SVGs **Inkscape-safe** (zero `<filter>` elements).
 - Synchronize all 3 locales (`en`, `de`, `sq`) and both themes (Dark Mode & WCAG-AA White Mode).
 - Preserve SPDX headers (`SPDX-FileCopyrightText` / `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0`) on source files.

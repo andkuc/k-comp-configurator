@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2025-2026 Andreas Kucher | SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 516" width="264" height="516">
+  <style>
+    .kcomp-pin-hit { cursor: pointer; }
+    .kcomp-pin-hit:hover { fill: rgba(56, 189, 248, 0.28); stroke: #38bdf8; stroke-width: 1.2; }
+    #ob-hl-onboard_wifi .wifi-on { opacity: 0.18; transition: opacity 0.18s ease; }
+    #ob-hl-onboard_wifi.active .wifi-on { opacity: 1; }
+    #ob-hl-onboard_rgb_led .rgb-glow { opacity: 0.14; transition: opacity 0.18s ease; }
+    #ob-hl-onboard_rgb_led.active .rgb-glow { opacity: 1; }
+  </style>
+  <g id="kcomp-board-root">
+    <rect x="12" y="14" width="240" height="488" rx="10" fill="#141923" stroke="#334155" stroke-width="1.8"/>
+    <rect x="16" y="18" width="232" height="480" rx="8" fill="#18202e" stroke="#263348" stroke-width="0.9"/>
+    <circle cx="24" cy="26" r="4.5" fill="#0b1120" stroke="#ca8a04" stroke-width="1.4"/>
+    <circle cx="240" cy="26" r="4.5" fill="#0b1120" stroke="#ca8a04" stroke-width="1.4"/>
+    <circle cx="24" cy="490" r="4.5" fill="#0b1120" stroke="#ca8a04" stroke-width="1.4"/>
+    <circle cx="240" cy="490" r="4.5" fill="#0b1120" stroke="#ca8a04" stroke-width="1.4"/>
+    <rect x="64" y="14" width="136" height="42" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+    <path d="M 88 52 L 88 26 L 104 26 L 104 44 L 120 44 L 120 26 L 136 26 L 136 44 L 152 44 L 152 26 L 176 26 L 176 48" fill="none" stroke="#eab308" stroke-width="2.2" stroke-linecap="square"/>
+    <text x="132" y="22.5" text-anchor="middle" font-family="monospace" font-size="6.2" fill="#64748b">ANTENNA KEEP-OUT</text>
+    <rect x="64" y="56" width="136" height="148" rx="4" fill="#cbd5e1" stroke="#64748b" stroke-width="1.4"/>
+    <rect x="70" y="62" width="124" height="136" rx="2.5" fill="#94a3b8" stroke="#475569" stroke-width="0.8"/>
+    <text x="132" y="102" text-anchor="middle" font-family="sans-serif" font-size="11.5" font-weight="800" fill="#0f172a">ESP32-S3</text>
+    <text x="132" y="117" text-anchor="middle" font-family="monospace" font-size="8.2" font-weight="700" fill="#1e293b">WROOM-1 N16R8</text>
+    <text x="132" y="132" text-anchor="middle" font-family="monospace" font-size="7.2" fill="#334155">240MHz Dual-Core</text>
+    <text x="132" y="144" text-anchor="middle" font-family="monospace" font-size="7.0" fill="#334155">16MB Flash · 8MB PSRAM</text>
+    <text x="132" y="157" text-anchor="middle" font-family="monospace" font-size="7.0" font-weight="700" fill="#0f172a">3.3V LOGIC ONLY</text>
+    <g id="ob-hl-onboard_wifi">
+      <rect x="86" y="166" width="92" height="22" rx="11" fill="#0f172a" stroke="#334155" stroke-width="0.9"/>
+      <rect class="wifi-on" x="86" y="166" width="92" height="22" rx="11" fill="#0284c7" stroke="#38bdf8" stroke-width="1.2"/>
+      <text x="132" y="180.5" text-anchor="middle" font-family="monospace" font-size="8.2" font-weight="700" fill="#f8fafc">Wi-Fi · BLE</text>
+    </g>
+    <text x="132" y="226" text-anchor="middle" font-family="sans-serif" font-size="9.5" font-weight="800" fill="#e2e8f0">ESP32-S3 DevKitC-1</text>
+    <text x="132" y="239" text-anchor="middle" font-family="monospace" font-size="7.4" fill="#94a3b8">GPIO Matrix · 3x HW-UART</text>
+    <rect x="84" y="256" width="38" height="24" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.9"/>
+    <text x="103" y="271" text-anchor="middle" font-family="monospace" font-size="6.8" fill="#94a3b8">3.3V LDO</text>
+    <rect x="140" y="254" width="36" height="36" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.9"/>
+    <text x="158" y="274" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#94a3b8">UART</text>
+    <g id="ob-hl-onboard_rgb_led">
+      <rect x="112" y="314" width="40" height="34" rx="5" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+      <rect class="rgb-glow" x="116" y="318" width="32" height="26" rx="4" fill="#a855f7" stroke="#e879f9" stroke-width="1.2"/>
+      <circle cx="132" cy="331" r="7" fill="#f8fafc" stroke="#c084fc" stroke-width="1.4"/>
+      <text x="132" y="359" text-anchor="middle" font-family="monospace" font-size="7.2" font-weight="700" fill="#c084fc">RGB (IO48)</text>
+    </g>
+    <circle cx="88" cy="331" r="3.5" fill="#ef4444" stroke="#7f1d1d" stroke-width="0.8"/>
+    <text x="88" y="344" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#94a3b8">PWR</text>
+    <rect x="76" y="388" width="38" height="26" rx="3" fill="#334155" stroke="#64748b" stroke-width="1"/>
+    <circle cx="95" cy="401" r="6.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+    <text x="95" y="425" text-anchor="middle" font-family="monospace" font-size="7.2" font-weight="700" fill="#cbd5e1">RST</text>
+    <rect x="150" y="388" width="38" height="26" rx="3" fill="#334155" stroke="#64748b" stroke-width="1"/>
+    <circle cx="169" cy="401" r="6.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+    <text x="169" y="425" text-anchor="middle" font-family="monospace" font-size="7.2" font-weight="700" fill="#cbd5e1">BOOT</text>
+    <rect x="72" y="458" width="44" height="44" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="1.2"/>
+    <rect x="78" y="468" width="32" height="22" rx="2" fill="#94a3b8"/>
+    <text x="94" y="454" text-anchor="middle" font-family="monospace" font-size="7.4" font-weight="700" fill="#38bdf8">USB</text>
+    <rect x="148" y="458" width="44" height="44" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="1.2"/>
+    <rect x="154" y="468" width="32" height="22" rx="2" fill="#94a3b8"/>
+    <text x="170" y="454" text-anchor="middle" font-family="monospace" font-size="7.4" font-weight="700" fill="#94a3b8">UART</text>
+    <rect x="22.0" y="70.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="76.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="76.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="79.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#fb923c">3V3</text>
+    <rect x="22.0" y="89.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="95.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="95.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="98.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#fb923c">3V3</text>
+    <rect x="22.0" y="108.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="114.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="114.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="117.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#c084fc">RST</text>
+    <rect x="22.0" y="127.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="133.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="133.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="136.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">4</text>
+    <rect x="22.0" y="146.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="152.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="152.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="155.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">5</text>
+    <rect x="22.0" y="165.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="171.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="171.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="174.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">6</text>
+    <rect x="22.0" y="184.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="190.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="190.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="193.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">7</text>
+    <rect x="22.0" y="203.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="209.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="209.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="212.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">15</text>
+    <rect x="22.0" y="222.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="228.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="228.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="231.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">16</text>
+    <rect x="22.0" y="241.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="247.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="247.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="250.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">17</text>
+    <rect x="22.0" y="260.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="266.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="266.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="269.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">18</text>
+    <rect x="22.0" y="279.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="285.0" r="4.1" fill="#34d399" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="285.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="288.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#6ee7b7">8</text>
+    <rect x="22.0" y="298.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="304.0" r="4.1" fill="#fbbf24" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="304.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="307.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#fde047">3</text>
+    <rect x="22.0" y="317.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="323.0" r="4.1" fill="#fbbf24" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="323.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="326.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#fde047">46</text>
+    <rect x="22.0" y="336.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="342.0" r="4.1" fill="#34d399" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="342.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="345.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#6ee7b7">9</text>
+    <rect x="22.0" y="355.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="361.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="361.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="364.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">10</text>
+    <rect x="22.0" y="374.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="380.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="380.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="383.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">11</text>
+    <rect x="22.0" y="393.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="399.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="399.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="402.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">12</text>
+    <rect x="22.0" y="412.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="418.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="418.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="421.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">13</text>
+    <rect x="22.0" y="431.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="437.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="437.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="440.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">14</text>
+    <rect x="22.0" y="450.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="456.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="456.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="459.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#f87171">5V</text>
+    <rect x="22.0" y="469.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="28.0" cy="475.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="28.0" cy="475.0" r="1.9" fill="#0b1120"/>
+    <text x="39.0" y="478.1" text-anchor="start" font-family="monospace" font-size="8.2" font-weight="700" fill="#94a3b8">GND</text>
+    <rect x="230.0" y="70.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="76.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="76.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="79.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#94a3b8">GND</text>
+    <rect x="230.0" y="89.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="95.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="95.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="98.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">TX</text>
+    <rect x="230.0" y="108.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="114.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="114.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="117.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">RX</text>
+    <rect x="230.0" y="127.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="133.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="133.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="136.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">1</text>
+    <rect x="230.0" y="146.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="152.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="152.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="155.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">2</text>
+    <rect x="230.0" y="165.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="171.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="171.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="174.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">42</text>
+    <rect x="230.0" y="184.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="190.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="190.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="193.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">41</text>
+    <rect x="230.0" y="203.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="209.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="209.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="212.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">40</text>
+    <rect x="230.0" y="222.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="228.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="228.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="231.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">39</text>
+    <rect x="230.0" y="241.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="247.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="247.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="250.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">38</text>
+    <rect x="230.0" y="260.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="266.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="266.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="269.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">37</text>
+    <rect x="230.0" y="279.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="285.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="285.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="288.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">36</text>
+    <rect x="230.0" y="298.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="304.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="304.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="307.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">35</text>
+    <rect x="230.0" y="317.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="323.0" r="4.1" fill="#fbbf24" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="323.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="326.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#fde047">0</text>
+    <rect x="230.0" y="336.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="342.0" r="4.1" fill="#fbbf24" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="342.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="345.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#fde047">45</text>
+    <rect x="230.0" y="355.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="361.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="361.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="364.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">48</text>
+    <rect x="230.0" y="374.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="380.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="380.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="383.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">47</text>
+    <rect x="230.0" y="393.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="399.0" r="4.1" fill="#eab308" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="399.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="402.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#cbd5e1">21</text>
+    <rect x="230.0" y="412.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="418.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="418.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="421.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">20</text>
+    <rect x="230.0" y="431.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="437.0" r="4.1" fill="#94a3b8" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="437.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="440.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#64748b">19</text>
+    <rect x="230.0" y="450.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="456.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="456.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="459.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#94a3b8">GND</text>
+    <rect x="230.0" y="469.0" width="12" height="12" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="0.6"/>
+    <circle cx="236.0" cy="475.0" r="4.1" fill="#f59e0b" stroke="#78350f" stroke-width="0.6"/>
+    <circle cx="236.0" cy="475.0" r="1.9" fill="#0b1120"/>
+    <text x="225.0" y="478.1" text-anchor="end" font-family="monospace" font-size="8.2" font-weight="700" fill="#94a3b8">GND</text>
+    <g id="kcomp-pin-highlights"></g>
+    <g id="kcomp-pin-hits">
+    <circle class="kcomp-pin-hit" data-pin="3V3_L1" cx="28.0" cy="76.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="3V3_L2" cx="28.0" cy="95.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="RST" cx="28.0" cy="114.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO4" cx="28.0" cy="133.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO5" cx="28.0" cy="152.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO6" cx="28.0" cy="171.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO7" cx="28.0" cy="190.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO15" cx="28.0" cy="209.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO16" cx="28.0" cy="228.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO17" cx="28.0" cy="247.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO18" cx="28.0" cy="266.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO8" cx="28.0" cy="285.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO3" cx="28.0" cy="304.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO46" cx="28.0" cy="323.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO9" cx="28.0" cy="342.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO10" cx="28.0" cy="361.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO11" cx="28.0" cy="380.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO12" cx="28.0" cy="399.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO13" cx="28.0" cy="418.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO14" cx="28.0" cy="437.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="5V_L" cx="28.0" cy="456.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GND_L1" cx="28.0" cy="475.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GND_R1" cx="236.0" cy="76.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO43" cx="236.0" cy="95.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO44" cx="236.0" cy="114.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO1" cx="236.0" cy="133.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO2" cx="236.0" cy="152.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO42" cx="236.0" cy="171.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO41" cx="236.0" cy="190.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO40" cx="236.0" cy="209.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO39" cx="236.0" cy="228.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO38" cx="236.0" cy="247.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO37" cx="236.0" cy="266.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO36" cx="236.0" cy="285.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO35" cx="236.0" cy="304.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO0" cx="236.0" cy="323.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO45" cx="236.0" cy="342.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO48" cx="236.0" cy="361.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO47" cx="236.0" cy="380.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO21" cx="236.0" cy="399.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO20" cx="236.0" cy="418.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GPIO19" cx="236.0" cy="437.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GND_R2" cx="236.0" cy="456.0" r="7.5" fill="transparent"/>
+    <circle class="kcomp-pin-hit" data-pin="GND_R3" cx="236.0" cy="475.0" r="7.5" fill="transparent"/>
+    </g>
+  </g>
+</svg>

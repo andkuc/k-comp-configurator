@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 164 166" width="164" height="166" id="comp-rf433-rx">
+  <defs>
+    <linearGradient id="goldPad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+    <linearGradient id="metalCan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="45%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="icBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="12" y="12" width="140" height="142" rx="6" fill="#16a34a" stroke="#14532d" stroke-width="2.5"/>
+  <text x="82" y="29" fill="#ffffff" font-family="monospace" font-size="8.2" font-weight="bold" text-anchor="middle">MX-RM-5V 433MHz RX</text>
+  <ellipse cx="38" cy="58" rx="13" ry="8" fill="none" stroke="#b45309" stroke-width="3.4"/>
+  <rect x="64" y="42" width="32" height="32" rx="3" fill="#22c55e" stroke="#14532d" stroke-width="1.6"/>
+  <circle cx="80" cy="58" r="8" fill="#dc2626" stroke="#7f1d1d" stroke-width="1"/>
+  <line x1="75" y1="58" x2="85" y2="58" stroke="#fecaca" stroke-width="1.6"/>
+  <rect x="108.8" y="52" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="108.8" y="82" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="118.1" y="52" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="118.1" y="82" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="127.5" y="52" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="127.5" y="82" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="136.8" y="52" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="136.8" y="82" width="2.4" height="4" fill="#cbd5e1"/>
+  <rect x="106" y="56" width="36" height="26" rx="2" fill="url(#icBody)" stroke="#475569" stroke-width="1"/>
+  <circle cx="111" cy="61" r="1.8" fill="#64748b"/>
+  <text x="124.0" y="72.0" fill="#e2e8f0" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">LM358</text>
+  <rect x="30" y="92" width="13" height="6" rx="1" fill="#cbd5e1"/><rect x="32.5" y="92" width="8" height="6" fill="#0f172a"/><text x="36.5" y="96.6" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">473</text>
+  <rect x="52" y="92" width="11" height="5.5" rx="1" fill="#cbd5e1"/><rect x="54" y="92" width="7" height="5.5" fill="#b45309"/>
+  <rect x="74" y="92" width="13" height="6" rx="1" fill="#cbd5e1"/><rect x="76.5" y="92" width="8" height="6" fill="#0f172a"/><text x="80.5" y="96.6" fill="#e2e8f0" font-family="monospace" font-size="4.4" text-anchor="middle">104</text>
+  <g><circle cx="134.0" cy="102.0" r="5.0" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="134.0" cy="102.0" r="2.5" fill="#1e293b"/></g>
+  <text x="124" y="105" fill="#dcfce7" font-family="monospace" font-size="6.4" font-weight="bold" text-anchor="end">ANT</text>
+  <g data-pin="VCC" class="comp-pad"><rect x="38.4" y="134.4" width="11.2" height="11.2" rx="1.5" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="44.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="44" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">VCC</text>
+  <g data-pin="DATA" class="comp-pad"><circle cx="82.0" cy="140.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="82.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="82" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">DATA</text>
+  <g data-pin="GND" class="comp-pad"><circle cx="120.0" cy="140.0" r="5.6" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="120.0" cy="140.0" r="2.9" fill="#1e293b"/></g>
+  <text x="120" y="129" fill="#ffffff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">GND</text>
+</svg>
