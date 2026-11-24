@@ -5,7 +5,7 @@ import { state, hooks, showToast, isMobileViewport, loadComponentSvg, getActiveO
 import { computeCodeBlocksSram } from './code-blocks';
 import { t, tComp, tOnboard, tDipName } from '../i18n/index';
 import { getActiveBoard } from '../boards';
-import type { UartAssignment } from '../types';
+import type { DipSwitchState, UartAssignment } from '../types';
 
 export function getCompDef(compId) {
   return state.catalog.components.find((c) => c.id === compId);
@@ -719,7 +719,7 @@ export function toggleOnboardComponent(obId) {
   hooks.recomputeAndRender();
 }
 
-export function computeDipStates() {
+export function computeDipStates(): DipSwitchState[] {
   const board = getActiveBoard();
   if (!board.dipSwitches || !board.dipSwitches.length) return [];
   const extClaims = getExternalPinClaims();

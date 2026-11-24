@@ -75,7 +75,7 @@ export interface ComponentDef {
   warnings?: string[];
   code?: ComponentCodeSpec;
   svgFile: string;
-  viewBox?: { width: number; height: number } | string | number[];
+  viewBox?: [number, number] | number[];
   pinAnchors?: Record<string, { x: number; y: number }>;
   docUrl?: string;
   docKeywords?: string[];

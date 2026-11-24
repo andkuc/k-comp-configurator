@@ -382,7 +382,7 @@ function classifyWireColor(hex) {
 
 // Compute complete Bill of Materials (BOM) & physical Jumper Wire counts (M-F, M-M, Grove, colors)
 function buildBomData() {
-  const items = [
+  const items: Array<{ qty: number; name: string; spec: string; source: string; isWire?: boolean }> = [
     {
       qty: 1,
       name: t('print.bomBaseBoard'),
