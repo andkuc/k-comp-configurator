@@ -51,6 +51,8 @@ export interface DeviceTransport {
 
 export interface SerialPlotSample {
   timestampMs: number;
+  /** Optional MCU-reported hardware timestamp in ms (auto-parsed from `t:` or `ms:` token). */
+  hwTimestampMs?: number;
   channels: Record<string, number>;
 }
 
@@ -181,13 +183,14 @@ export class SerialLogRingBuffer {
 
 /**
  * Fixed-capacity telemetry sample ringbuffer for Canvas 2D Live-Plotter views.
+ * Default capacity of 6000 holds 30 seconds of 200 Hz ECG telemetry cleanly.
  */
 export class SerialPlotRingBuffer {
   private readonly capacity: number;
   private samples: SerialPlotSample[] = [];
   private channelOrder: string[] = [];
 
-  constructor(capacity = 600) {
+  constructor(capacity = 6000) {
     this.capacity = Math.max(10, Math.floor(capacity));
   }
 
@@ -221,10 +224,13 @@ export class SerialPlotRingBuffer {
   }
 }
 
+const HW_TIME_KEYS = new Set(['t', 'ms', 't_ms', 'time_ms']);
+
 /**
  * Pure parser for Live-Plotter serial telemetry lines.
  * Supports:
  *   - Named key:value pairs: "temp:23.4,hum:58.1" or "x=12 y=-4 z=980"
+ *   - Optional MCU hardware timestamp in ms alongside data channels: "t:12480, ecg:512" or "ms=420 ax=0.1"
  *   - Plain numeric CSV/TSV: "512, 1023, 3.14" -> { ch1: 512, ch2: 1023, ch3: 3.14 }
  * Returns null for non-numeric log lines.
  */
@@ -232,6 +238,7 @@ export function parseSerialPlotLine(line: string, timestampMs: number = Date.now
   const clean = line.trim();
   if (!clean) return null;
 
+  const rawNamed: Array<{ key: string; val: number }> = [];
   const channels: Record<string, number> = {};
   const tokens = clean.split(/[,;\t\s]+/).filter(Boolean);
   let unnamedIdx = 1;
@@ -241,7 +248,7 @@ export function parseSerialPlotLine(line: string, timestampMs: number = Date.now
     if (kv) {
       const val = Number(kv[2]);
       if (Number.isFinite(val)) {
-        channels[kv[1]] = val;
+        rawNamed.push({ key: kv[1], val });
         continue;
       }
     }
@@ -255,7 +262,26 @@ export function parseSerialPlotLine(line: string, timestampMs: number = Date.now
     return null;
   }
 
-  return Object.keys(channels).length > 0 ? { timestampMs, channels } : null;
+  let hwTimestampMs: number | undefined;
+  const totalTokens = rawNamed.length + (unnamedIdx - 1);
+
+  for (const item of rawNamed) {
+    if (
+      hwTimestampMs === undefined &&
+      totalTokens >= 2 &&
+      HW_TIME_KEYS.has(item.key.toLowerCase()) &&
+      item.val >= 0
+    ) {
+      hwTimestampMs = item.val;
+    } else {
+      channels[item.key] = item.val;
+    }
+  }
+
+  if (Object.keys(channels).length === 0) return null;
+  return hwTimestampMs !== undefined
+    ? { timestampMs, hwTimestampMs, channels }
+    : { timestampMs, channels };
 }
 
 export function isWebSerialAvailable(): boolean {

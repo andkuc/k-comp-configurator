@@ -28,8 +28,7 @@ export const WORKSPACES: WorkspaceDescriptor[] = [
     icon: '⚡',
     labelKey: 'ws.device',
     titleKey: 'ws.deviceTitle',
-    status: 'preview',
-    targetVersion: 'v0.4'
+    status: 'active'
   },
   {
     id: 'shield',

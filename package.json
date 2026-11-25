@@ -1,6 +1,6 @@
 {
   "name": "k-comp-configurator",
-  "version": "0.3.6",
+  "version": "0.4.2",
   "private": true,
   "description": "Interactive browser-based hardware configurator, pin-constraint solver, and flat-C scaffold generator for the K-Comp ecosystem.",
   "author": "Andreas Kucher",

@@ -3,6 +3,7 @@
 // Top-Level Workspace Shell with Strict Module Lifecycle (mount/unmount/onProjectChange/onActiveNodeChange) & Lazy Loading
 import { $, escapeHtml } from '../core/state';
 import { appBus, projectStore, uiSessionStore, type DerivedWorkspace } from '../store';
+import { deviceSession } from '../services';
 import { t } from '../i18n/index';
 import {
   DEFAULT_WORKSPACE_ID,
@@ -22,6 +23,8 @@ let activeWorkspaceId: WorkspaceId = DEFAULT_WORKSPACE_ID;
 let mountedModule: WorkspaceModule | null = null;
 let mountedContainer: HTMLElement | null = null;
 let nodeBusUnsub: (() => void) | null = null;
+let deviceStatusUnsub: (() => void) | null = null;
+let lastDeviceConnected = false;
 
 const builtinModules = new Map<WorkspaceId, WorkspaceModule>();
 const customModules = new Map<WorkspaceId, WorkspaceModule>();
@@ -54,12 +57,23 @@ function createWorkspaceContext(derivedOverride?: DerivedWorkspace): WorkspaceCo
 }
 
 function ensureNodeChangeListener(): void {
-  if (nodeBusUnsub) return;
-  nodeBusUnsub = appBus.on('node:changed', ({ nodeId }) => {
-    if (mountedModule?.onActiveNodeChange) {
-      mountedModule.onActiveNodeChange(nodeId);
-    }
-  });
+  if (!nodeBusUnsub) {
+    nodeBusUnsub = appBus.on('node:changed', ({ nodeId }) => {
+      if (mountedModule?.onActiveNodeChange) {
+        mountedModule.onActiveNodeChange(nodeId);
+      }
+    });
+  }
+  if (!deviceStatusUnsub) {
+    lastDeviceConnected = deviceSession.isConnected();
+    deviceStatusUnsub = deviceSession.subscribe((snap) => {
+      const nowConnected = snap.portState === 'monitoring';
+      if (nowConnected !== lastDeviceConnected) {
+        lastDeviceConnected = nowConnected;
+        renderWorkspaceSwitcher();
+      }
+    });
+  }
 }
 
 function unmountCurrentModule(): void {
@@ -81,14 +95,18 @@ export function getActiveWorkspace(): WorkspaceId {
 export function renderWorkspaceSwitcher(): void {
   const slot = $('#workspaceSwitchSlot') as HTMLElement | null;
   if (!slot) return;
+  const devLive = deviceSession.isConnected();
   slot.innerHTML = WORKSPACES.map((w) => {
     const isActive = w.id === activeWorkspaceId;
-    const tagHtml = w.status === 'preview' && w.targetVersion
-      ? `<span class="ws-ver-dot" aria-hidden="true"></span>`
-      : '';
+    const isLiveDev = w.id === 'device' && devLive;
+    const tagHtml = isLiveDev
+      ? `<span class="ws-live-dot" aria-hidden="true"></span>`
+      : (w.status === 'preview' && w.targetVersion
+          ? `<span class="ws-ver-dot" aria-hidden="true"></span>`
+          : '');
     return `
       <button type="button"
-              class="ws-tab-btn ${isActive ? 'active' : ''} ${w.status === 'preview' ? 'is-preview' : ''}"
+              class="ws-tab-btn ${isActive ? 'active' : ''} ${w.status === 'preview' ? 'is-preview' : ''} ${isLiveDev ? 'is-live' : ''}"
               data-ws-id="${w.id}"
               role="tab"
               aria-selected="${String(isActive)}"
@@ -202,6 +220,11 @@ export function resetWorkspaceShell(): void {
     nodeBusUnsub();
     nodeBusUnsub = null;
   }
+  if (deviceStatusUnsub) {
+    deviceStatusUnsub();
+    deviceStatusUnsub = null;
+  }
+  lastDeviceConnected = false;
   builtinModules.clear();
   customModules.clear();
   pendingLoads.clear();

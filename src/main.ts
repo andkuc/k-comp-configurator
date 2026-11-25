@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.3.6)
+// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.4.2)
 import './styles/style.css';
 import { resolveAssetUrl } from './core/constants';
 import { CATALOG } from './catalog';
