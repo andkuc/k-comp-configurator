@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.3.2)
+// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.3.6)
 import './styles/style.css';
 import { resolveAssetUrl } from './core/constants';
 import { CATALOG } from './catalog';
@@ -29,7 +29,7 @@ import {
   showPinTooltip, showCustomTooltip, moveTooltip, hideTooltip
 } from './ui/inspector';
 import { renderSketchCode } from './core/codegen';
-import { renderCodeBlocksUI, bindCodeBlocksEvents } from './core/code-blocks';
+import { renderCodeBlocksUI, bindCodeBlocksEvents, setSpotlightBlock } from './ui/code-blocks-panel';
 // Lazy-loaded modules (block-guide & project charter are loaded on demand via dynamic import())
 import { renderApiBrowserUI, bindApiBrowserEvents } from './ui/api-browser';
 import { updateInfoModalDocLink, openComponentInfo, openPrintStopSheet, openSvgLibrary, openAboutModal } from './ui/modals';
@@ -224,13 +224,17 @@ function recomputeAndRender() {
 
 // Wire central ProjectStore & Typed Application Event/Command Bus once before bootstrapping
 projectStore.subscribe(renderWorkspaceViews);
+appBus.on('ui:toast', ({ msg, opts }) => showToast(msg, opts ?? null));
+appBus.on('codeblock:spotlight', ({ blockId }) => setSpotlightBlock(blockId));
 appBus.on('history:push', () => pushUndoState());
 appBus.on('history:undo', () => { void performUndo(); });
 appBus.on('history:updateButtons', () => updateHistoryButtons());
 appBus.on('modal:openComponentInfo', ({ compId }) => openComponentInfo(compId));
 appBus.on('modal:openBlockInfo', ({ type }) => openBlockInfoLazy(type));
 appBus.on('modal:openBlocksOverview', () => openBlocksOverviewLazy());
-appBus.on('modal:updateInfoDocLink', ({ def }) => updateInfoModalDocLink(def));
+appBus.on('modal:updateInfoDocLink', ({ def }) => {
+  if (!$('#compInfoModal')?.classList.contains('hidden')) updateInfoModalDocLink(def);
+});
 appBus.on('tooltip:showPin', ({ pinId, ev }) => showPinTooltip(pinId, ev));
 appBus.on('tooltip:showCustom', ({ html, ev }) => showCustomTooltip(html, ev));
 appBus.on('tooltip:move', ({ ev }) => moveTooltip(ev));

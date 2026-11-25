@@ -29,16 +29,28 @@ export interface OnboardDef {
   [key: string]: any;
 }
 
+export type PinTier = 'required' | 'optional' | 'config' | 'unused';
+export type PowerRailChoice = '3V3' | '5V';
+
+export interface I2CAddrOption {
+  addr: string;
+  configPin?: string;
+  tieTo?: 'GND' | 'VCC' | 'NONE';
+  note?: string;
+}
+
 export interface ComponentPinSpec {
   id: string;
   label?: string;
   role?: string;
+  tier?: PinTier;
   color?: string;
   selectable?: boolean;
   fixedPin?: string;
   defaultPin?: string;
   allowedTypes?: string[];
   preferred?: string[];
+  codeKey?: string;
   note?: string;
   [key: string]: any;
 }
@@ -62,8 +74,10 @@ export interface ComponentDef {
   topic?: string;
   interface: string;
   voltage?: string;
+  supportedRails?: PowerRailChoice[];
   i2cAddr?: string | null;
   secondI2cAddr?: string | null;
+  i2cAddrOptions?: I2CAddrOption[];
   sram?: number;
   currentMa?: number;
   i2cHeaderSelectable?: boolean;

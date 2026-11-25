@@ -52,6 +52,6 @@
   <text x="67.0" y="135" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">SCL</text>
   <g data-pin="SDA" class="comp-pad"><circle cx="88.5" cy="146.0" r="5.2" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="88.5" cy="146.0" r="2.6" fill="#1e293b"/></g>
   <text x="88.5" y="135" fill="#ffffff" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">SDA</text>
-  <g><circle cx="110.0" cy="146.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="110.0" cy="146.0" r="2.6" fill="#1e293b"/></g>
+  <g data-pin="IN" class="comp-pad comp-pad-optional"><circle cx="110.0" cy="146.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="110.0" cy="146.0" r="2.6" fill="#1e293b"/></g>
   <text x="110.0" y="135" fill="#7dd3fc" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">IN</text>
 </svg>

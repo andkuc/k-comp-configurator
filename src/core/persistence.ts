@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Undo/Redo History, Canonical ProjectDocument v1 (.kcomp.json), Compressed #cfg= Links & Lab Presets
-import type { ProjectDocument } from '../types';
+// Undo/Redo History, Multi-Node ProjectDocument v1 (.kcomp.json), Compressed #cfg= Links & Lab Presets
+import type { ActiveComponentInstance, PresetDef, ProjectDocument, ProjectNode } from '../types';
 import { MAX_HISTORY, APP_VERSION, COPYRIGHT_AUTHOR, CONFIGURATOR_REPO_URL } from './constants';
 import {
   state, $, getCleanProjectName, getProjectSlug, syncProjectNameUI,
-  showToast, isMobileViewport, setMobileView, loadComponentSvg, syncWorkbenchToggles, syncAutoSaveUI, getActiveOnboardDefs
+  isMobileViewport, setMobileView, loadComponentSvg, syncWorkbenchToggles, getActiveOnboardDefs
 } from './state';
 import { getCompDef, addComponent } from './hardware';
 import { t, tPreset } from '../i18n/index';
@@ -18,88 +18,102 @@ import {
   encodeDocumentToHashPayload,
   validateProjectDocument
 } from './document';
-import { appBus } from '../store/bus';
+import { appBus, type ToastOptions } from '../store/bus';
+import { nodeGraphStore } from '../store/nodes';
+import { DEFAULT_NODE_ID, uiSessionStore } from '../store/ui-session';
+
+function notifyToast(msg: string, opts: ToastOptions | null = null): void {
+  appBus.emit('ui:toast', { msg, opts });
+}
 
 export function captureSnapshot(): string {
   return JSON.stringify(serializeProjectDocument());
 }
 
-export function pushUndoState() {
+export function pushUndoState(): void {
   state.undoStack.push(captureSnapshot());
   if (state.undoStack.length > MAX_HISTORY) state.undoStack.shift();
   state.redoStack = [];
   updateHistoryButtons();
 }
 
-export function updateHistoryButtons() {
-  const u = $('#btnUndo');
-  const r = $('#btnRedo');
+export function updateHistoryButtons(): void {
+  const u = $('#btnUndo') as HTMLButtonElement | null;
+  const r = $('#btnRedo') as HTMLButtonElement | null;
   if (u) u.disabled = state.undoStack.length === 0;
   if (r) r.disabled = state.redoStack.length === 0;
 }
 
-export async function restoreSnapshot(snapJson: string) {
+export async function restoreSnapshot(snapJson: string): Promise<void> {
   const doc = validateProjectDocument(JSON.parse(snapJson));
   await applyProjectDocument(doc, false);
   updateHistoryButtons();
 }
 
-export async function performUndo() {
+export async function performUndo(): Promise<void> {
   if (!state.undoStack.length) return;
   state.redoStack.push(captureSnapshot());
   const prev = state.undoStack.pop();
   if (prev) await restoreSnapshot(prev);
-  showToast(t('toast.undo'));
+  notifyToast(t('toast.undo'));
 }
 
-export async function performRedo() {
+export async function performRedo(): Promise<void> {
   if (!state.redoStack.length) return;
   state.undoStack.push(captureSnapshot());
   const next = state.redoStack.pop();
   if (next) await restoreSnapshot(next);
-  showToast(t('toast.redo'));
+  notifyToast(t('toast.redo'));
+}
+
+function buildActiveNodeSnapshot(): ProjectNode {
+  const board = getActiveBoard();
+  const profile = normalizeCodeProfile(state.codeProfile, board);
+  const activeNodeId = uiSessionStore.getActiveNodeId() || DEFAULT_NODE_ID;
+
+  return {
+    id: activeNodeId,
+    boardId: board.id,
+    codeProfile: profile,
+    carrierId: board.carrier && state.carrierEnabled ? board.carrier.id : null,
+    powerDistribution: state.powerRailMode === 'rail' ? 'rail' : 'smart',
+    onboard: { ...state.onboard },
+    oledPaged: Boolean(state.oledPaged),
+    modules: state.active.map((i) => ({
+      compId: i.compId,
+      i2cHeader: i.i2cHeader || null,
+      ...(i.i2cAddrOverride ? { i2cAddrOverride: i.i2cAddrOverride } : {}),
+      pinMap: { ...i.pinMap },
+      ...(i.attachments && Object.keys(i.attachments).length ? { attachments: { ...i.attachments } } : {}),
+      position: i.customPos
+        ? {
+            x: Math.round(i.customPos.x),
+            y: Math.round(i.customPos.y),
+            ...(i.customPos.w ? { w: Math.round(i.customPos.w) } : {}),
+            ...(i.customPos.h ? { h: Math.round(i.customPos.h) } : {})
+          }
+        : null,
+      rotation: i.rotation || 0
+    })),
+    codeBlocks: (state.codeBlocks || []).map((b) => ({
+      type: b.type,
+      config: { ...(b.config || {}) }
+    }))
+  };
 }
 
 export function serializeProjectDocument(): ProjectDocument {
-  const board = getActiveBoard();
-  const profile = normalizeCodeProfile(state.codeProfile, board);
   const prop = hasProposalContent(state.proposal) ? cloneProposal(state.proposal) : undefined;
+  const activeNode = buildActiveNodeSnapshot();
+  const allNodes = nodeGraphStore.mergeActiveNodeIntoList(activeNode);
+  const links = nodeGraphStore.getLinks();
 
   return {
     schema: PROJECT_SCHEMA_ID,
     appVersion: APP_VERSION,
     name: getCleanProjectName(),
-    nodes: [
-      {
-        id: 'node_0',
-        boardId: board.id,
-        codeProfile: profile,
-        carrierId: board.carrier && state.carrierEnabled ? board.carrier.id : null,
-        powerDistribution: state.powerRailMode === 'rail' ? 'rail' : 'smart',
-        onboard: { ...state.onboard },
-        oledPaged: Boolean(state.oledPaged),
-        modules: state.active.map((i) => ({
-          compId: i.compId,
-          i2cHeader: i.i2cHeader || null,
-          pinMap: { ...i.pinMap },
-          ...(i.attachments && Object.keys(i.attachments).length ? { attachments: { ...i.attachments } } : {}),
-          position: i.customPos
-            ? {
-                x: Math.round(i.customPos.x),
-                y: Math.round(i.customPos.y),
-                ...(i.customPos.w ? { w: Math.round(i.customPos.w) } : {}),
-                ...(i.customPos.h ? { h: Math.round(i.customPos.h) } : {})
-              }
-            : null,
-          rotation: i.rotation || 0
-        })),
-        codeBlocks: (state.codeBlocks || []).map((b) => ({
-          type: b.type,
-          config: { ...(b.config || {}) }
-        }))
-      }
-    ],
-    links: [],
+    nodes: allNodes,
+    links,
     ...(prop ? { proposal: prop } : {}),
     uiPrefs: {
       wireMode: state.wireMode === 'curved' ? 'curved' : 'smart',
@@ -109,10 +123,14 @@ export function serializeProjectDocument(): ProjectDocument {
   };
 }
 
-export async function applyProjectDocument(rawDoc: unknown, pushHistory = true) {
+export async function applyProjectDocument(rawDoc: unknown, pushHistory = true): Promise<void> {
   const doc = validateProjectDocument(rawDoc);
   const primaryNode = doc.nodes[0];
   if (pushHistory) pushUndoState();
+
+  // Preserve entire multi-node graph (secondary nodes & inter-node links) in central store
+  nodeGraphStore.syncFromDocument(doc);
+  uiSessionStore.setActiveNodeId(primaryNode.id || DEFAULT_NODE_ID);
 
   const resolvedBoardId = getBoardById(primaryNode.boardId) ? primaryNode.boardId : DEFAULT_BOARD_ID;
   if (resolvedBoardId !== state.boardId) {
@@ -125,7 +143,7 @@ export async function applyProjectDocument(rawDoc: unknown, pushHistory = true) 
   setActiveCarrierEnabled(state.carrierEnabled);
   state.powerRailMode = primaryNode.powerDistribution === 'rail' ? 'rail' : 'smart';
 
-  const validActive = [];
+  const validActive: ActiveComponentInstance[] = [];
   for (const m of primaryNode.modules) {
     const def = getCompDef(m.compId);
     if (!def) continue;
@@ -134,6 +152,7 @@ export async function applyProjectDocument(rawDoc: unknown, pushHistory = true) 
       instanceId: 'inst_' + state.nextInst++,
       compId: m.compId,
       i2cHeader: m.i2cHeader || null,
+      i2cAddrOverride: m.i2cAddrOverride || null,
       pinMap: { ...m.pinMap },
       attachments: m.attachments ? { ...m.attachments } : {},
       customPos: m.position ? { ...m.position } : null,
@@ -169,7 +188,7 @@ export async function applyProjectDocument(rawDoc: unknown, pushHistory = true) 
   appBus.emit('workspace:recompute');
 }
 
-export function saveProjectFile() {
+export function saveProjectFile(): void {
   const doc: ProjectDocument = {
     ...serializeProjectDocument(),
     meta: {
@@ -187,10 +206,10 @@ export function saveProjectFile() {
   a.download = fname;
   a.click();
   URL.revokeObjectURL(url);
-  showToast(t('toast.saved', { file: fname }));
+  notifyToast(t('toast.saved', { file: fname }));
 }
 
-export async function shareConfigLink() {
+export async function shareConfigLink(): Promise<void> {
   try {
     const encoded = await encodeDocumentToHashPayload(serializeProjectDocument());
     const base = window.location.href.split('#')[0];
@@ -198,13 +217,13 @@ export async function shareConfigLink() {
     try { window.history.replaceState(null, '', `#cfg=${encoded}`); } catch (_) {}
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(fullUrl);
-      showToast(t('toast.shareCopied'));
+      notifyToast(t('toast.shareCopied'));
     } else {
       window.prompt(t('toast.sharePrompt'), fullUrl);
     }
   } catch (err) {
     console.error(err);
-    showToast(t('toast.shareError'));
+    notifyToast(t('toast.shareError'));
   }
 }
 
@@ -214,7 +233,7 @@ export async function tryLoadFromUrlHash(): Promise<boolean> {
   try {
     const doc = await decodeDocumentFromHashPayload(hash.slice(5));
     await applyProjectDocument(doc, false);
-    showToast(t('toast.loadedShare'));
+    notifyToast(t('toast.loadedShare'));
     return true;
   } catch (err) {
     console.warn('Invalid #cfg hash ignored:', err);
@@ -225,19 +244,19 @@ export async function tryLoadFromUrlHash(): Promise<boolean> {
 const AUTOSAVE_KEY = 'kcomp_autosave_v1';
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function clearAutoSaveDraft() {
+export function clearAutoSaveDraft(): void {
   try { localStorage.removeItem(AUTOSAVE_KEY); } catch (_) {}
 }
 
-export function scheduleAutoSave(immediate = false) {
+export function scheduleAutoSave(immediate = false): void {
   if (!state.bootComplete || !state.autoSaveEnabled) return;
-  clearTimeout(autoSaveTimer as any);
-  const write = () => {
+  if (autoSaveTimer !== null) clearTimeout(autoSaveTimer);
+  const write = (): void => {
     try {
       const doc = serializeProjectDocument();
       const node = doc.nodes[0];
       const hasAnyOnboard = Object.values(node.onboard).some((v) => v === true);
-      const isEmpty = !node.modules.length && !node.codeBlocks.length && !doc.name && !hasAnyOnboard && !doc.proposal;
+      const isEmpty = doc.nodes.length <= 1 && !node.modules.length && !node.codeBlocks.length && !doc.name && !hasAnyOnboard && !doc.proposal;
       if (isEmpty) localStorage.removeItem(AUTOSAVE_KEY);
       else localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(doc));
     } catch (_) {}
@@ -254,7 +273,7 @@ export async function tryLoadFromAutoSave(): Promise<boolean> {
     const doc = validateProjectDocument(JSON.parse(raw));
     const node = doc.nodes[0];
     const hasAnyOnboard = Object.values(node.onboard).some((v) => v === true);
-    if (!node.modules.length && !node.codeBlocks.length && !doc.name && !hasAnyOnboard && !doc.proposal) {
+    if (doc.nodes.length <= 1 && !node.modules.length && !node.codeBlocks.length && !doc.name && !hasAnyOnboard && !doc.proposal) {
       return false;
     }
     await applyProjectDocument(doc, false);
@@ -264,11 +283,24 @@ export async function tryLoadFromAutoSave(): Promise<boolean> {
   }
 }
 
-export function resetToNewDesign(opts: any = {}) {
+export interface ResetDesignOptions {
+  skipUndo?: boolean;
+  silent?: boolean;
+}
+
+export function resetToNewDesign(opts: ResetDesignOptions = {}): void {
   const anyOnboardOn = Object.values(state.onboard || {}).some((v) => v === true);
-  const hasAnything = state.active.length || state.codeBlocks.length || state.projectName.trim() || anyOnboardOn || hasProposalContent(state.proposal);
+  const hasAnything = Boolean(
+    state.active.length ||
+    state.codeBlocks.length ||
+    state.projectName.trim() ||
+    anyOnboardOn ||
+    hasProposalContent(state.proposal)
+  );
   if (!opts.skipUndo && hasAnything) pushUndoState();
 
+  nodeGraphStore.reset();
+  uiSessionStore.setActiveNodeId(DEFAULT_NODE_ID);
   state.active = [];
   state.codeBlocks = [];
   state.editingBlockId = null;
@@ -292,16 +324,16 @@ export function resetToNewDesign(opts: any = {}) {
   appBus.emit('viewport:resetFit');
   appBus.emit('workspace:recompute');
   if (!opts.silent) {
-    showToast(t('toast.newDesign'), hasAnything ? { actionLabel: t('toast.undoBtn'), onAction: () => performUndo() } : null);
+    notifyToast(t('toast.newDesign'), hasAnything ? { actionLabel: t('toast.undoBtn'), onAction: () => { void performUndo(); } } : null);
   }
 }
 
-export function getPresetsForBoard(boardId: string = getActiveBoard().id) {
+export function getPresetsForBoard(boardId: string = getActiveBoard().id): PresetDef[] {
   return (state.catalog?.presets || []).filter((p) => (p.boardId || DEFAULT_BOARD_ID) === boardId);
 }
 
-export function populatePresets() {
-  const sel = $('#presetSelect');
+export function populatePresets(): void {
+  const sel = $('#presetSelect') as HTMLSelectElement | null;
   if (!sel || !state.catalog) return;
   const presets = getPresetsForBoard(getActiveBoard().id);
   sel.innerHTML = `<option value="">${t('topbar.loadPreset')}</option>`;
@@ -313,8 +345,8 @@ export function populatePresets() {
   }
 }
 
-export async function loadPreset(presetId: string) {
-  const p = state.catalog.presets.find((x) => x.id === presetId);
+export async function loadPreset(presetId: string): Promise<void> {
+  const p = state.catalog?.presets.find((x) => x.id === presetId);
   if (!p) return;
   pushUndoState();
 
@@ -324,6 +356,8 @@ export async function loadPreset(presetId: string) {
   }
 
   const board = getActiveBoard();
+  nodeGraphStore.reset();
+  uiSessionStore.setActiveNodeId(DEFAULT_NODE_ID);
   state.active = [];
   state.focusedId = null;
   state.powerRailMode = 'smart';
@@ -343,8 +377,8 @@ export async function loadPreset(presetId: string) {
   if (isMobileViewport()) setMobileView('board');
   appBus.emit('viewport:resetFit');
   appBus.emit('workspace:recompute');
-  showToast(t('toast.presetLoaded', { name: state.projectName }), {
+  notifyToast(t('toast.presetLoaded', { name: state.projectName }), {
     actionLabel: t('toast.undoBtn'),
-    onAction: () => performUndo()
+    onAction: () => { void performUndo(); }
   });
 }

@@ -1,6 +1,6 @@
 # K-Comp Configurator
 
-**Version `0.3.2`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
+**Version `0.3.6`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
 
 The application runs 100% client-side with zero runtime backend dependencies, lazy-loaded reference/locale chunks, and automated GitHub Actions CI & Pages deployment.
 
@@ -67,7 +67,7 @@ k-comp-configurator/
     ├── i18n/                         # Pluggable locale registry (EN + lazy DE/SQ chunks)
     ├── styles/                       # 8 ordered modular CSS partials + style.css manifest
     ├── ui/                           # Modular workbench/, modals/, charter, inspector, api-browser
-    └── __tests__/                    # 8 Vitest unit & repository integrity suites
+    └── __tests__/                    # 10 Vitest unit, integrity & architecture suites
 ```
 
 ---
@@ -78,8 +78,9 @@ Prerequisites: **Node.js 20+** (LTS recommended).
 
 ```bash
 npm install
-npm test                  # Run all 8 Vitest test & integrity suites
-npm run typecheck:strict  # Run strict TypeScript check on domain/types/boards/services
+npm test                  # Run all 10 Vitest unit, integrity & architecture suites
+npm run check:arch        # Verify layered boundaries, acyclic DAG & SPDX headers
+npm run typecheck:strict  # Run strict TypeScript check across 70+ core/store/services/workspace/UI files
 npm run build             # Full typecheck + strict check + code-split production build in dist/
 npm run dev               # Start local Vite dev server with hot reload
 ```

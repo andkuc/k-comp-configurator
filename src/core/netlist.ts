@@ -61,7 +61,8 @@ export function deriveElectricalNetlist(input: DeriveNetlistInput): ElectricalNe
     for (const p of def.pins) {
       const bpId = inst.pinMap[p.id];
       if (!bpId) {
-        if (p.selectable) {
+        const isOpt = p.tier === 'optional' || p.tier === 'config' || p.tier === 'unused';
+        if (p.selectable && !isOpt) {
           unconnectedPins.push({
             instanceId: inst.instanceId,
             compId: inst.compId,

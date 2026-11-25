@@ -6,7 +6,8 @@ import type { PinAttachment } from '../../types';
 import { state, $, escapeHtml, isLightTheme, getNetMeta, showToast, isMobileViewport } from '../../core/state';
 import {
   getCompDef, getDisplayLabel, getSuitableBoardPins, applyI2CHeaderMapping,
-  autoConnectPendingPins, computeUartAssignments, getPinUsageCounts
+  autoConnectPendingPins, computeUartAssignments, getPinUsageCounts,
+  deactivateOptionalPin, isOptionalPin, moduleSupportsDualPower
 } from '../../core/hardware';
 import { renderBreadboardActiveRails, allocateBreadboardRails, getBreadboardDropTarget } from '../../core/breadboard';
 import {
@@ -98,6 +99,18 @@ export function startWireDrag(ev, meta) {
           i2cHeader: hk,
           label: t('drag.i2cHeader', { hk }),
           shortLabel: bpId === mainPin ? hk : '',
+          masterPt: boardToMaster(raw.x, raw.y)
+        });
+      }
+    }
+    // Dual-voltage I2C modules can also drag VCC/VIN directly to 3.3V (keeping SDA/SCL/GND on the header!)
+    if (pSpec.role === 'I2C_VCC' && moduleSupportsDualPower(def)) {
+      for (const [bpId, raw] of Object.entries(board.pins)) {
+        if (raw.blocked || !(raw.caps || []).includes('3V3')) continue;
+        validTargets.push({
+          boardPinId: bpId,
+          label: raw.label || bpId,
+          shortLabel: bpId.replace('PWR_', ''),
           masterPt: boardToMaster(raw.x, raw.y)
         });
       }
@@ -496,11 +509,15 @@ export function renderWiresAndHandles(dragInstId = null, dragDx = 0, dragDy = 0,
       const net = getNetMeta(bpId);
       const isUartSignal = p.role === 'UART_RX' || p.role === 'UART_TX';
       const uartInfo = isUartSignal ? (uartAssigns[box.inst.instanceId] || null) : null;
+      const isPowerPin = p.role === 'POWER_5V' || p.role === 'POWER_3V3' || p.role === 'I2C_VCC';
+      const powerRailCol = isPowerPin
+        ? (net.id === 'NET_3V3' ? '#fb923c' : (net.id === 'NET_5V' ? '#ef4444' : p.color))
+        : p.color;
       const wireColor = uartInfo
         ? (uartInfo.kind === 'hw'
             ? (p.role === 'UART_RX' ? '#06b6d4' : '#0ea5e9')
             : (p.role === 'UART_RX' ? '#c084fc' : '#f59e0b'))
-        : p.color;
+        : powerRailCol;
       const wireDash = (uartInfo && uartInfo.kind === 'sw') ? '6,3.5' : null;
       const attachment = box.inst.attachments?.[p.id] || null;
       const forceBreadboard = attachment?.kind === 'board-breadboard';
@@ -856,6 +873,12 @@ export function renderWiresAndHandles(dragInstId = null, dragDx = 0, dragDy = 0,
         setHoveredNet(null);
         startWireDrag(ev, { instanceId: box.inst.instanceId, compPinId: p.id, startPt: start, exitX: routed.exitX, vertical: routed.vertical });
       });
+      if (isOptionalPin(p) && p.tier === 'optional') {
+        hG.addEventListener('dblclick', (ev: any) => {
+          ev.stopPropagation();
+          deactivateOptionalPin(box.inst.instanceId, p.id);
+        });
+      }
       hG.addEventListener('mouseenter', (ev: any) => {
         if (state.dragWire || state.dragComp || state.rotateComp) return;
         setHoveredNet(net.id);
@@ -863,7 +886,8 @@ export function renderWiresAndHandles(dragInstId = null, dragDx = 0, dragDy = 0,
         const viaStr = bbHole
           ? t('tip.wireHandleVia', { col: escapeHtml(bbHole.colName), hole: bbHole.holeNum, dest: escapeHtml(bLbl) })
           : t('tip.wireHandleDirect', { dest: escapeHtml(bLbl) });
-        appBus.emit('tooltip:showCustom', { html: `<strong>${escapeHtml(getDisplayLabel(def))} • ${escapeHtml(p.id)}</strong><br>${viaStr}<br><span class="tip-accent">${escapeHtml(t('tip.wireHandleDragHint'))}</span>`, ev: ev });
+        const optHint = isOptionalPin(p) && p.tier === 'optional' ? `<br><span class="tip-muted">${escapeHtml(t('tip.optPinDblClickOff'))}</span>` : '';
+        appBus.emit('tooltip:showCustom', { html: `<strong>${escapeHtml(getDisplayLabel(def))} • ${escapeHtml(p.id)}</strong><br>${viaStr}<br><span class="tip-accent">${escapeHtml(t('tip.wireHandleDragHint'))}</span>${optHint}`, ev: ev });
       });
       hG.addEventListener('mousemove', (ev: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev: ev }); });
       hG.addEventListener('mouseleave', () => {

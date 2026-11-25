@@ -29,9 +29,9 @@
   <rect x="134" y="72" width="16" height="10" rx="1" fill="#0f172a" stroke="#334155" stroke-width="0.6"/><rect x="136" y="69" width="3" height="3" fill="#cbd5e1"/><rect x="145" y="69" width="3" height="3" fill="#cbd5e1"/><rect x="140.5" y="82" width="3" height="3" fill="#cbd5e1"/><text x="142" y="79" fill="#cbd5e1" font-family="monospace" font-size="4.5" text-anchor="middle">LG33</text>
   <rect x="24" y="68" width="12" height="6" rx="1" fill="#cbd5e1"/><rect x="26.5" y="68" width="7" height="6" fill="#0f172a"/><text x="30.0" y="72.4" fill="#e2e8f0" font-family="monospace" font-size="4.6" text-anchor="middle">331</text>
   <rect x="84" y="102" width="12" height="6" rx="1" fill="#cbd5e1"/><rect x="86.5" y="102" width="7" height="6" fill="#0f172a"/><text x="90.0" y="106.4" fill="#e2e8f0" font-family="monospace" font-size="4.6" text-anchor="middle">103</text>
-  <g><circle cx="26.0" cy="148.0" r="5.4" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="148.0" r="2.8" fill="#1e293b"/></g>
+  <g data-pin="LED" class="comp-pad comp-pad-optional"><circle cx="26.0" cy="148.0" r="5.4" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="148.0" r="2.8" fill="#1e293b"/></g>
   <text x="26" y="136" fill="#c084fc" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">LED</text>
-  <g><circle cx="47.0" cy="148.0" r="5.4" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="47.0" cy="148.0" r="2.8" fill="#1e293b"/></g>
+  <g data-pin="INT" class="comp-pad comp-pad-optional"><circle cx="47.0" cy="148.0" r="5.4" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="47.0" cy="148.0" r="2.8" fill="#1e293b"/></g>
   <text x="47" y="136" fill="#c084fc" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">INT</text>
   <g data-pin="SDA" class="comp-pad"><circle cx="68.0" cy="148.0" r="5.4" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="68.0" cy="148.0" r="2.8" fill="#1e293b"/></g>
   <text x="68" y="136" fill="#fde047" font-family="monospace" font-size="6.8" font-weight="bold" text-anchor="middle">SDA</text>

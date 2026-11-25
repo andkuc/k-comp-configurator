@@ -218,6 +218,20 @@ export function buildSketchModel(dipStates) {
 
     (c.includes || []).forEach((i) => pushInclude(i, null, hwId));
     (c.defines || []).forEach((d) => pushDefine(resolveVars(d, inst, def, suffixStr, thisServoSlot), null, hwId));
+    if (inst.i2cAddrOverride && def.i2cAddr && inst.i2cAddrOverride !== def.i2cAddr) {
+      const mBase = def.id.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + suffixStr;
+      pushDefine(`#define ${mBase}_I2C_ADDR ${inst.i2cAddrOverride} // Configured via address pin`, null, hwId);
+    }
+    for (const optPin of def.pins) {
+      if (optPin.tier !== 'optional' || !inst.pinMap[optPin.id]) continue;
+      const bpId = inst.pinMap[optPin.id];
+      const pinVal = board.pins[bpId]?.pinNum || bpId;
+      const mBase = def.id.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + suffixStr;
+      const pMacro = `${mBase}_${optPin.id.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_PIN`;
+      pushDefine(`#define ${pMacro} ${pinVal} // Optional ${optPin.id}`, null, hwId);
+      const isOut = optPin.id === 'LED' || optPin.id === 'SET' || optPin.id === 'SDN' || optPin.role === 'PWM';
+      pushSetup(`pinMode(${pMacro}, ${isOut ? 'OUTPUT' : (optPin.role === 'INT' ? 'INPUT_PULLUP' : 'INPUT')}); // ${def.name} optional ${optPin.id}`, null, hwId);
+    }
     (c.globals || []).forEach((g) => pushGlobal(resolveVars(g, inst, def, suffixStr, thisServoSlot), null, hwId));
     (c.setup || []).forEach((s) => pushSetup(resolveVars(s, inst, def, suffixStr, thisServoSlot), null, hwId));
     (c.loop || []).forEach((l) => pushHwLoop(resolveVars(l, inst, def, suffixStr, thisServoSlot), null, hwId));

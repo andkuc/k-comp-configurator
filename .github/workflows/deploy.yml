@@ -32,7 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run unit tests
+      - name: Verify architecture boundaries & module DAG
+        run: npm run check:arch
+
+      - name: Run unit & integrity tests
         run: npm test
 
       - name: Typecheck and build production bundle

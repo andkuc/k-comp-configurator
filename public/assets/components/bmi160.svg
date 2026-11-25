@@ -49,9 +49,9 @@
   <text x="89" y="196" fill="#e9d5ff" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="middle">GY-BMI160 (0x69)</text>
   <g><circle cx="26.0" cy="56.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="56.0" r="2.7" fill="#1e293b"/></g>
   <text x="35" y="58.8" fill="#a78bfa" font-family="monospace" font-size="7.2">OCS</text>
-  <g><circle cx="26.0" cy="79.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="79.0" r="2.7" fill="#1e293b"/></g>
+  <g data-pin="INT2" class="comp-pad comp-pad-optional"><circle cx="26.0" cy="79.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="79.0" r="2.7" fill="#1e293b"/></g>
   <text x="35" y="81.8" fill="#a78bfa" font-family="monospace" font-size="7.2">INT2</text>
-  <g><circle cx="26.0" cy="102.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="102.0" r="2.7" fill="#1e293b"/></g>
+  <g data-pin="INT1" class="comp-pad comp-pad-optional"><circle cx="26.0" cy="102.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="102.0" r="2.7" fill="#1e293b"/></g>
   <text x="35" y="104.8" fill="#a78bfa" font-family="monospace" font-size="7.2">INT1</text>
   <g><circle cx="26.0" cy="125.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="26.0" cy="125.0" r="2.7" fill="#1e293b"/></g>
   <text x="35" y="127.8" fill="#a78bfa" font-family="monospace" font-size="7.2">SCX</text>
@@ -69,6 +69,6 @@
   <text x="140" y="128.8" fill="#fde047" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="end">SDA</text>
   <g><circle cx="150.0" cy="150.0" r="5.8" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="150.0" cy="150.0" r="3.0" fill="#1e293b"/></g>
   <text x="140" y="152.8" fill="#94a3b8" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="end">CS</text>
-  <g><circle cx="150.0" cy="174.0" r="5.8" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="150.0" cy="174.0" r="3.0" fill="#1e293b"/></g>
+  <g data-pin="SAO" class="comp-pad comp-pad-optional"><circle cx="150.0" cy="174.0" r="5.8" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="150.0" cy="174.0" r="3.0" fill="#1e293b"/></g>
   <text x="140" y="176.8" fill="#94a3b8" font-family="monospace" font-size="7.2" font-weight="bold" text-anchor="end">SAO</text>
 </svg>

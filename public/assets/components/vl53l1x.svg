@@ -33,7 +33,7 @@
   <text x="88.8" y="111" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">SDA</text>
   <g data-pin="SCL" class="comp-pad"><circle cx="107.2" cy="122.0" r="5.2" fill="url(#goldPad)" stroke="#92400e" stroke-width="1"/><circle cx="107.2" cy="122.0" r="2.7" fill="#1e293b"/></g>
   <text x="107.2" y="111" fill="#ffffff" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">SCL</text>
-  <g><circle cx="125.6" cy="122.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="125.6" cy="122.0" r="2.7" fill="#1e293b"/></g>
+  <g data-pin="INT" class="comp-pad comp-pad-optional"><circle cx="125.6" cy="122.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="125.6" cy="122.0" r="2.7" fill="#1e293b"/></g>
   <text x="125.6" y="111" fill="#71717a" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">INT</text>
   <g><circle cx="144.0" cy="122.0" r="5.2" fill="#94a3b8" stroke="#64748b" stroke-width="1"/><circle cx="144.0" cy="122.0" r="2.7" fill="#1e293b"/></g>
   <text x="144.0" y="111" fill="#71717a" font-family="monospace" font-size="6.2" font-weight="bold" text-anchor="middle">SHUT</text>

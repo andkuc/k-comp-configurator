@@ -54,6 +54,7 @@ export interface ProjectProposal {
 export interface PlacedModuleRecord {
   compId: string;
   i2cHeader?: string | null;
+  i2cAddrOverride?: string | null;
   pinMap: Record<string, string | null>;
   attachments?: Record<string, PinAttachment>;
   position?: { x: number; y: number; w?: number; h?: number } | null;

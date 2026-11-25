@@ -29,7 +29,7 @@ export function exportMasterSvg() {
   const clone = svg.cloneNode(true);
   clone.setAttribute('width', String(Math.round(bounds.w)));
   clone.setAttribute('height', String(Math.round(bounds.h)));
-  clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
+  clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .opt-pin-pad, .wire-hit-path').forEach((n) => n.remove());
 
   // Inject Inkscape-safe Dublin Core / RDF authorship metadata (zero <filter> tags)
   const boardTitle = getActiveBoard().shortName;

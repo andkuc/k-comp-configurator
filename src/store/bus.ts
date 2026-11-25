@@ -13,6 +13,12 @@ import type {
   WarningItem
 } from '../types';
 
+export interface ToastOptions {
+  actionLabel?: string;
+  onAction?: () => void;
+  duration?: number;
+}
+
 export interface DerivedWorkspace {
   board: BoardProfile;
   dipStates: DipSwitchState[];
@@ -26,6 +32,10 @@ export interface DerivedWorkspace {
 export interface AppEventMap {
   'workspace:recompute': void;
   'workspace:updated': DerivedWorkspace;
+  'workspace:changed': { workspaceId: string; previousId: string };
+  'node:changed': { nodeId: string; previousNodeId: string };
+  'ui:toast': { msg: string; opts?: ToastOptions | null };
+  'codeblock:spotlight': { blockId: string | null };
   'history:push': void;
   'history:undo': void;
   'history:updateButtons': void;

@@ -164,9 +164,25 @@ export function buildGenericScaffoldForComponent(
     return { includes, defines, globals, setup, loop, usedFallback: true, compat };
   }
 
+  const appendActiveOptionalPins = (): void => {
+    for (const p of def.pins) {
+      if (p.tier !== 'optional') continue;
+      if (!inst.pinMap?.[p.id]) continue;
+      const pMacro = `${macroBase}_${toMacroPrefix(p.id)}_PIN`;
+      defines.push(`#define ${pMacro} ${getPinVal(p)}`);
+      if (p.role === 'INT') {
+        setup.push(`pinMode(${pMacro}, INPUT_PULLUP); // Optional ${p.id} interrupt (${def.name})`);
+      } else if (p.id === 'LED' || p.id === 'SET' || p.id === 'SDN' || p.role === 'PWM') {
+        setup.push(`pinMode(${pMacro}, OUTPUT); // Optional ${p.id} control (${def.name})`);
+      } else {
+        setup.push(`pinMode(${pMacro}, INPUT); // Optional ${p.id} signal (${def.name})`);
+      }
+    }
+  };
+
   if (def.interface === 'I2C') {
     includes.push('#include <Wire.h>');
-    const addr = def.i2cAddr || '0x00';
+    const addr = inst.i2cAddrOverride || def.i2cAddr || '0x00';
     const addrMacro = `${macroBase}_ADDR`;
     defines.push(`#define ${addrMacro} ${addr}`);
     setup.push(`Wire.beginTransmission(${addrMacro});`);
@@ -174,6 +190,7 @@ export function buildGenericScaffoldForComponent(
     setup.push(`  Serial.println("${def.name} (${addr}) not found on I2C bus!");`);
     setup.push(`  while (1) { delay(10); }`);
     setup.push(`}`);
+    appendActiveOptionalPins();
     loop.push(`// TODO: Read/control ${def.name} over I2C (${addrMacro})`);
     return { includes, defines, globals, setup, loop, usedFallback: true, compat };
   }
@@ -198,10 +215,12 @@ export function buildGenericScaffoldForComponent(
       setup.push(`${serialObj}.begin(${baud}, SERIAL_8N1, ${rxPinSpec ? rxMacro : '-1'}, ${txPinSpec ? txMacro : '-1'}); // ${def.name} (${uartAssign?.badgeLabel || 'HW-UART1'})`);
       loop.push(`// if (${serialObj}.available()) { uint8_t b = ${serialObj}.read(); } // ${def.name} (${uartAssign?.badgeLabel || 'HW-UART1'})`);
     }
+    appendActiveOptionalPins();
     return { includes, defines, globals, setup, loop, usedFallback: true, compat };
   }
 
   const signalPins = def.pins.filter((p) =>
+    p.tier !== 'optional' && p.tier !== 'config' && p.tier !== 'unused' &&
     !['GND', 'POWER_5V', 'POWER_3V3', 'RESET', 'I2C_VCC', 'I2C_GND', 'I2C_SCL', 'I2C_SDA', 'SLOT'].includes(p.role || '')
   );
 
@@ -222,6 +241,7 @@ export function buildGenericScaffoldForComponent(
       setup.push(`pinMode(${pMacro}, ${mode}); // ${def.name} (${p.id})`);
     }
   }
+  appendActiveOptionalPins();
   if (!loop.length) loop.push(`// TODO: Poll or drive ${def.name}`);
   return { includes, defines, globals, setup, loop, usedFallback: true, compat };
 }

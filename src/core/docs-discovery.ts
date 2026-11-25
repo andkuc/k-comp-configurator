@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Live GitHub docs/ModuleDocumentation PDF Auto-Discovery (andkuc/k-comp)
-import { state, $ } from './state';
+// Headless Live GitHub docs/ModuleDocumentation PDF Auto-Discovery (andkuc/k-comp, Zero DOM)
+import { state } from './state';
 import { appBus } from '../store/bus';
 
 export interface RepoPdfEntry {
@@ -155,7 +155,7 @@ export async function discoverRepoDocumentationPdfs(): Promise<void> {
   matchComponentDocs(pdfEntries);
   state.repoDocsLoaded = true;
 
-  if (state.openInfoCompId && !$('#compInfoModal')?.classList.contains('hidden')) {
+  if (state.openInfoCompId) {
     const def = catalog.components.find((c) => c.id === state.openInfoCompId);
     if (def) appBus.emit('modal:updateInfoDocLink', { def });
   }

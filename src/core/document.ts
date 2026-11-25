@@ -131,6 +131,7 @@ export function validateProjectDocument(raw: unknown): ProjectDocument {
             return {
               compId: String(m.compId),
               i2cHeader: typeof m.i2cHeader === 'string' ? m.i2cHeader : null,
+              ...(typeof m.i2cAddrOverride === 'string' && m.i2cAddrOverride ? { i2cAddrOverride: m.i2cAddrOverride } : {}),
               pinMap: m.pinMap && typeof m.pinMap === 'object' ? { ...m.pinMap } : {},
               ...(Object.keys(attachments).length ? { attachments } : {}),
               position: m.position && typeof m.position === 'object' ? { ...m.position } : null,

@@ -9,6 +9,7 @@ export interface ActiveComponentInstance {
   instanceId: string;
   compId: string;
   i2cHeader: string | null;
+  i2cAddrOverride?: string | null;
   pinMap: Record<string, string | null>;
   attachments?: Record<string, PinAttachment>;
   customPos: { x: number; y: number; w?: number; h?: number } | null;
@@ -85,6 +86,9 @@ export interface SuitableBoardPin {
   dip: number | null;
   shared: boolean;
   usageCount: number;
+  strapping?: boolean;
+  adcChannel?: 'ADC1' | 'ADC2' | null;
+  isDefaultI2c?: boolean;
 }
 
 export interface PendingPinEntry {

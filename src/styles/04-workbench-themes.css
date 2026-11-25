@@ -564,9 +564,13 @@ html[data-theme="light"] .cat-item.added {
   background: #f0f9ff;
   border-color: #7dd3fc;
 }
-html[data-theme="light"] .cat-thumb {
-  background: #f1f5f9;
+html[data-theme="light"] .cat-thumb-stage {
+  background: #f8fafc;
   border-color: #e2e8f0;
+}
+html[data-theme="light"] .cat-thumb {
+  background: transparent;
+  border-color: transparent;
 }
 html[data-theme="light"] .cat-info-btn,
 html[data-theme="light"] .card-info-btn {

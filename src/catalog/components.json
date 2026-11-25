@@ -39,6 +39,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "SDO",
+          "label": "SDO (I2C Addr Select)",
+          "role": "POWER_3V3",
+          "tier": "config",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "3V3",
+            "5V",
+            "GND"
+          ],
+          "note": "Tie to VCC/3.3V to change I2C address from 0x76 to 0x77"
         }
       ],
       "warnings": [
@@ -80,10 +94,14 @@
         "SDA": [
           128,
           98
+        ],
+        "SDO": [
+          128,
+          146
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
-      "maxPerDesign": 1,
+      "maxPerDesign": 2,
       "friendlyName": "Pressure & Temp Sensor",
       "maxReason": "Uses fixed default I²C address 0x76 on the shared bus.",
       "studentInfo": {
@@ -108,7 +126,26 @@
         "bmp-280",
         "baromet"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ],
+      "secondI2cAddr": "0x77",
+      "i2cAddrOptions": [
+        {
+          "addr": "0x76",
+          "configPin": "SDO",
+          "tieTo": "NONE",
+          "note": "Default (SDO open / GND)"
+        },
+        {
+          "addr": "0x77",
+          "configPin": "SDO",
+          "tieTo": "VCC",
+          "note": "Alt address (SDO → VCC/3.3V)"
+        }
+      ]
     },
     {
       "id": "aht10",
@@ -214,7 +251,11 @@
         "aht-10",
         "aht20"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "max30102",
@@ -254,6 +295,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "INT",
+          "label": "INT (FIFO Interrupt)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#c084fc",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT",
+          "note": "Active-low data-ready / FIFO almost-full interrupt"
         }
       ],
       "warnings": [
@@ -296,6 +351,10 @@
         "SDA": [
           28,
           108
+        ],
+        "INT": [
+          28,
+          134
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -325,7 +384,11 @@
         "oximeter",
         "spo2"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "gy302",
@@ -365,6 +428,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "ADDR",
+          "label": "ADDR (I2C Addr Select)",
+          "role": "POWER_3V3",
+          "tier": "config",
+          "color": "#93c5fd",
+          "selectable": true,
+          "allowedTypes": [
+            "3V3",
+            "5V",
+            "GND"
+          ],
+          "note": "Tie to VCC/3.3V to change I2C address from 0x23 to 0x5C"
         }
       ],
       "warnings": [
@@ -406,10 +483,14 @@
         "SDA": [
           28,
           108
+        ],
+        "ADDR": [
+          28,
+          134
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
-      "maxPerDesign": 1,
+      "maxPerDesign": 2,
       "friendlyName": "Light Sensor (Lux)",
       "maxReason": "Default I²C address 0x23 (leave ADDR unconnected).",
       "studentInfo": {
@@ -433,7 +514,26 @@
         "gy-302",
         "bh1750"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ],
+      "secondI2cAddr": "0x5C",
+      "i2cAddrOptions": [
+        {
+          "addr": "0x23",
+          "configPin": "ADDR",
+          "tieTo": "NONE",
+          "note": "Default (ADDR open / GND)"
+        },
+        {
+          "addr": "0x5C",
+          "configPin": "ADDR",
+          "tieTo": "VCC",
+          "note": "Alt address (ADDR → VCC/3.3V)"
+        }
+      ]
     },
     {
       "id": "paj7620u2",
@@ -473,6 +573,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "INT",
+          "label": "INT (Gesture Interrupt)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#e879f9",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT",
+          "note": "Active-low interrupt triggered when a gesture is recognized"
         }
       ],
       "warnings": [
@@ -515,6 +629,10 @@
         "SDA": [
           26,
           103
+        ],
+        "INT": [
+          26,
+          128
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -542,7 +660,11 @@
         "paj7620u2",
         "gesture"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "bmi160",
@@ -582,6 +704,48 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "INT1",
+          "label": "INT1 (Motion Interrupt 1)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT1",
+          "note": "Configurable tap / step / any-motion interrupt output"
+        },
+        {
+          "id": "INT2",
+          "label": "INT2 (Motion Interrupt 2)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#818cf8",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT2",
+          "note": "Secondary IMU interrupt output"
+        },
+        {
+          "id": "SAO",
+          "label": "SAO (I2C Addr Select)",
+          "role": "GND",
+          "tier": "config",
+          "color": "#94a3b8",
+          "selectable": true,
+          "allowedTypes": [
+            "GND",
+            "3V3",
+            "5V"
+          ],
+          "note": "Tie to GND to change I2C address from 0x69 to 0x68"
         }
       ],
       "warnings": [
@@ -624,10 +788,22 @@
         "SDA": [
           150,
           126
+        ],
+        "INT1": [
+          26,
+          102
+        ],
+        "INT2": [
+          26,
+          79
+        ],
+        "SAO": [
+          150,
+          174
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
-      "maxPerDesign": 1,
+      "maxPerDesign": 2,
       "shortWarn": "Skip 3V3 pin between VIN & GND! Connect 5V to VIN.",
       "friendlyName": "Motion & Tilt Sensor (IMU)",
       "maxReason": "Default I²C address 0x69 (shares 0x69 with SPS-30 unless SAO→GND).",
@@ -655,7 +831,26 @@
         "gy-bmi160"
       ],
       "docExclude": [],
-      "knownDocPdf": "MotionSensor_BMI-160.pdf"
+      "knownDocPdf": "MotionSensor_BMI-160.pdf",
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ],
+      "secondI2cAddr": "0x68",
+      "i2cAddrOptions": [
+        {
+          "addr": "0x69",
+          "configPin": "SAO",
+          "tieTo": "NONE",
+          "note": "Default (SAO open / HIGH)"
+        },
+        {
+          "addr": "0x68",
+          "configPin": "SAO",
+          "tieTo": "GND",
+          "note": "Alt address (SAO → GND, avoids SPS-30 0x69)"
+        }
+      ]
     },
     {
       "id": "as7343",
@@ -763,7 +958,11 @@
         "as-7343",
         "spectrometer"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "as7331",
@@ -872,7 +1071,11 @@
         "uvsensor",
         "ultraviolet"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "sps30",
@@ -983,7 +1186,10 @@
         "particulate",
         "sensirion"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "5V"
+      ]
     },
     {
       "id": "vl53l1x",
@@ -1023,6 +1229,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "INT",
+          "label": "INT (Measurement Ready)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#c084fc",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT",
+          "note": "Interrupt output when a new laser ranging sample is ready"
         }
       ],
       "warnings": [
@@ -1064,6 +1284,10 @@
         "SCL": [
           107.2,
           122
+        ],
+        "INT": [
+          125.6,
+          122
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -1093,7 +1317,11 @@
         "tof0400",
         "timeofflight"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "ina219",
@@ -1101,7 +1329,7 @@
       "subtitle": "DC Current, Bus Voltage & Power Sensor",
       "category": "I2C Sensors",
       "interface": "I2C",
-      "voltage": "5V",
+      "voltage": "3.3V / 5V",
       "i2cAddr": "0x40",
       "sram": 115,
       "i2cHeaderSelectable": true,
@@ -1200,7 +1428,11 @@
         "ina219",
         "ina-219"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "tcs34725",
@@ -1208,7 +1440,7 @@
       "subtitle": "RGB + Clear Light Colorimeter",
       "category": "I2C Sensors",
       "interface": "I2C",
-      "voltage": "5V",
+      "voltage": "3.3V / 5V",
       "i2cAddr": "0x29",
       "sram": 110,
       "i2cHeaderSelectable": true,
@@ -1240,6 +1472,34 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "LED",
+          "label": "LED (White Illumination)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#c084fc",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "PWM"
+          ],
+          "codeKey": "LED",
+          "note": "Drive LOW to turn off the onboard white measurement LED"
+        },
+        {
+          "id": "INT",
+          "label": "INT (Color Threshold)",
+          "role": "INT",
+          "tier": "optional",
+          "color": "#a855f7",
+          "selectable": true,
+          "allowedTypes": [
+            "INT",
+            "DIGITAL"
+          ],
+          "codeKey": "INT",
+          "note": "Active-low color threshold / integration complete interrupt"
         }
       ],
       "warnings": [
@@ -1282,6 +1542,14 @@
         "VIN": [
           152,
           148
+        ],
+        "LED": [
+          26,
+          148
+        ],
+        "INT": [
+          47,
+          148
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -1310,7 +1578,11 @@
         "colorsensor",
         "rgbcolor"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "tb6612fng",
@@ -1472,6 +1744,9 @@
       ],
       "docExclude": [
         "vibration"
+      ],
+      "supportedRails": [
+        "3V3"
       ]
     },
     {
@@ -1480,7 +1755,7 @@
       "subtitle": "I2C Haptic Effect Driver + ERM Motor",
       "category": "I2C Actuators & Input",
       "interface": "I2C",
-      "voltage": "5V",
+      "voltage": "3.3V / 5V",
       "i2cAddr": "0x5A",
       "sram": 105,
       "i2cHeaderSelectable": true,
@@ -1512,6 +1787,20 @@
           "role": "I2C_SDA",
           "color": "#10b981",
           "selectable": false
+        },
+        {
+          "id": "IN",
+          "label": "IN/TRIG (Haptic Trigger)",
+          "role": "PWM",
+          "tier": "optional",
+          "color": "#38bdf8",
+          "selectable": true,
+          "allowedTypes": [
+            "PWM",
+            "DIGITAL"
+          ],
+          "codeKey": "IN",
+          "note": "External trigger or PWM/audio-to-vibe input"
         }
       ],
       "warnings": [
@@ -1554,6 +1843,10 @@
         "SDA": [
           88.5,
           146
+        ],
+        "IN": [
+          110,
+          146
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -1581,7 +1874,11 @@
         "drv2605l",
         "haptic"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "cardkb",
@@ -1696,6 +1993,9 @@
       "docExclude": [
         "ch9329",
         "hid"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -1806,7 +2106,11 @@
         "nfc",
         "rfid"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "gy-neo6m",
@@ -1950,7 +2254,11 @@
         "gyneo6m",
         "gps"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "ch9329",
@@ -2090,7 +2398,10 @@
         "hidmouse"
       ],
       "docExclude": [],
-      "knownDocPdf": "HID_Mouse_Keyboard_CH9329.pdf"
+      "knownDocPdf": "HID_Mouse_Keyboard_CH9329.pdf",
+      "supportedRails": [
+        "5V"
+      ]
     },
     {
       "id": "as608",
@@ -2232,7 +2543,11 @@
         "as-608",
         "fingerprint"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "ld2410c",
@@ -2302,6 +2617,20 @@
             "D4"
           ],
           "codeKey": "TX"
+        },
+        {
+          "id": "OUT",
+          "label": "OUT (Presence Digital)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#38bdf8",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "INT"
+          ],
+          "codeKey": "OUT",
+          "note": "HIGH while human presence is detected (usable even without UART)"
         }
       ],
       "warnings": [
@@ -2348,6 +2677,10 @@
         "VCC": [
           158,
           26
+        ],
+        "OUT": [
+          98,
+          26
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -2378,6 +2711,9 @@
       ],
       "docExclude": [
         "ld2450"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -2519,6 +2855,9 @@
       ],
       "docExclude": [
         "ld2410"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -2589,6 +2928,19 @@
             "D4"
           ],
           "codeKey": "TX"
+        },
+        {
+          "id": "SET",
+          "label": "SET (AT Config)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#38bdf8",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL"
+          ],
+          "codeKey": "SET",
+          "note": "Pull LOW to enter AT configuration mode (channel / power / baud)"
         }
       ],
       "warnings": [
@@ -2633,6 +2985,10 @@
         "TXD": [
           95,
           150
+        ],
+        "SET": [
+          118,
+          150
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -2659,7 +3015,10 @@
         "hc12",
         "hc-12"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "5V"
+      ]
     },
     {
       "id": "hc05",
@@ -3017,6 +3376,9 @@
       "docExclude": [
         "hcsr04",
         "ultrasonic"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3136,6 +3498,9 @@
       "docExclude": [
         "hcsr04",
         "ultrasonic"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3328,6 +3693,9 @@
       "docExclude": [
         "ld2410",
         "ld2450"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3445,6 +3813,9 @@
       ],
       "docExclude": [
         "drv2605"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3559,6 +3930,20 @@
             "A0"
           ],
           "codeKey": "SIG"
+        },
+        {
+          "id": "DO",
+          "label": "DO (Digital Threshold)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "INT"
+          ],
+          "codeKey": "DO",
+          "note": "Comparator digital alarm output (potentiometer threshold)"
         }
       ],
       "warnings": [
@@ -3596,6 +3981,10 @@
         "AO": [
           122,
           168
+        ],
+        "DO": [
+          94,
+          168
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -3628,6 +4017,9 @@
         "mq2",
         "mq3",
         "mq7"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3675,6 +4067,20 @@
             "A0"
           ],
           "codeKey": "SIG"
+        },
+        {
+          "id": "DO",
+          "label": "DO (Digital Threshold)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "INT"
+          ],
+          "codeKey": "DO",
+          "note": "Comparator digital alarm output (potentiometer threshold)"
         }
       ],
       "warnings": [
@@ -3712,6 +4118,10 @@
         "AO": [
           122,
           168
+        ],
+        "DO": [
+          94,
+          168
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -3744,6 +4154,9 @@
         "mq135",
         "mq3",
         "mq7"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3791,6 +4204,20 @@
             "A0"
           ],
           "codeKey": "SIG"
+        },
+        {
+          "id": "DO",
+          "label": "DO (Digital Threshold)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "INT"
+          ],
+          "codeKey": "DO",
+          "note": "Comparator digital alarm output (potentiometer threshold)"
         }
       ],
       "warnings": [
@@ -3828,6 +4255,10 @@
         "AO": [
           122,
           168
+        ],
+        "DO": [
+          94,
+          168
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -3860,6 +4291,9 @@
         "mq135",
         "mq2",
         "mq3"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -3907,6 +4341,20 @@
             "A0"
           ],
           "codeKey": "SIG"
+        },
+        {
+          "id": "DO",
+          "label": "DO (Digital Threshold)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#a78bfa",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL",
+            "INT"
+          ],
+          "codeKey": "DO",
+          "note": "Comparator digital alarm output (potentiometer threshold)"
         }
       ],
       "warnings": [
@@ -3944,6 +4392,10 @@
         "AO": [
           122,
           168
+        ],
+        "DO": [
+          94,
+          168
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -3976,6 +4428,9 @@
         "mq135",
         "mq2",
         "mq7"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4087,7 +4542,10 @@
         "soil",
         "moisture"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "5V"
+      ]
     },
     {
       "id": "ky039",
@@ -4201,6 +4659,9 @@
       ],
       "docExclude": [
         "max30102"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4282,6 +4743,19 @@
             "D4"
           ],
           "codeKey": "LOM"
+        },
+        {
+          "id": "SDN",
+          "label": "SDN (Shutdown)",
+          "role": "DIGITAL",
+          "tier": "optional",
+          "color": "#fca5a5",
+          "selectable": true,
+          "allowedTypes": [
+            "DIGITAL"
+          ],
+          "codeKey": "SDN",
+          "note": "Pull LOW to put ECG front-end into low-power shutdown"
         }
       ],
       "warnings": [
@@ -4329,6 +4803,10 @@
         "LO+": [
           28,
           138
+        ],
+        "SDN": [
+          28,
+          157
         ]
       },
       "docUrl": "https://github.com/andkuc/k-comp/tree/main/docs/ModuleDocumentation",
@@ -4359,7 +4837,10 @@
         "ecg",
         "ekg"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3"
+      ]
     },
     {
       "id": "ir-rx",
@@ -4474,6 +4955,9 @@
       "docExclude": [
         "transmitter",
         "irtx"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4591,6 +5075,9 @@
       "docExclude": [
         "receiver",
         "irrx"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4716,6 +5203,9 @@
       "docExclude": [
         "mxrm",
         "receiver"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4841,6 +5331,9 @@
       "docExclude": [
         "fs1000",
         "transmitter"
+      ],
+      "supportedRails": [
+        "5V"
       ]
     },
     {
@@ -4849,7 +5342,7 @@
       "subtitle": "Waterproof 1-Wire Temperature Probe",
       "category": "Digital & 1-Wire",
       "interface": "1-WIRE",
-      "voltage": "5V",
+      "voltage": "3.3V / 5V",
       "sram": 95,
       "pins": [
         {
@@ -4964,6 +5457,10 @@
       "docExclude": [
         "aht10",
         "bmp280"
+      ],
+      "supportedRails": [
+        "3V3",
+        "5V"
       ]
     },
     {
@@ -4972,7 +5469,7 @@
       "subtitle": "24-Bit Load Cell Weight ADC",
       "category": "Digital & 1-Wire",
       "interface": "DIGITAL",
-      "voltage": "5V",
+      "voltage": "3.3V / 5V",
       "sram": 80,
       "pins": [
         {
@@ -5106,7 +5603,11 @@
         "loadcell",
         "weight"
       ],
-      "docExclude": []
+      "docExclude": [],
+      "supportedRails": [
+        "3V3",
+        "5V"
+      ]
     },
     {
       "id": "tft-gc9a01",
@@ -5223,6 +5724,10 @@
       ],
       "docExclude": [
         "oled"
+      ],
+      "supportedRails": [
+        "3V3",
+        "5V"
       ]
     }
   ],

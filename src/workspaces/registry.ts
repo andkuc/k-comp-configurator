@@ -1,17 +1,9 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Top-Level Workspace Registry (Hardware | Program | Device | Shield PCB)
+// Top-Level Workspace Registry & Lazy Loader Table (Hardware | Program | Device | Shield PCB)
+import type { WorkspaceDescriptor, WorkspaceId, WorkspaceLoader } from './types';
 
-export type WorkspaceId = 'hardware' | 'program' | 'device' | 'shield';
-
-export interface WorkspaceDescriptor {
-  id: WorkspaceId;
-  icon: string;
-  labelKey: string;
-  titleKey: string;
-  status: 'active' | 'preview';
-  targetVersion?: string;
-}
+export type { WorkspaceDescriptor, WorkspaceId, WorkspaceLoader };
 
 export const DEFAULT_WORKSPACE_ID: WorkspaceId = 'hardware';
 
@@ -48,6 +40,20 @@ export const WORKSPACES: WorkspaceDescriptor[] = [
     targetVersion: 'v0.6'
   }
 ];
+
+const lazyLoaders = new Map<WorkspaceId, WorkspaceLoader>();
+
+export function registerWorkspaceLoader(id: WorkspaceId, loader: WorkspaceLoader): void {
+  lazyLoaders.set(id, loader);
+}
+
+export function getWorkspaceLoader(id: WorkspaceId): WorkspaceLoader | undefined {
+  return lazyLoaders.get(id);
+}
+
+export function resetWorkspaceLoaders(): void {
+  lazyLoaders.clear();
+}
 
 export function isValidWorkspaceId(id: string | null | undefined): id is WorkspaceId {
   return WORKSPACES.some((w) => w.id === id);

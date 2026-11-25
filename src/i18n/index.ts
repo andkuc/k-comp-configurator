@@ -3,21 +3,24 @@
 // Extensible Internationalization (i18n) Registry
 // Default language: English (en)
 // To add a future language (e.g., sl, hr, fr, it):
-//   1. Create js/i18n/<lang>.js (plus optional <lang>-components.js)
-//   2. Import it below and call registerLocale(<lang>)
+//   1. Create src/i18n/<lang>.ts (plus optional <lang>-components.ts)
+//   2. Register a lazy loader in localeCatalog below
 import en from './en';
 import { getActiveBoard } from '../boards';
+import type { BlockGuideEntry, DipSwitchSpec, LocaleDefinition } from '../types';
 
 const STORAGE_KEY = 'kcomp_lang';
 const FALLBACK_LOCALE = 'en';
 
-interface LocaleMeta {
+export interface LocaleMeta {
   code: string;
   label: string;
   nativeName: string;
   dir?: 'ltr' | 'rtl';
-  loader?: () => Promise<{ default: any }>;
+  loader?: () => Promise<{ default: LocaleDefinition }>;
 }
+
+type LocaleChangeListener = (code: string, def: LocaleDefinition | LocaleMeta) => void;
 
 const localeCatalog: LocaleMeta[] = [
   { code: 'en', label: 'EN', nativeName: 'English', dir: 'ltr' },
@@ -25,13 +28,13 @@ const localeCatalog: LocaleMeta[] = [
   { code: 'sq', label: 'SQ', nativeName: 'Shqip',   dir: 'ltr', loader: () => import('./sq') }
 ];
 
-const registry = new Map<string, any>();
-const pendingLoads = new Map<string, Promise<any>>();
-const listeners = new Set<any>();
+const registry = new Map<string, LocaleDefinition>();
+const pendingLoads = new Map<string, Promise<LocaleDefinition>>();
+const listeners = new Set<LocaleChangeListener>();
 let currentCode = FALLBACK_LOCALE;
 let outsideClickBound = false;
 
-export function registerLocale(localeDef) {
+export function registerLocale(localeDef: LocaleDefinition | null | undefined): void {
   if (!localeDef || !localeDef.code) return;
   const code = localeDef.code.toLowerCase();
   registry.set(code, localeDef);
@@ -52,43 +55,45 @@ export function isSupportedLocale(code: string): boolean {
   return registry.has(norm) || localeCatalog.some((m) => m.code === norm);
 }
 
-export async function loadLocale(code: string) {
+export async function loadLocale(code: string): Promise<LocaleDefinition> {
   const norm = String(code || '').toLowerCase();
-  if (registry.has(norm)) return registry.get(norm);
+  const cached = registry.get(norm);
+  if (cached) return cached;
+  const fallback = registry.get(FALLBACK_LOCALE) || en;
   const meta = localeCatalog.find((m) => m.code === norm);
-  if (!meta || !meta.loader) return registry.get(FALLBACK_LOCALE);
+  if (!meta || !meta.loader) return fallback;
 
-  if (!pendingLoads.has(norm)) {
-    pendingLoads.set(
-      norm,
-      meta.loader().then((mod) => {
-        const def = mod.default || mod;
-        registerLocale(def);
-        pendingLoads.delete(norm);
-        return def;
-      }).catch((err) => {
-        pendingLoads.delete(norm);
-        console.warn(`Failed to lazy-load locale "${norm}":`, err);
-        return registry.get(FALLBACK_LOCALE);
-      })
-    );
-  }
-  return pendingLoads.get(norm);
+  const existing = pendingLoads.get(norm);
+  if (existing) return existing;
+
+  const promise = meta.loader().then((mod) => {
+    const def = (mod && mod.default ? mod.default : mod) as LocaleDefinition;
+    registerLocale(def);
+    pendingLoads.delete(norm);
+    return def;
+  }).catch((err: unknown) => {
+    pendingLoads.delete(norm);
+    console.warn(`Failed to lazy-load locale "${norm}":`, err);
+    return fallback;
+  });
+
+  pendingLoads.set(norm, promise);
+  return promise;
 }
 
-export function getAvailableLocales() {
+export function getAvailableLocales(): Array<LocaleDefinition | LocaleMeta> {
   return localeCatalog.map((m) => registry.get(m.code) || m);
 }
 
-export function getLocale() {
+export function getLocale(): string {
   return currentCode;
 }
 
-export function getLocaleDef(code = currentCode) {
-  return registry.get(code) || localeCatalog.find((m) => m.code === code) || registry.get(FALLBACK_LOCALE);
+export function getLocaleDef(code: string = currentCode): LocaleDefinition {
+  return registry.get(code) || registry.get(FALLBACK_LOCALE) || en;
 }
 
-export function detectInitialLocale() {
+export function detectInitialLocale(): string {
   try {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = (params.get('lang') || '').toLowerCase();
@@ -103,14 +108,14 @@ export function detectInitialLocale() {
   return FALLBACK_LOCALE;
 }
 
-export function initI18n() {
+export function initI18n(): string {
   const target = detectInitialLocale();
   currentCode = registry.has(target) ? target : FALLBACK_LOCALE;
   syncDocumentLang();
   return currentCode;
 }
 
-export async function initI18nAsync() {
+export async function initI18nAsync(): Promise<string> {
   const target = detectInitialLocale();
   await loadLocale(target);
   currentCode = registry.has(target) ? target : FALLBACK_LOCALE;
@@ -118,18 +123,22 @@ export async function initI18nAsync() {
   return currentCode;
 }
 
-function syncDocumentLang() {
+function syncDocumentLang(): void {
   const def = getLocaleDef();
-  document.documentElement.lang = def.code;
-  document.documentElement.dir = def.dir || 'ltr';
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.lang = def.code;
+    document.documentElement.dir = def.dir || 'ltr';
+  }
 }
 
-export function onLocaleChange(fn) {
+export function onLocaleChange(fn: LocaleChangeListener): () => void {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
-export function setLocale(code, notify = true) {
+export function setLocale(code: string, notify = true): boolean {
   const norm = String(code || '').toLowerCase();
   if (!isSupportedLocale(norm)) return false;
   if (norm === currentCode && registry.has(norm)) return false;
@@ -163,9 +172,9 @@ export async function setLocaleAsync(code: string, notify = true): Promise<boole
   return true;
 }
 
-export function t(key: string, params: Record<string, any> | null = null): string {
+export function t(key: string, params: Record<string, unknown> | null = null): string {
   const active = getLocaleDef(currentCode);
-  const fallback = registry.get(FALLBACK_LOCALE);
+  const fallback = registry.get(FALLBACK_LOCALE) || en;
   let raw = (active && active.strings && active.strings[key] !== undefined)
     ? active.strings[key]
     : (fallback && fallback.strings && fallback.strings[key] !== undefined ? fallback.strings[key] : key);
@@ -178,19 +187,19 @@ export function t(key: string, params: Record<string, any> | null = null): strin
   return raw;
 }
 
-export function tComp(def, field) {
+export function tComp(def: Record<string, any> | null | undefined, field: string): string {
   if (!def) return '';
   if (def.i18n && def.i18n[currentCode] && def.i18n[currentCode][field] !== undefined) {
-    return def.i18n[currentCode][field];
+    return String(def.i18n[currentCode][field]);
   }
   const active = getLocaleDef(currentCode);
   if (active && active.components && active.components[def.id] && active.components[def.id][field] !== undefined) {
-    return active.components[def.id][field];
+    return String(active.components[def.id][field]);
   }
-  return def[field] || '';
+  return def[field] ? String(def[field]) : '';
 }
 
-export function tCompInfo(def) {
+export function tCompInfo(def: Record<string, any> | null | undefined): Record<string, any> {
   if (!def) return {};
   const base = def.studentInfo || {};
   const inline = (def.i18n && def.i18n[currentCode] && def.i18n[currentCode].studentInfo) || {};
@@ -199,86 +208,96 @@ export function tCompInfo(def) {
   return { ...base, ...dictInfo, ...inline };
 }
 
-export function tDipName(dip, shortMode = false) {
+export function tDipName(dip: Pick<DipSwitchSpec, 'id' | 'name'> | null | undefined, shortMode = false): string {
   if (!dip) return '';
   const active = getLocaleDef(currentCode);
-  const entry = active && active.dipNames && active.dipNames[dip.id];
+  const dipMap = (active as Record<string, any>).dipNames as Record<number, { name: string; short?: string }> | undefined;
+  const entry = dipMap ? dipMap[dip.id] : undefined;
   if (entry) return shortMode ? (entry.short || entry.name) : entry.name;
   return shortMode ? String(dip.name || '').split(' ')[0] : (dip.name || '');
 }
 
-export function tBlockedPin(bpId, longMode = false) {
+export function tBlockedPin(bpId: string, longMode = false): string {
   const suffix = longMode ? 'Reason' : 'Short';
   const key = `pin.blocked${bpId}${suffix}`;
   const res = t(key);
   return res !== key ? res : (getActiveBoard()?.pins?.[bpId]?.reason || bpId);
 }
 
-export function tOnboard(ob, field) {
+export function tOnboard(ob: Record<string, any> | null | undefined, field: string): string {
   if (!ob) return '';
   const active = getLocaleDef(currentCode);
   if (active && active.onboard && active.onboard[ob.id] && active.onboard[ob.id][field] !== undefined) {
     return active.onboard[ob.id][field];
   }
-  return ob[field] || ob.name || '';
+  return String(ob[field] || ob.name || '');
 }
 
-export function tPreset(preset, field = 'name') {
+export function tPreset(preset: Record<string, any> | null | undefined, field = 'name'): string {
   if (!preset) return '';
   const active = getLocaleDef(currentCode);
-  if (active && active.presets && active.presets[preset.id] && active.presets[preset.id][field] !== undefined) {
-    return active.presets[preset.id][field];
+  const entry = active?.presets?.[preset.id] as Record<string, string | undefined> | undefined;
+  if (entry && entry[field] !== undefined) {
+    return entry[field] as string;
   }
-  return preset[field] || '';
+  return String(preset[field] || '');
 }
 
-export function tBlockGuide(type) {
+export function tBlockGuide(type: string): BlockGuideEntry {
   const active = getLocaleDef(currentCode);
-  const fallback = registry.get(FALLBACK_LOCALE);
+  const fallback = registry.get(FALLBACK_LOCALE) || en;
   const base = (fallback && fallback.blockGuides && fallback.blockGuides[type]) || {};
   const loc = (active && active.blockGuides && active.blockGuides[type]) || {};
   return { ...base, ...loc };
 }
 
-export function tCategory(rawName) {
+export function tCategory(rawName: string): string {
   const active = getLocaleDef(currentCode);
   if (active && active.categories && active.categories[rawName] !== undefined) {
     return active.categories[rawName];
   }
-  const fallback = registry.get(FALLBACK_LOCALE);
+  const fallback = registry.get(FALLBACK_LOCALE) || en;
   if (fallback && fallback.categories && fallback.categories[rawName] !== undefined) {
     return fallback.categories[rawName];
   }
   return rawName;
 }
 
-export function applyI18nToDom(root: any = document) {
-  root.querySelectorAll('[data-i18n]').forEach((el) => {
-    el.textContent = t(el.dataset.i18n);
+export function applyI18nToDom(root: Document | Element = document): void {
+  root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    if (key) el.textContent = t(key);
   });
-  root.querySelectorAll('[data-i18n-html]').forEach((el) => {
-    el.innerHTML = t(el.dataset.i18nHtml);
+  root.querySelectorAll<HTMLElement>('[data-i18n-html]').forEach((el) => {
+    const key = el.dataset.i18nHtml;
+    if (key) el.innerHTML = t(key);
   });
-  root.querySelectorAll('[data-i18n-title]').forEach((el) => {
-    el.setAttribute('title', t(el.dataset.i18nTitle));
+  root.querySelectorAll<HTMLElement>('[data-i18n-title]').forEach((el) => {
+    const key = el.dataset.i18nTitle;
+    if (key) el.setAttribute('title', t(key));
   });
-  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
-    el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
+  root.querySelectorAll<HTMLElement>('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    if (key) el.setAttribute('placeholder', t(key));
   });
-  root.querySelectorAll('[data-i18n-aria]').forEach((el) => {
-    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  root.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach((el) => {
+    const key = el.dataset.i18nAria;
+    if (key) el.setAttribute('aria-label', t(key));
   });
 }
 
-export function closeLanguageMenu() {
-  const pop = document.querySelector<any>('#langMenuPopover');
-  const btn = document.querySelector<any>('#btnLangMenu');
+export function closeLanguageMenu(): void {
+  const pop = document.querySelector<HTMLElement>('#langMenuPopover');
+  const btn = document.querySelector<HTMLElement>('#btnLangMenu');
   if (pop) pop.classList.remove('open');
   if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 
-// Top-right Language Dropdown Menu (matches Project ▾ popover on desktop; flattens cleanly on mobile)
-export function renderLanguageSwitcher(container, onSelected = null) {
+// Top-right Language Dropdown Menu (matches Project popover on desktop; flattens cleanly on mobile)
+export function renderLanguageSwitcher(
+  container: HTMLElement | null,
+  onSelected: ((loc: LocaleDefinition) => void) | null = null
+): void {
   if (!container) return;
   const locales = getAvailableLocales();
   const activeDef = getLocaleDef();
@@ -314,7 +333,7 @@ export function renderLanguageSwitcher(container, onSelected = null) {
     item.setAttribute('role', 'menuitemradio');
     item.setAttribute('aria-checked', String(isActive));
     item.innerHTML = `<span class="lang-tag">${loc.label}</span><span class="lang-native">${loc.nativeName}</span><span class="lang-check" aria-hidden="true">${isActive ? '✓' : ''}</span>`;
-    item.addEventListener('click', async (e: any) => {
+    item.addEventListener('click', async (e: MouseEvent) => {
       e.stopPropagation();
       closeLanguageMenu();
       if (await setLocaleAsync(loc.code) && onSelected) onSelected(getLocaleDef(loc.code));
@@ -322,11 +341,10 @@ export function renderLanguageSwitcher(container, onSelected = null) {
     popover.appendChild(item);
   });
 
-  trigger.addEventListener('click', (e: any) => {
+  trigger.addEventListener('click', (e: MouseEvent) => {
     e.stopPropagation();
-    // Close Project menu if open so topbar popovers never overlap
-    const projPop = document.querySelector<any>('#projectMenuPopover');
-    const projBtn = document.querySelector<any>('#btnProjectMenu');
+    const projPop = document.querySelector<HTMLElement>('#projectMenuPopover');
+    const projBtn = document.querySelector<HTMLElement>('#btnProjectMenu');
     if (projPop) projPop.classList.remove('open');
     if (projBtn) projBtn.setAttribute('aria-expanded', 'false');
 
@@ -339,9 +357,9 @@ export function renderLanguageSwitcher(container, onSelected = null) {
 
   if (!outsideClickBound) {
     outsideClickBound = true;
-    document.addEventListener('click', (e: any) => {
-      const wrap = document.querySelector<any>('#langSwitchSlot');
-      if (wrap && !wrap.contains(e.target)) {
+    document.addEventListener('click', (e: MouseEvent) => {
+      const wrap = document.querySelector<HTMLElement>('#langSwitchSlot');
+      if (wrap && e.target instanceof Node && !wrap.contains(e.target)) {
         closeLanguageMenu();
       }
     });

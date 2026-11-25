@@ -3,7 +3,7 @@
 // Draggable/Rotatable External Component Cards & Onboard-Mounted Wireless Slot Modules
 import { SVG_NS, GRID_SNAP, MAX_HISTORY } from '../../core/constants';
 import { state, $, escapeHtml, isLightTheme, showToast, isMobileViewport } from '../../core/state';
-import { getCompDef, getDisplayLabel, getInstanceAddress, removeComponent } from '../../core/hardware';
+import { activateOptionalPin, getCompDef, getDisplayLabel, getInstanceAddress, isRequiredPin, removeComponent } from '../../core/hardware';
 import { boardToMaster } from '../../core/routing';
 import { getBoardGeometry } from '../../boards';
 import { shortInterfaceLabel } from '../inspector';
@@ -650,7 +650,7 @@ export function renderDockedComponentsAndWires() {
     }
 
     // Highlight unassigned pins requiring student action (freeing an onboard pin)
-    const missingPins = def.pins.filter((p) => p.selectable && !box.inst.pinMap[p.id]);
+    const missingPins = def.pins.filter((p) => p.selectable && isRequiredPin(p) && !box.inst.pinMap[p.id]);
     if (missingPins.length) {
       rect.setAttribute('stroke', '#f59e0b');
       rect.setAttribute('stroke-width', '2.4');
@@ -690,6 +690,103 @@ export function renderDockedComponentsAndWires() {
         ring.setAttribute('class', 'pin-needs-free');
         cardG.appendChild(ring);
       }
+    }
+
+
+    // Interactive Pull-to-Activate / 1-Click pads for inactive optional pins (stripped in SVG export)
+    const inactiveOptPins = def.pins.filter((p) => p.tier === 'optional' && !box.inst.pinMap[p.id]);
+    for (const op of inactiveOptPins) {
+      const anc = def.pinAnchors?.[op.id];
+      if (!anc) continue;
+      const px = drawX + anc[0] * scale;
+      const py = drawY + anc[1] * scale;
+
+      const opG = document.createElementNS(SVG_NS, 'g');
+      opG.setAttribute('class', 'opt-pin-pad');
+      opG.setAttribute('data-inst-id', box.inst.instanceId);
+      opG.setAttribute('data-opt-pin', op.id);
+
+      const hitC = document.createElementNS(SVG_NS, 'circle');
+      hitC.setAttribute('cx', px.toFixed(1));
+      hitC.setAttribute('cy', py.toFixed(1));
+      hitC.setAttribute('r', isMobileViewport() ? '13' : '8.5');
+      hitC.setAttribute('fill', 'transparent');
+      opG.appendChild(hitC);
+
+      const ring = document.createElementNS(SVG_NS, 'circle');
+      ring.setAttribute('class', 'opt-pin-ring');
+      ring.setAttribute('cx', px.toFixed(1));
+      ring.setAttribute('cy', py.toFixed(1));
+      ring.setAttribute('r', '5.4');
+      ring.setAttribute('fill', light ? 'rgba(56, 189, 248, 0.14)' : 'rgba(56, 189, 248, 0.18)');
+      ring.setAttribute('stroke', op.color || '#38bdf8');
+      ring.setAttribute('stroke-width', '1.3');
+      ring.setAttribute('stroke-dasharray', '2.4,1.8');
+      opG.appendChild(ring);
+
+      const plusTxt = document.createElementNS(SVG_NS, 'text');
+      plusTxt.setAttribute('x', px.toFixed(1));
+      plusTxt.setAttribute('y', (py + 2.8).toFixed(1));
+      plusTxt.setAttribute('fill', light ? '#0369a1' : '#e0f2fe');
+      plusTxt.setAttribute('font-family', 'Consolas, monospace');
+      plusTxt.setAttribute('font-size', '8.2');
+      plusTxt.setAttribute('font-weight', '800');
+      plusTxt.setAttribute('text-anchor', 'middle');
+      plusTxt.setAttribute('pointer-events', 'none');
+      plusTxt.textContent = '+';
+      opG.appendChild(plusTxt);
+
+      opG.addEventListener('mouseenter', (ev: any) => {
+        if (state.dragWire || state.dragComp || state.rotateComp) return;
+        const noteStr = op.note ? `<br><span class="tip-muted">${escapeHtml(op.note)}</span>` : '';
+        appBus.emit('tooltip:showCustom', {
+          html: `<strong>${escapeHtml(getDisplayLabel(def))} • ${escapeHtml(op.id)}</strong> <span class="badge">${escapeHtml(t('pin.optionalTag'))}</span>${noteStr}<br><span class="tip-accent">${escapeHtml(t('tip.optPinClickOrDrag'))}</span>`,
+          ev
+        });
+      });
+      opG.addEventListener('mousemove', (ev: any) => {
+        if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev });
+      });
+      opG.addEventListener('mouseleave', () => appBus.emit('tooltip:hide'));
+
+      opG.addEventListener('pointerdown', (ev: any) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const startX = ev.clientX;
+        const startY = ev.clientY;
+        const startMaster = rotatePoint(px, py, cx, cy, rot);
+        let dragged = false;
+
+        const onMove = (mv: PointerEvent) => {
+          if (dragged) return;
+          if (Math.hypot(mv.clientX - startX, mv.clientY - startY) > 5) {
+            dragged = true;
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+            startWireDrag(mv, {
+              instanceId: box.inst.instanceId,
+              compPinId: op.id,
+              startPt: startMaster,
+              exitX: startMaster.x + (px >= cx ? 24 : -24),
+              vertical: false
+            });
+          }
+        };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+          if (!dragged) {
+            activateOptionalPin(box.inst.instanceId, op.id);
+          }
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
+      });
+
+      cardG.appendChild(opG);
     }
 
     // Interactive mouse rotation handle (stripped automatically during SVG export)

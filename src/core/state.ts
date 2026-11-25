@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Reactive Workbench State, Theme Engine, Electrical Net Classifier & Shared DOM Utilities
 import { BASE_VB, resolveAssetUrl } from './constants';
-import type { WorkbenchState } from '../types';
-import { appBus } from '../store/bus';
+import type { BoardOnboardPeripheral, WarningItem, WorkbenchState } from '../types';
+import { appBus, type ToastOptions } from '../store/bus';
+import { uiSessionStore } from '../store/ui-session';
 import { t } from '../i18n/index';
 import { DEFAULT_BOARD_ID, getActiveBoard } from '../boards';
 import { createEmptyProposal } from './proposal';
 
 const THEME_STORAGE_KEY = 'kcomp_theme';
-const LAYOUT_STORAGE_KEY = 'kcomp_layout_v1';
+const LAYOUT_STORAGE_KEY = 'kcomp_layout_v2';
 const AUTOSAVE_PREF_KEY = 'kcomp_autosave_enabled';
 
 export const state: WorkbenchState = {
@@ -83,7 +84,7 @@ export const state: WorkbenchState = {
 
 export const $ = (sel: string): any => document.querySelector(sel);
 
-export function escapeHtml(str: any): string {
+export function escapeHtml(str: unknown): string {
   return String(str)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -92,11 +93,11 @@ export function escapeHtml(str: any): string {
     .replaceAll("'", '&#39;');
 }
 
-export function isLightTheme() {
+export function isLightTheme(): boolean {
   return state.theme === 'light';
 }
 
-export function detectInitialTheme() {
+export function detectInitialTheme(): 'dark' | 'light' {
   try {
     const params = new URLSearchParams(window.location.search);
     const p = (params.get('theme') || '').toLowerCase();
@@ -110,8 +111,9 @@ export function detectInitialTheme() {
   return 'dark';
 }
 
-export function applyThemeToDom(theme: string = state.theme) {
+export function applyThemeToDom(theme: string = state.theme): void {
   state.theme = theme === 'light' ? 'light' : 'dark';
+  uiSessionStore.patch({ theme: state.theme });
   document.documentElement.setAttribute('data-theme', state.theme);
   const bg = $('#canvasBackdropRect');
   const gridPath = $('#bgGridPath');
@@ -128,19 +130,19 @@ export function applyThemeToDom(theme: string = state.theme) {
   }
 }
 
-export function initTheme() {
+export function initTheme(): void {
   applyThemeToDom(detectInitialTheme());
 }
 
-export function toggleTheme() {
-  const next = state.theme === 'light' ? 'dark' : 'light';
+export function toggleTheme(): 'dark' | 'light' {
+  const next: 'dark' | 'light' = state.theme === 'light' ? 'dark' : 'light';
   try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch (_) {}
   applyThemeToDom(next);
   return next;
 }
 
-// Electrical Net Classifier — groups electrically connected pins (5V, 3.3V, GND, I²C SDA/SCL, RESET, or signal pin)
-export function getNetMeta(bpId) {
+// Electrical Net Classifier — groups electrically connected pins (5V, 3.3V, GND, I2C SDA/SCL, RESET, or signal pin)
+export function getNetMeta(bpId: string | null | undefined): { id: string; label: string } {
   if (!bpId) return { id: 'NET_NONE', label: '' };
   const pinMeta = getActiveBoard()?.pins?.[bpId];
   const caps = pinMeta?.caps || [];
@@ -154,11 +156,11 @@ export function getNetMeta(bpId) {
   return { id: `NET_${bpId}`, label: t('net.signal', { pin: pinLabel }) };
 }
 
-export function getCleanProjectName() {
+export function getCleanProjectName(): string {
   return (state.projectName || '').trim();
 }
 
-export function getProjectSlug(fallback = getActiveBoard().id) {
+export function getProjectSlug(fallback: string = getActiveBoard().id): string {
   const clean = getCleanProjectName()
     .toLowerCase()
     .replace(/[ä]/g, 'ae').replace(/[ö]/g, 'oe').replace(/[ü]/g, 'ue').replace(/[ß]/g, 'ss')
@@ -168,7 +170,7 @@ export function getProjectSlug(fallback = getActiveBoard().id) {
   return clean || fallback;
 }
 
-export function syncProjectNameUI() {
+export function syncProjectNameUI(): void {
   const inp = $('#projectNameInput');
   if (inp && inp.value !== state.projectName) {
     inp.value = state.projectName || '';
@@ -177,20 +179,21 @@ export function syncProjectNameUI() {
   document.title = clean ? t('app.titleProject', { name: clean }) : t('app.title');
 }
 
-export function showToast(msg: string, opts: any = null) {
+export function showToast(msg: string, opts: ToastOptions | null = null): void {
   const el = $('#statusToast');
   if (!el) return;
-  clearTimeout(state.toastTimer);
+  if (state.toastTimer !== null) clearTimeout(state.toastTimer);
   if (opts && opts.actionLabel && typeof opts.onAction === 'function') {
+    const onAction = opts.onAction;
     el.innerHTML = `<span class="toast-msg">${escapeHtml(msg)}</span><button type="button" class="toast-action-btn">${escapeHtml(opts.actionLabel)}</button>`;
     el.classList.add('has-action');
     const btn = el.querySelector('.toast-action-btn');
     if (btn) {
-      btn.addEventListener('click', (e: any) => {
+      btn.addEventListener('click', (e: MouseEvent) => {
         e.stopPropagation();
-        clearTimeout(state.toastTimer);
+        if (state.toastTimer !== null) clearTimeout(state.toastTimer);
         el.classList.add('hidden');
-        opts.onAction();
+        onAction();
       });
     }
     el.classList.remove('hidden');
@@ -203,7 +206,11 @@ export function showToast(msg: string, opts: any = null) {
   }
 }
 
-export function applyPanelCollapseState() {
+export function applyPanelCollapseState(): void {
+  uiSessionStore.patch({
+    sidebarCollapsed: !!state.sidebarCollapsed,
+    inspectorCollapsed: !!state.inspectorCollapsed
+  });
   const ws = $('#workspace');
   if (ws) {
     ws.classList.toggle('sidebar-collapsed', !!state.sidebarCollapsed);
@@ -215,11 +222,12 @@ export function applyPanelCollapseState() {
   if (bR) bR.textContent = state.inspectorCollapsed ? '◀' : '▶';
 }
 
-export function applyPinLegendState() {
+export function applyPinLegendState(): void {
+  const collapsed = !!state.pinLegendCollapsed;
+  uiSessionStore.patch({ pinLegendCollapsed: collapsed });
   const leg = $('#pinLegend');
   const btn = $('#btnPinLegendToggle');
   if (!leg) return;
-  const collapsed = !!state.pinLegendCollapsed;
   leg.classList.toggle('is-collapsed', collapsed);
   if (btn) {
     btn.setAttribute('aria-expanded', String(!collapsed));
@@ -227,11 +235,11 @@ export function applyPinLegendState() {
   }
 }
 
-export function saveLayoutPrefs() {
+export function saveLayoutPrefs(): void {
   try {
     const cs = getComputedStyle(document.documentElement);
     const payload = {
-      sw: parseInt(cs.getPropertyValue('--sidebar-w'), 10) || 326,
+      sw: parseInt(cs.getPropertyValue('--sidebar-w'), 10) || 236,
       iw: parseInt(cs.getPropertyValue('--inspector-w'), 10) || 330,
       ah: parseInt(cs.getPropertyValue('--api-drawer-h'), 10) || 260,
       sc: !!state.sidebarCollapsed,
@@ -242,7 +250,7 @@ export function saveLayoutPrefs() {
   } catch (_) {}
 }
 
-export function loadLayoutPrefs() {
+export function loadLayoutPrefs(): void {
   let hasLegendPref = false;
   try {
     const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
@@ -252,14 +260,14 @@ export function loadLayoutPrefs() {
       applyPinLegendState();
       return;
     }
-    const p = JSON.parse(raw);
-    if (Number.isFinite(p.sw) && p.sw >= 240 && p.sw <= 560) {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof p.sw === 'number' && Number.isFinite(p.sw) && p.sw >= 192 && p.sw <= 440) {
       document.documentElement.style.setProperty('--sidebar-w', `${p.sw}px`);
     }
-    if (Number.isFinite(p.iw) && p.iw >= 240 && p.iw <= 720) {
+    if (typeof p.iw === 'number' && Number.isFinite(p.iw) && p.iw >= 240 && p.iw <= 720) {
       document.documentElement.style.setProperty('--inspector-w', `${p.iw}px`);
     }
-    if (Number.isFinite(p.ah) && p.ah >= 110 && p.ah <= 600) {
+    if (typeof p.ah === 'number' && Number.isFinite(p.ah) && p.ah >= 110 && p.ah <= 600) {
       document.documentElement.style.setProperty('--api-drawer-h', `${p.ah}px`);
     }
     state.sidebarCollapsed = !!p.sc;
@@ -274,7 +282,7 @@ export function loadLayoutPrefs() {
   applyPinLegendState();
 }
 
-export function detectInitialAutoSaveEnabled() {
+export function detectInitialAutoSaveEnabled(): boolean {
   try {
     const params = new URLSearchParams(window.location.search);
     const p = (params.get('autosave') || '').toLowerCase();
@@ -289,7 +297,7 @@ export function detectInitialAutoSaveEnabled() {
   return false;
 }
 
-export function syncAutoSaveUI() {
+export function syncAutoSaveUI(): void {
   const btn = $('#btnAutoSaveToggle');
   const lbl = $('#autoSaveLabel');
   if (!btn) return;
@@ -300,20 +308,21 @@ export function syncAutoSaveUI() {
   if (lbl) lbl.textContent = on ? t('bottom.autoSaveOn') : t('bottom.autoSaveOff');
 }
 
-export function setAutoSaveEnabled(enabled) {
+export function setAutoSaveEnabled(enabled: boolean): void {
   state.autoSaveEnabled = !!enabled;
   try { localStorage.setItem(AUTOSAVE_PREF_KEY, state.autoSaveEnabled ? '1' : '0'); } catch (_) {}
   syncAutoSaveUI();
 }
 
-export function isMobileViewport() {
-  return window.innerWidth <= 960;
+export function isMobileViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth <= 960;
 }
 
-export function setMobileView(view) {
+export function setMobileView(view: string): void {
   state.mobileView = view;
+  uiSessionStore.patch({ mobileView: view });
   document.body.setAttribute('data-mobile-view', view);
-  document.querySelectorAll<any>('.mnav-btn').forEach((b) => {
+  document.querySelectorAll<HTMLElement>('.mnav-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.mview === view);
   });
   const menu = $('#topbarActions');
@@ -332,7 +341,7 @@ export function setMobileView(view) {
   }
 }
 
-export function updateMobileNavIndicators(warnings) {
+export function updateMobileNavIndicators(warnings: WarningItem[] | null | undefined): void {
   const badge = $('#mnavCountBadge');
   if (badge) {
     const cnt = state.active.length;
@@ -345,15 +354,16 @@ export function updateMobileNavIndicators(warnings) {
   }
 }
 
-export async function loadComponentSvg(svgFile) {
+export async function loadComponentSvg(svgFile: string): Promise<SVGElement | undefined> {
   if (state.svgCache.has(svgFile)) return state.svgCache.get(svgFile);
   const res = await fetch(resolveAssetUrl(svgFile));
   const doc = new DOMParser().parseFromString(await res.text(), 'image/svg+xml');
-  state.svgCache.set(svgFile, doc.documentElement as unknown as SVGElement);
-  return doc.documentElement;
+  const el = doc.documentElement as unknown as SVGElement;
+  state.svgCache.set(svgFile, el);
+  return el;
 }
 
-export function syncWorkbenchToggles() {
+export function syncWorkbenchToggles(): void {
   const wm = $('#btnWireMode');
   if (wm) {
     const val = wm.querySelector('.hud-opt-val');
@@ -389,7 +399,7 @@ export function syncWorkbenchToggles() {
   }
 }
 
-export function getActiveOnboardDefs() {
+export function getActiveOnboardDefs(): BoardOnboardPeripheral[] {
   return getActiveBoard().onboardPeripherals || [];
 }
 

@@ -1,10 +1,31 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Strictly Typed Program IR / AST Foundation (Shared Target for Future Blockly & CodeMirror 6 Side-by-Side)
+// Strictly Typed Program IR / AST Foundation (Shared Target for Blockly & CodeMirror 6 Side-by-Side)
 
-export type IrScalarType = 'int32' | 'uint16' | 'uint8' | 'float' | 'bool' | 'char';
+export type IrScalarType = 'int32' | 'uint16' | 'uint8' | 'float' | 'bool' | 'char' | 'const char*';
+
+export interface IrTypedParam {
+  name: string;
+  cType: IrScalarType;
+  min?: number;
+  max?: number;
+  unit?: string;
+  defaultValue?: string | number | boolean;
+}
+
+export interface IrSourceSpan {
+  nodeId: string;
+  startLine: number;
+  endLine: number;
+}
+
+export interface IrEmitResult {
+  code: string;
+  sourceMap: IrSourceSpan[];
+}
 
 export interface IrVariableDecl {
+  id?: string;
   name: string;
   type: IrScalarType;
   initialValue: string | number | boolean;

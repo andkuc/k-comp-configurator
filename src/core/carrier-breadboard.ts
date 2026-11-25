@@ -6,7 +6,7 @@ import type { PinAttachment } from '../types';
 import { state, escapeHtml, isLightTheme } from './state';
 import { getActiveBoard, isBoardCarrierActive } from '../boards';
 import { boardToMaster } from './routing';
-import { moduleSupports3v3 } from './hardware';
+import { moduleSupports3v3, moduleSupportsDualPower } from './hardware';
 import { t } from '../i18n/index';
 import { appBus } from '../store/bus';
 
@@ -613,10 +613,17 @@ export function getCarrierPowerRailTargets(
   const allowed = new Set<string>(pinSpec.allowedTypes || []);
   if (pinSpec.role === 'GND' || pinSpec.role === 'I2C_GND') allowed.add('GND');
   if (pinSpec.role === 'POWER_3V3') allowed.add('3V3');
-  if (pinSpec.role === 'POWER_5V' || pinSpec.role === 'I2C_VCC') {
-    allowed.add('5V');
-    if (board.electrical.logicVoltage < 5 && (!compDef || moduleSupports3v3(compDef))) {
+  if (pinSpec.role === 'POWER_5V' || pinSpec.role === 'POWER_3V3' || pinSpec.role === 'I2C_VCC') {
+    if (compDef && moduleSupportsDualPower(compDef)) {
       allowed.add('3V3');
+      allowed.add('5V');
+    } else if (pinSpec.role === 'POWER_3V3') {
+      allowed.add('3V3');
+    } else {
+      allowed.add('5V');
+      if (board.electrical.logicVoltage < 5 && (!compDef || moduleSupports3v3(compDef))) {
+        allowed.add('3V3');
+      }
     }
   }
 
