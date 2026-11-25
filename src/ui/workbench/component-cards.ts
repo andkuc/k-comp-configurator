@@ -4,7 +4,7 @@
 import { SVG_NS, GRID_SNAP, MAX_HISTORY } from '../../core/constants';
 import { state, $, escapeHtml, isLightTheme, showToast, isMobileViewport } from '../../core/state';
 import { activateOptionalPin, getCompDef, getDisplayLabel, getInstanceAddress, isRequiredPin, removeComponent } from '../../core/hardware';
-import { boardToMaster } from '../../core/routing';
+import { boardToMaster, rotatePoint } from '../../core/routing';
 import { getBoardGeometry } from '../../boards';
 import { shortInterfaceLabel } from '../inspector';
 import { t, tComp } from '../../i18n/index';
@@ -14,7 +14,7 @@ import {
   prepareCardFlipTexts, updateCardTextOrientations,
   computePlacedBoxes, renderRotationBadge, updateResetPositionsVisibility
 } from './layout';
-import { setHoveredNet, renderWiresAndHandles } from './wire-layer';
+import { setHoveredNet, renderWiresAndHandles, startWireDrag } from './wire-layer';
 import { appBus } from '../../store/bus';
 
 export function startCompDrag(ev, instId) {
@@ -448,13 +448,13 @@ export function renderDockedComponentsAndWires() {
 
     cardG.addEventListener('click', (e: any) => {
       e.stopPropagation();
-      if (state.suppressClick || e.target.closest('.comp-rotate-handle') || e.target.closest('.comp-quick-btn')) return;
+      if (state.suppressClick || e.target.closest('.comp-rotate-handle') || e.target.closest('.comp-quick-btn') || e.target.closest('.opt-pin-pad')) return;
       state.focusedId = state.focusedId === box.inst.instanceId ? null : box.inst.instanceId;
       appBus.emit('workspace:recompute');
     });
     cardG.addEventListener('dblclick', (e: any) => {
       e.stopPropagation();
-      if (e.target.closest('.comp-rotate-handle') || e.target.closest('.comp-quick-btn')) return;
+      if (e.target.closest('.comp-rotate-handle') || e.target.closest('.comp-quick-btn') || e.target.closest('.opt-pin-pad')) return;
       if (box.inst.customPos || (box.inst.rotation && box.inst.rotation % 360 !== 0)) {
         box.inst.customPos = null;
         box.inst.rotation = 0;
