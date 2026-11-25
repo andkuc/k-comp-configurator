@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.2.7",
   "board": "K-Comp V2 (ATmega328P)",
   "onboard": [
     {
@@ -5531,6 +5531,45 @@
           "pinOverrides": {
             "TX": "GPIO18",
             "RX": "GPIO17"
+          }
+        }
+      ]
+    },
+    {
+      "id": "esp32_bio_lab",
+      "boardId": "esp32-s3-devkit",
+      "name": "Biometric & Dual-UART Lab (MAX30102 + AD8232 + GPS + AS608)",
+      "description": "3.3V-only ECG on Wi-Fi-safe ADC1, I2C pulse oximeter, plus 2 simultaneous Hardware UARTs (zero SoftwareSerial conflict).",
+      "onboard": {
+        "onboard_wifi": true,
+        "onboard_rgb_led": false
+      },
+      "oledPaged": false,
+      "external": [
+        {
+          "id": "max30102",
+          "i2cHeader": "I2C0"
+        },
+        {
+          "id": "ad8232",
+          "pinOverrides": {
+            "OUTPUT": "GPIO4",
+            "LO+": "GPIO5",
+            "LO-": "GPIO6"
+          }
+        },
+        {
+          "id": "gy-neo6m",
+          "pinOverrides": {
+            "TX": "GPIO18",
+            "RX": "GPIO17"
+          }
+        },
+        {
+          "id": "as608",
+          "pinOverrides": {
+            "TX": "GPIO41",
+            "RX": "GPIO42"
           }
         }
       ]

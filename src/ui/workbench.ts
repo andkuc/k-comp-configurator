@@ -2199,6 +2199,13 @@ export function renderWiresAndHandles(dragInstId = null, dragDx = 0, dragDy = 0,
   // If a centered breadboard carrier is active (e.g. ESP32-S3 on Breadboard), map wires to breadboard rows & power rails!
   const carrierAlloc = allocateCarrierBreadboardConnections(wireJobs);
   state.carrierFeeders = carrierAlloc.feeders;
+  const cwMap: Record<string, any> = {};
+  for (const j of wireJobs) {
+    if (j.carrierHole) {
+      cwMap[`${j.box.inst.instanceId}::${j.p.id}`] = j.carrierHole;
+    }
+  }
+  state.carrierWireMap = cwMap;
   lastCarrierWireHoles = wireJobs
     .filter((j) => j.carrierHole && typeof j.carrierHole.holeIdx === 'number')
     .map((j) => ({

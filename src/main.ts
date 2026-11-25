@@ -32,6 +32,7 @@ import { renderCodeBlocksUI, bindCodeBlocksEvents } from './core/code-blocks';
 import { openBlockInfo, openBlocksOverview, closeBlockInfoModal, refreshOpenBlockInfo, bindBlockGuideEvents } from './ui/block-guide';
 import { renderApiBrowserUI, bindApiBrowserEvents } from './ui/api-browser';
 import { updateInfoModalDocLink, openComponentInfo, openPrintStopSheet, openSvgLibrary, openAboutModal } from './ui/modals';
+import { openProjectCharter } from './ui/charter';
 import {
   captureSnapshot, pushUndoState, updateHistoryButtons, performUndo, performRedo,
   applyProjectPayload, saveProjectFile, shareConfigLink, tryLoadFromUrlHash,
@@ -237,7 +238,8 @@ function refreshLanguageUI() {
     openComponentInfo(state.openInfoCompId);
   }
   if (!$('#printModal')?.classList.contains('hidden')) {
-    openPrintStopSheet();
+    if (state.printModalTab === 'charter') openProjectCharter();
+    else openPrintStopSheet();
   }
   if (!$('#svgModal')?.classList.contains('hidden')) {
     openSvgLibrary();
@@ -346,6 +348,10 @@ function bindUIEvents() {
   });
 
   $('#btnPrintStop').addEventListener('click', () => { closeProjectMenu(); openPrintStopSheet(); });
+  $('#btnProjectCharter')?.addEventListener('click', () => { closeProjectMenu(); openProjectCharter(); });
+  $('#btnPrintTabLab')?.addEventListener('click', () => openPrintStopSheet());
+  $('#btnPrintTabCharter')?.addEventListener('click', () => openProjectCharter());
+  $('#btnPrintShareLink')?.addEventListener('click', () => shareConfigLink());
   $('#btnDoPrint').addEventListener('click', () => window.print());
   $('#btnClosePrintModal').addEventListener('click', () => $('#printModal').classList.add('hidden'));
   $('#printModal').addEventListener('click', (e: any) => { if (e.target === $('#printModal')) $('#printModal').classList.add('hidden'); });

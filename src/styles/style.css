@@ -6636,3 +6636,470 @@ html[data-theme="light"] .about-card p {
   color: #0369a1;
   background: #e0f2fe;
 }
+
+
+/* === v0.2.7 Multi-Board Lab Sheet (Board Config Grid & Print UART Badges) === */
+.print-cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 6px;
+}
+.print-cfg-cell {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.print-cfg-cell.on {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+.print-cfg-cell strong {
+  font-size: 11px;
+  color: #0f172a;
+}
+.print-cfg-cell small {
+  font-size: 9.8px;
+  color: #475569;
+}
+.print-uart-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--mono);
+  vertical-align: middle;
+}
+.print-uart-tag.is-hw {
+  background: #cffafe;
+  color: #155e75;
+  border: 1px solid #22d3ee;
+}
+.print-uart-tag.is-sw {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px dashed #a855f7;
+}
+
+
+/* === v0.2.8 Interactive Fillable Student Project Charter (Dark, White & A4 Print) === */
+.print-modal-head-wrap {
+  align-items: flex-start;
+  gap: 12px;
+}
+.print-head-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.print-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.14);
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.print-mode-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.print-mode-tab:hover {
+  color: var(--text);
+}
+.print-mode-tab.active {
+  background: var(--accent);
+  color: #0b1120;
+}
+:root[data-theme="light"] .print-mode-tab.active {
+  color: #ffffff;
+}
+
+.charter-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #0f172a;
+}
+.charter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 12px;
+}
+.charter-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.charter-toolbar-actions .btn-ghost {
+  color: #1e293b;
+  border-color: #94a3b8;
+  background: #ffffff;
+}
+.charter-check-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.charter-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+}
+.charter-banner.is-eval {
+  background: #1e3a8a;
+}
+.charter-banner h3 {
+  margin: 0 0 2px 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.charter-banner p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+.charter-banner-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #38bdf8;
+  color: #0f172a;
+  font-family: var(--mono);
+  font-weight: 900;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.charter-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+.charter-concept-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.charter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+}
+.charter-field-hint {
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+.charter-input,
+.charter-textarea,
+.charter-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #0f172a;
+  background: #ffffff;
+}
+.charter-input:focus,
+.charter-textarea:focus,
+.charter-select:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.18);
+}
+.charter-textarea {
+  resize: vertical;
+  line-height: 1.42;
+}
+.charter-hrs-inp {
+  text-align: center;
+  font-family: var(--mono);
+  padding: 4px 5px;
+}
+.charter-print-val {
+  display: none;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #0f172a;
+}
+.charter-print-val.is-multiline {
+  white-space: pre-wrap;
+  line-height: 1.4;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 5px 8px;
+  min-height: 28px;
+  background: #f8fafc;
+}
+.charter-sub-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  margin: 8px 0 4px 0;
+}
+.charter-ob-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.charter-ob-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 11px;
+  color: #475569;
+}
+.charter-ob-chip.is-on {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  color: #0c4a6e;
+  font-weight: 700;
+}
+.charter-ext-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.charter-ext-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #f8fafc;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.charter-ext-card small {
+  color: #64748b;
+  font-weight: 600;
+}
+.charter-ext-head {
+  margin-bottom: 3px;
+  color: #0f172a;
+}
+.charter-empty-note {
+  font-size: 11.5px;
+  color: #64748b;
+  font-style: italic;
+}
+.charter-svg-box {
+  margin-top: 8px;
+}
+.charter-pin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.8px;
+}
+.charter-pin-table td {
+  border: 1px solid #cbd5e1;
+  padding: 3px 6px;
+}
+.ch-pin-id {
+  width: 58px;
+  font-family: var(--mono);
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.ch-pin-st.is-free {
+  color: #15803d;
+}
+.ch-pin-st.is-used {
+  color: #0f172a;
+  font-weight: 600;
+  background: #f0f9ff;
+}
+.ch-pin-st.is-reserved {
+  color: #991b1b;
+  background: #fef2f2;
+}
+.charter-wp-table td {
+  vertical-align: middle;
+}
+.ch-phase-cell {
+  font-weight: 800;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #f1f5f9;
+  color: #1e293b;
+  text-align: center;
+}
+.charter-hours-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+}
+.charter-hrs-pill {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  font-family: var(--mono);
+}
+.charter-hrs-pill.is-total {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0c4a6e;
+}
+.charter-hrs-warn {
+  color: #b45309;
+  font-weight: 700;
+}
+.charter-dod-list {
+  list-style: none;
+  margin: 4px 0 10px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  font-size: 11px;
+}
+.charter-approval-box {
+  border: 1.5px solid #475569;
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.charter-approval-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  font-weight: 600;
+}
+.charter-teacher-sig {
+  margin-top: 4px;
+  font-weight: 700;
+}
+.charter-risk-note {
+  font-size: 10.5px;
+  color: #475569;
+  font-style: italic;
+}
+.charter-student-sigs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.charter-part2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px dashed #94a3b8;
+}
+.charter-meta-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 10px;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  font-size: 11px;
+}
+.charter-grade-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 6px;
+}
+.charter-grade-box {
+  border: 1.5px solid #0f172a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  background: #f8fafc;
+}
+
+@media (max-width: 720px) {
+  .charter-form-grid,
+  .charter-meta-summary,
+  .charter-dod-list,
+  .charter-student-sigs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .charter-edit-ctrl {
+    display: none !important;
+  }
+  .charter-print-val {
+    display: block !important;
+  }
+  .charter-banner,
+  .charter-ob-chip,
+  .ch-pin-id,
+  .ch-pin-st,
+  .ch-phase-cell,
+  .charter-hrs-pill,
+  .charter-approval-box,
+  .charter-meta-summary,
+  .charter-grade-box {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .charter-part2:not(.hidden) {
+    page-break-before: always;
+    break-before: page;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+}

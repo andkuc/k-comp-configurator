@@ -46,6 +46,7 @@
             <button id="btnSaveProject" class="pm-item" type="button" role="menuitem"><span>💾</span><span class="pm-label" data-i18n="menu.save">Save Project (.kcomp.json)</span><kbd class="pm-kbd">Ctrl+S</kbd></button>
             <button id="btnLoadProject" class="pm-item" type="button" role="menuitem"><span>📂</span><span class="pm-label" data-i18n="menu.load">Load Project (.kcomp.json)</span></button>
             <button id="btnShareLink" class="pm-item" type="button" role="menuitem"><span>🔗</span><span class="pm-label" data-i18n="menu.share">Copy Shareable Link</span></button>
+            <button id="btnProjectCharter" class="pm-item" type="button" role="menuitem"><span>📝</span><span class="pm-label" data-i18n="menu.projectCharter">Project Charter (Proposal)</span></button>
             <div class="pm-sep" role="separator"></div>
             <div class="pm-group-lbl" data-i18n="menu.groupExport">Export</div>
             <button id="btnExportDiagram" class="pm-item" type="button" role="menuitem"><span>📐</span><span class="pm-label" data-i18n="menu.exportSvg">Export Diagram (SVG)</span></button>
@@ -213,7 +214,7 @@
             </div>
           </div>
           <button id="btnAutoSaveToggle" class="autosave-toggle" type="button" aria-pressed="false" title="Toggle automatic saving of your design in this browser" data-i18n-title="bottom.autoSaveToggleTitle"><span class="autosave-dot" aria-hidden="true"></span><span id="autoSaveLabel">Auto-Save: OFF</span></button>
-          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.2.6 · © Andreas Kucher</button>
+          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.2.8 · © Andreas Kucher</button>
         </div>
         <div class="bottom-right-controls">
           <div class="sram-compact">
@@ -367,12 +368,17 @@
   <!-- PRINTABLE STOPP-PUNKT PRE-FLIGHT CHECK MODAL -->
   <div id="printModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="printModalHeading">
     <div class="modal-card print-modal-card">
-      <div class="modal-head no-print">
-        <div>
+      <div class="modal-head no-print print-modal-head-wrap">
+        <div class="print-head-left">
+          <div class="print-mode-tabs" role="tablist" aria-label="Document type">
+            <button id="btnPrintTabLab" class="print-mode-tab active" type="button" role="tab" data-i18n="print.tabLabSheet">Lab Sheet (STOPP)</button>
+            <button id="btnPrintTabCharter" class="print-mode-tab" type="button" role="tab" data-i18n="print.tabCharter">📝 Project Charter</button>
+          </div>
           <h2 id="printModalHeading" data-i18n="print.heading">Hardware Lab Sheet &amp; Pre-Flight Sign-Off</h2>
-          <p data-i18n="print.subtitle">Print or Save as PDF for classroom verification before connecting USB power.</p>
+          <p id="printModalSubtitle" data-i18n="print.subtitle">Print or Save as PDF for classroom verification before connecting USB power.</p>
         </div>
         <div class="info-foot-right">
+          <button id="btnPrintShareLink" class="btn btn-ghost btn-sm hidden" type="button" title="Copy Base64URL share link including filled Project Charter" data-i18n="charter.btnCopyLink" data-i18n-title="charter.btnCopyLinkTitle">🔗 Copy Share Link</button>
           <button id="btnDoPrint" class="btn btn-primary btn-sm" type="button" data-i18n="print.btnPrint">🖨 Print / Save PDF</button>
           <button id="btnClosePrintModal" class="btn btn-ghost btn-sm" type="button" data-i18n="modal.close">Close</button>
         </div>

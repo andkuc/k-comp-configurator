@@ -49,5 +49,27 @@ export interface ProjectPayload {
   ch?: boolean;
   act: ProjectExternalRecord[];
   cb?: Array<{ t: string; c?: Record<string, any> }>;
+  pr?: Record<string, any>;
   [key: string]: any;
+}
+
+export interface ProposalWorkPackage {
+  goal: string;
+  hours: string;
+  who: string;
+}
+
+export interface ProjectProposal {
+  schoolYear: string;
+  className: string;
+  teamName: string;
+  date: string;
+  student1: string;
+  student2: string;
+  slogan: string;
+  userStories: string;
+  functionalScope: string;
+  boardMods: string;
+  workPackages: ProposalWorkPackage[];
+  includeGrading: boolean;
 }

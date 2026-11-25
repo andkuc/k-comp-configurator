@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import type { CatalogData, ComponentDef, ComponentPinSpec } from './catalog';
 import type { DipSwitchSpec } from './board';
-import type { CodeBlockInstance } from './project';
+import type { CodeBlockInstance, ProjectProposal } from './project';
 import type { CodeProfileId } from './codegen';
 
 export interface ActiveComponentInstance {
@@ -103,6 +103,8 @@ export interface WorkbenchState {
   catalog: CatalogData | null;
   boardSvgEl: SVGGElement | null;
   projectName: string;
+  proposal: ProjectProposal;
+  printModalTab: 'labsheet' | 'charter';
   theme: 'dark' | 'light';
   hoveredNet: string | null;
   svgCache: Map<string, SVGElement>;
@@ -112,6 +114,7 @@ export interface WorkbenchState {
   placedEntries: any[];
   breadboardRails: any[];
   carrierFeeders: any[];
+  carrierWireMap: Record<string, any>;
   focusedId: string | null;
   search: string;
   groupMode: string;

@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Component Info Popup, Hardware Lab Sheet (BOM + Jumper Count + Wiring + Sign-Off) & Standalone SVG Library
 import { APP_VERSION, COPYRIGHT_AUTHOR, COPYRIGHT_YEARS, SPDX_LICENSE, LICENSE_URL, CONFIGURATOR_REPO_URL, HARDWARE_REPO_URL, resolveAssetUrl } from '../core/constants';
-import { state, hooks, $, escapeHtml, getCleanProjectName, showToast, formatRamAmount } from '../core/state';
+import { state, hooks, $, escapeHtml, getCleanProjectName, showToast, formatRamAmount, getActiveOnboardDefs } from '../core/state';
 import {
   getCompDef, countActiveByCompId, getDisplayLabel,
   getExternalPinClaims, getOnboardPinUsage,
-  computeDipStates, computeCriticalWarnings, computeSram, computeUsbCurrent
+  computeDipStates, computeCriticalWarnings, computeSram, computeUsbCurrent, computeUartAssignments, moduleRequires5vLogicWarning
 } from '../core/hardware';
 import { badgeClass } from './inspector';
 import { computeLayoutBounds, updateBoardSvgState, renderDockedComponentsAndWires } from './workbench';
 import { COMPONENT_GUIDES } from '../catalog/component-guide-data';
 import { buildComponentApiCardHtml, bindComponentApiCardEvents } from './api-browser';
-import { t, tComp, tCompInfo, tDipName, getLocale } from '../i18n/index';
+import { t, tComp, tCompInfo, tDipName, tOnboard, getLocale } from '../i18n/index';
 import { getActiveBoard, isBoardCarrierActive, listBoards } from '../boards';
 
 export function updateInfoModalDocLink(def) {
@@ -380,16 +380,32 @@ function classifyWireColor(hex) {
   return { key: 'blue', dot: '#0ea5e9', i18n: 'print.wireColorBlue' };
 }
 
-// Compute complete Bill of Materials (BOM) & physical Jumper Wire counts (M-F, M-M, Grove, colors)
+// Compute complete board-aware Bill of Materials (BOM) & physical Jumper Wire counts (M-F, M-M, F-F, Grove, colors)
 function buildBomData() {
-  const items: Array<{ qty: number; name: string; spec: string; source: string; isWire?: boolean }> = [
-    {
-      qty: 1,
-      name: t('print.bomBaseBoard'),
-      spec: t('print.bomBaseSpec'),
-      source: t('print.bomBaseNote')
-    }
-  ];
+  const board = getActiveBoard();
+  const isKcompV2 = board.id === 'kcomp-v2';
+  const carrierActive = isBoardCarrierActive(board, state.carrierEnabled);
+  const isStandaloneMaleHeader = !isKcompV2 && !carrierActive;
+
+  const baseBoardItem = isKcompV2
+    ? {
+        qty: 1,
+        name: t('print.bomBaseBoard'),
+        spec: t('print.bomBaseSpec'),
+        source: t('print.bomBaseNote')
+      }
+    : {
+        qty: 1,
+        name: board.name,
+        spec: t('print.bomEspBaseSpec', {
+          voltage: board.electrical.logicVoltage,
+          flashMb: Math.round((board.electrical.flashBytes || 0) / 1048576),
+          psramMb: Math.round((board.electrical.psramBytes || 0) / 1048576)
+        }),
+        source: t('print.bomEspBaseNote')
+      };
+
+  const items: Array<{ qty: number; name: string; spec: string; source: string; isWire?: boolean }> = [baseBoardItem];
 
   // Group active external modules by compId
   const byComp = new Map();
@@ -397,12 +413,14 @@ function buildBomData() {
     byComp.set(inst.compId, (byComp.get(inst.compId) || 0) + 1);
   }
 
+  let needsLevelShifter = false;
   for (const [compId, qty] of byComp.entries()) {
     const def = getCompDef(compId);
     if (!def) continue;
+    if (moduleRequires5vLogicWarning(def)) needsLevelShifter = true;
     let src = t('print.bomAssortment');
     if (def.onboardWirelessSlot) src = t('print.bomOnboardSlot');
-    else if (def.protoArea) src = t('print.bomProtoArea');
+    else if (def.protoArea) src = isKcompV2 ? t('print.bomProtoArea') : t('print.bomBreadboardMount');
     items.push({
       qty,
       name: getDisplayLabel(def),
@@ -412,6 +430,14 @@ function buildBomData() {
   }
 
   // Automatic accessory detection
+  if (needsLevelShifter) {
+    items.push({
+      qty: 1,
+      name: t('print.bomLevelShifter'),
+      spec: t('print.bomLevelShifterSpec'),
+      source: t('print.bomLevelShifterNote')
+    });
+  }
   if (byComp.has('tb6612fng')) {
     items.push({ qty: 1, name: t('print.bomBattery'), spec: t('print.bomBatterySpec'), source: t('print.bomBatteryNote') });
   }
@@ -429,19 +455,20 @@ function buildBomData() {
     items.push({ qty: 1, name: t('print.bomIrRemote'), spec: t('print.bomIrRemoteSpec'), source: t('print.bomIrRemoteNote') });
   }
 
-  // Exact Jumper Wire Calculation
+  // Exact Jumper Wire Calculation (board- & carrier-aware: M-F, M-M, F-F, Grove)
   let mfCount = 0;
   let mmCount = 0;
+  let ffCount = 0;
   let groveCount = 0;
-  const colorCounts = new Map(); // key -> { dot, i18n, count }
+  const colorCounts = new Map();
   const addColor = (hex) => {
     const bucket = classifyWireColor(hex);
     if (!colorCounts.has(bucket.key)) colorCounts.set(bucket.key, { ...bucket, count: 0 });
     colorCounts.get(bucket.key).count++;
   };
 
-  // 0. Centered Breadboard Carrier (if active, e.g. ESP32-S3 on Breadboard)
-  if (isBoardCarrierActive(getActiveBoard(), state.carrierEnabled)) {
+  // 0. Centered Breadboard Carrier (e.g. ESP32-S3 mounted on Breadboard)
+  if (carrierActive) {
     items.push({
       qty: 1,
       name: t('print.bomCarrierBreadboard'),
@@ -454,7 +481,7 @@ function buildBomData() {
     }
   }
 
-  // 1. Breadboard feeders & column bridges are always Male-Male jumpers
+  // 1. K-Comp V2 onboard breadboard feeders & column bridges are always Male-Male jumpers
   for (const rail of (state.breadboardRails || [])) {
     mmCount++;
     addColor(rail.color);
@@ -474,10 +501,17 @@ function buildBomData() {
       continue;
     }
 
-    const usesMaleMale = !!def.protoArea || def.id === 'sg90-180' || def.id === 'sg90-360';
+    const moduleHasFemaleSocket = !!def.protoArea || def.id === 'sg90-180' || def.id === 'sg90-360';
     for (const p of def.pins) {
-      if (usesMaleMale) mmCount++;
-      else mfCount++;
+      if (isStandaloneMaleHeader) {
+        // Standalone ESP32-S3 male pin headers: female-socket modules need M-F, male-pin breakouts need F-F
+        if (moduleHasFemaleSocket) mfCount++;
+        else ffCount++;
+      } else {
+        // Female headers (K-Comp V2) or Breadboard tie-points: female-socket modules need M-M, male breakouts need M-F
+        if (moduleHasFemaleSocket) mmCount++;
+        else mfCount++;
+      }
       addColor(p.color);
     }
   }
@@ -500,6 +534,15 @@ function buildBomData() {
       isWire: true
     });
   }
+  if (ffCount > 0) {
+    items.push({
+      qty: ffCount,
+      name: t('print.bomJumperFf'),
+      spec: t('print.bomJumperFfSpec'),
+      source: t('print.bomJumperFfNote'),
+      isWire: true
+    });
+  }
   if (groveCount > 0) {
     items.push({
       qty: groveCount,
@@ -510,11 +553,12 @@ function buildBomData() {
     });
   }
 
-  const totalJumpers = mfCount + mmCount;
+  const totalJumpers = mfCount + mmCount + ffCount;
   return {
     items,
     mfCount,
     mmCount,
+    ffCount,
     groveCount,
     totalJumpers,
     colors: Array.from(colorCounts.values()).sort((a, b) => b.count - a.count)
@@ -522,36 +566,57 @@ function buildBomData() {
 }
 
 export function openPrintStopSheet() {
+  state.printModalTab = 'labsheet';
+  const heading = $('#printModalHeading');
+  const subtitle = $('#printModalSubtitle');
+  if (heading) heading.textContent = t('print.heading');
+  if (subtitle) subtitle.textContent = t('print.subtitle');
+  $('#btnPrintTabLab')?.classList.add('active');
+  $('#btnPrintTabCharter')?.classList.remove('active');
+  $('#btnPrintShareLink')?.classList.add('hidden');
   const svg = $('#masterSvg');
   const prevFocused = state.focusedId;
   const prevVb = { ...state.vb };
+  const board = getActiveBoard();
+  const isKcompV2 = board.id === 'kcomp-v2';
+  const carrierActive = isBoardCarrierActive(board, state.carrierEnabled);
+  const maxMa = board.electrical?.usbMaxMa || state.catalog?.usbCurrentMaxMa || 500;
 
   state.focusedId = null;
   const dipStates = computeDipStates();
   const warnings = computeCriticalWarnings();
   const sramUsed = computeSram();
-  const sramPct = Math.round((sramUsed / getActiveBoard().sramTotal) * 100);
+  const sramPct = Math.round((sramUsed / board.sramTotal) * 100);
+  const ramFmt = formatRamAmount(sramUsed, board.sramTotal);
   const cur = computeUsbCurrent();
+  const uartAssigns = computeUartAssignments();
 
-  updateBoardSvgState(dipStates);
-  renderDockedComponentsAndWires();
+  if (svg) {
+    updateBoardSvgState(dipStates);
+    renderDockedComponentsAndWires();
+  }
 
-  // Compute BOM AFTER renderDockedComponentsAndWires() so state.breadboardRails is 100% up-to-date
+  // Compute BOM AFTER renderDockedComponentsAndWires() so rails & carrierFeeders are 100% up-to-date
   const bom = buildBomData();
 
-  const bounds = computeLayoutBounds();
-  svg.setAttribute('viewBox', `${bounds.x.toFixed(1)} ${bounds.y.toFixed(1)} ${bounds.w.toFixed(1)} ${bounds.h.toFixed(1)}`);
-  const clone = svg.cloneNode(true);
-  clone.removeAttribute('id');
-  clone.setAttribute('viewBox', `${bounds.x.toFixed(1)} ${bounds.y.toFixed(1)} ${bounds.w.toFixed(1)} ${bounds.h.toFixed(1)}`);
-  clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
-  const svgMarkup = new XMLSerializer().serializeToString(clone);
+  let svgMarkup = '';
+  if (svg) {
+    const bounds = computeLayoutBounds();
+    svg.setAttribute('viewBox', `${bounds.x.toFixed(1)} ${bounds.y.toFixed(1)} ${bounds.w.toFixed(1)} ${bounds.h.toFixed(1)}`);
+    const clone = svg.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.setAttribute('viewBox', `${bounds.x.toFixed(1)} ${bounds.y.toFixed(1)} ${bounds.w.toFixed(1)} ${bounds.h.toFixed(1)}`);
+    clone.querySelectorAll('.kcomp-pin-hit, #kcomp-onboard-hit-layer, #dragOverlayLayer, #pinFlagsLayer, .hw-flash-group, .drag-hover-ring, .comp-rotate-handle, .comp-quick-rotate, .comp-quick-btn, .pin-needs-free, .wire-hit-path').forEach((n) => n.remove());
+    svgMarkup = new XMLSerializer().serializeToString(clone);
+  }
 
   state.focusedId = prevFocused;
   state.vb = prevVb;
   hooks.applyViewBox();
-  updateBoardSvgState(dipStates);
-  renderDockedComponentsAndWires();
+  if (svg) {
+    updateBoardSvgState(dipStates);
+    renderDockedComponentsAndWires();
+  }
 
   // BOM Table Rows
   const bomRowsHtml = bom.items.map((it) => `
@@ -563,8 +628,12 @@ export function openPrintStopSheet() {
       <td>${escapeHtml(it.source)}</td>
     </tr>`).join('');
 
+  const splitParts: string[] = [];
+  if (bom.mfCount > 0) splitParts.push(`${bom.mfCount} M–F`);
+  if (bom.mmCount > 0) splitParts.push(`${bom.mmCount} M–M`);
+  if (bom.ffCount > 0) splitParts.push(`${bom.ffCount} F–F`);
   const jumperKpiVal = bom.totalJumpers > 0
-    ? `${bom.totalJumpers}× (${bom.mfCount} M–F, ${bom.mmCount} M–M)${bom.groveCount ? ` + ${bom.groveCount} Grove` : ''}`
+    ? `${bom.totalJumpers}× (${splitParts.join(', ')})${bom.groveCount ? ` + ${bom.groveCount} Grove` : ''}`
     : (bom.groveCount ? `${bom.groveCount}× Grove` : '0×');
 
   const colorChipsHtml = bom.colors.length
@@ -575,24 +644,102 @@ export function openPrintStopSheet() {
         </span>`).join('')}</div>`
     : '';
 
+  const breakdownStr = splitParts.length ? splitParts.join(' • ') : t('print.jumperBreakdown', { mf: bom.mfCount, mm: bom.mmCount });
   const jumperSummaryHtml = `
     <div class="print-jumper-bar">
       <div class="print-jumper-head">
         <strong>🔌 ${escapeHtml(bom.totalJumpers > 0 ? t('print.jumperSummary', { total: bom.totalJumpers }) : t('print.jumperNone'))}</strong>
-        ${bom.totalJumpers > 0 ? `<span class="print-jumper-split">${escapeHtml(t('print.jumperBreakdown', { mf: bom.mfCount, mm: bom.mmCount }))}${bom.groveCount ? ' ' + escapeHtml(t('print.jumperGroveTag', { grove: bom.groveCount })) : ''}</span>` : (bom.groveCount ? `<span class="print-jumper-split">${escapeHtml(t('print.jumperGroveTag', { grove: bom.groveCount }))}</span>` : '')}
+        ${bom.totalJumpers > 0 ? `<span class="print-jumper-split">${escapeHtml(breakdownStr)}${bom.groveCount ? ' ' + escapeHtml(t('print.jumperGroveTag', { grove: bom.groveCount })) : ''}</span>` : (bom.groveCount ? `<span class="print-jumper-split">${escapeHtml(t('print.jumperGroveTag', { grove: bom.groveCount }))}</span>` : '')}
       </div>
       ${colorChipsHtml}
     </div>`;
 
-  const dipCells = dipStates.map((d) => `
-    <div class="print-dip-cell ${d.on ? 'on' : 'off'}">
-      <strong>S1-${d.id}: ${d.on ? t('common.on') : t('common.off')}</strong>
-      <small>${escapeHtml(d.pin)} (${escapeHtml(tDipName(d, true))})</small>
-    </div>`).join('');
+  // Section 2: Either K-Comp V2 DIP Switch Block S1 OR Board Configuration & Pin-Mux Summary (ESP32-S3 etc.)
+  let section2Html = '';
+  if (dipStates.length) {
+    const dipCells = dipStates.map((d) => `
+      <div class="print-dip-cell ${d.on ? 'on' : 'off'}">
+        <strong>S1-${d.id}: ${d.on ? t('common.on') : t('common.off')}</strong>
+        <small>${escapeHtml(d.pin)} (${escapeHtml(tDipName(d, true))})</small>
+      </div>`).join('');
+    section2Html = `
+      <div>
+        <h4 class="print-sec-title">${escapeHtml(t('print.secDip'))}</h4>
+        <div class="print-dip-row">${dipCells}</div>
+      </div>`;
+  } else {
+    const cfgCards: Array<{ title: string; val: string; sub: string; active?: boolean }> = [
+      {
+        title: t('print.cfgMountTitle'),
+        val: carrierActive ? t('print.cfgMountBreadboard') : t('print.cfgMountStandalone'),
+        sub: carrierActive ? t('print.cfgMountBreadboardSub') : t('print.cfgMountStandaloneSub'),
+        active: carrierActive
+      },
+      {
+        title: t('print.cfgLogicTitle'),
+        val: `${board.electrical.logicVoltage}V`,
+        sub: board.electrical.logicVoltage < 5 ? t('print.cfgLogic3v3Sub') : t('print.cfgLogic5vSub'),
+        active: true
+      }
+    ];
+    for (const ob of getActiveOnboardDefs()) {
+      const isOn = !!state.onboard[ob.id];
+      cfgCards.push({
+        title: tOnboard(ob, 'shortName') || ob.name,
+        val: isOn ? t('common.on') : t('common.off'),
+        sub: ob.pinInfo || '',
+        active: isOn
+      });
+    }
+    if (board.defaultI2cPins) {
+      const i2cCount = state.active.filter((i) => getCompDef(i.compId)?.interface === 'I2C').length;
+      cfgCards.push({
+        title: t('print.cfgI2cTitle'),
+        val: i2cCount ? `${i2cCount}× ${t('print.cfgActive')}` : t('print.cfgUnused'),
+        sub: `SDA ${board.defaultI2cPins.sda} / SCL ${board.defaultI2cPins.scl}`,
+        active: i2cCount > 0
+      });
+    }
+    const uartList = Object.entries(uartAssigns);
+    if (uartList.length) {
+      const summary = uartList.map(([, u]) => u.badgeLabel).join(', ');
+      cfgCards.push({
+        title: t('print.cfgUartTitle'),
+        val: summary,
+        sub: t('print.cfgUartSub', { count: uartList.length }),
+        active: true
+      });
+    }
+    section2Html = `
+      <div>
+        <h4 class="print-sec-title">${escapeHtml(t('print.secBoardCfg'))}</h4>
+        <div class="print-cfg-grid">
+          ${cfgCards.map((c) => `
+            <div class="print-cfg-cell ${c.active ? 'on' : 'off'}">
+              <strong>${escapeHtml(c.title)}: ${escapeHtml(c.val)}</strong>
+              <small>${escapeHtml(c.sub)}</small>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
 
-  const wireRows = [];
+  // Section 3: Wiring Checklist (includes K-Comp V2 breadboard feeders AND ESP32-S3 carrier feeders + exact holes + UART tags)
+  const wireRows: string[] = [];
+  if (carrierActive) {
+    for (const cf of (state.carrierFeeders || [])) {
+      const sideLbl = cf.side === 'left' ? t('carrier.sideLeft') : t('carrier.sideRight');
+      const pinLbl = board.pins[cf.feederPinId]?.label || cf.feederPinId;
+      wireRows.push(`
+        <tr class="print-row-rail">
+          <td><span class="print-chk"></span></td>
+          <td><strong>${escapeHtml(t('print.carrierFeederRow', { rail: cf.label, side: sideLbl }))}</strong></td>
+          <td><span class="pin-dot" style="display:inline-block;vertical-align:middle;margin-right:5px;background:${cf.color}"></span>${escapeHtml(pinLbl)}</td>
+          <td><strong>${escapeHtml(t('print.carrierFeederDest', { rail: cf.label, side: sideLbl }))}</strong></td>
+        </tr>`);
+    }
+  }
   for (const rail of (state.breadboardRails || [])) {
-    const srcLbl = getActiveBoard().pins[rail.bpId]?.label || rail.bpId;
+    const srcLbl = board.pins[rail.bpId]?.label || rail.bpId;
     wireRows.push(`
       <tr class="print-row-rail">
         <td><span class="print-chk"></span></td>
@@ -612,8 +759,13 @@ export function openPrintStopSheet() {
   }
   for (const inst of state.active) {
     const def = getCompDef(inst.compId);
+    if (!def) continue;
     const role = getDisplayLabel(def);
     const protoTag = def.protoArea ? ` [${t('info.badgeProto')}]` : '';
+    const uInfo = uartAssigns[inst.instanceId] || null;
+    const uartTag = uInfo
+      ? ` <span class="print-uart-tag ${uInfo.kind === 'hw' ? 'is-hw' : 'is-sw'}">${escapeHtml(uInfo.badgeLabel)}</span>`
+      : '';
     if (!def.pins.length && def.requiresDriver) {
       wireRows.push(`
         <tr>
@@ -628,13 +780,23 @@ export function openPrintStopSheet() {
         const bbBranch = state.breadboardRails
           .flatMap((r) => r.branches)
           .find((b) => b.box.inst.instanceId === inst.instanceId && b.p.id === p.id);
-        const bLbl = bbBranch && bbBranch.bbHole
-          ? t('print.bbPinDest', { col: bbBranch.bbHole.colName, hole: bbBranch.bbHole.holeNum, label: bbBranch.bbHole.rail.label })
-          : (bpId ? (getActiveBoard().pins[bpId]?.label || bpId) : t('print.unassigned'));
+        const carrierHole = carrierActive ? state.carrierWireMap?.[`${inst.instanceId}::${p.id}`] : null;
+        const rawPinLbl = bpId ? (board.pins[bpId]?.label || bpId) : t('print.unassigned');
+
+        let bLbl = rawPinLbl;
+        if (bbBranch && bbBranch.bbHole) {
+          bLbl = t('print.bbPinDest', { col: bbBranch.bbHole.colName, hole: bbBranch.bbHole.holeNum, label: bbBranch.bbHole.rail.label });
+        } else if (carrierHole) {
+          bLbl = carrierHole.kind === 'rail'
+            ? t('print.carrierRailDest', { hole: carrierHole.label })
+            : t('print.carrierRowDest', { hole: carrierHole.label, pin: rawPinLbl });
+        }
+
+        const isUartPin = p.role === 'UART_RX' || p.role === 'UART_TX';
         wireRows.push(`
           <tr>
             <td><span class="print-chk"></span></td>
-            <td><strong>${escapeHtml(role)}</strong> (${escapeHtml(def.name)})${escapeHtml(protoTag)}</td>
+            <td><strong>${escapeHtml(role)}</strong> (${escapeHtml(def.name)})${escapeHtml(protoTag)}${isUartPin ? uartTag : ''}</td>
             <td><span class="pin-dot" style="display:inline-block;vertical-align:middle;margin-right:5px;background:${p.color}"></span>${escapeHtml(p.id)}</td>
             <td><strong>${escapeHtml(bLbl)}</strong></td>
           </tr>`);
@@ -644,27 +806,34 @@ export function openPrintStopSheet() {
 
   const safetyNotes = [
     ...warnings.map((w) => w.text),
-    ...state.active.filter((i) => getCompDef(i.compId).voltage.includes('ONLY')).map((i) => t('print.strictlyVoltage', { name: getDisplayLabel(getCompDef(i.compId)), voltage: getCompDef(i.compId).voltage })),
-    ...state.active.filter((i) => getCompDef(i.compId).protoArea).map((i) => `${getDisplayLabel(getCompDef(i.compId))}: ${tComp(getCompDef(i.compId), 'protoNote') || t('info.protoDefault')}`)
+    ...state.active.filter((i) => getCompDef(i.compId)?.voltage?.includes('ONLY')).map((i) => t('print.strictlyVoltage', { name: getDisplayLabel(getCompDef(i.compId)), voltage: getCompDef(i.compId).voltage })),
+    ...state.active.filter((i) => getCompDef(i.compId)?.protoArea).map((i) => `${getDisplayLabel(getCompDef(i.compId))}: ${tComp(getCompDef(i.compId), 'protoNote') || t('info.protoDefault')}`)
   ];
 
   const today = new Date().toLocaleDateString(getLocale() === 'de' ? 'de-AT' : (getLocale() === 'sq' ? 'sq-AL' : undefined));
+  const bannerDesc = dipStates.length
+    ? t('print.bannerDesc')
+    : t('print.bannerDescGeneric', { board: board.shortName, voltage: board.electrical.logicVoltage });
+  const boardPinColHead = carrierActive
+    ? t('print.colBoardBreadboardPin', { board: board.shortName })
+    : t('print.colBoardPinDynamic', { board: board.shortName });
+
   $('#printSheet').innerHTML = `
     <div class="stop-banner">
       <div class="stop-oct">!</div>
       <div>
         <h3>${escapeHtml(t('print.bannerTitle'))}</h3>
-        <p>${escapeHtml(t('print.bannerDesc'))}</p>
+        <p>${escapeHtml(bannerDesc)}</p>
       </div>
     </div>
 
     <div class="print-meta-grid">
       <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiProject'))}</div><div class="print-kpi-val">${escapeHtml(getCleanProjectName() || t('print.kpiUntitled'))}</div></div>
-      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiBoard'))}</div><div class="print-kpi-val">${escapeHtml(getActiveBoard().name)}</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiBoard'))}</div><div class="print-kpi-val">${escapeHtml(board.name)}</div></div>
       <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiJumpers'))}</div><div class="print-kpi-val">${escapeHtml(jumperKpiVal)}</div></div>
-      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiCurrent'))}</div><div class="print-kpi-val">~${cur.total} mA / 500 mA</div></div>
-      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiSram'))}</div><div class="print-kpi-val">${sramPct}% (${escapeHtml(formatRamAmount(sramUsed, getActiveBoard().sramTotal).usedStr)} / ${escapeHtml(formatRamAmount(sramUsed, getActiveBoard().sramTotal).totalStr)})</div></div>
-      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(getActiveBoard().id === 'kcomp-v2' ? t('print.kpiOled') : t('print.kpiLogic'))}</div><div class="print-kpi-val">${escapeHtml(getActiveBoard().id === 'kcomp-v2' ? (state.onboard.onboard_oled ? (state.oledPaged ? t('print.oledPagedVal') : t('print.oledFullVal')) : t('print.oledDisabled')) : `${getActiveBoard().electrical.logicVoltage}V Logic`)}</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiCurrent'))}</div><div class="print-kpi-val">~${cur.total} mA / ${maxMa} mA</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(t('print.kpiSram'))}</div><div class="print-kpi-val">${sramPct}% (${escapeHtml(ramFmt.usedStr)} / ${escapeHtml(ramFmt.totalStr)})</div></div>
+      <div class="print-kpi"><div class="print-kpi-lbl">${escapeHtml(isKcompV2 ? t('print.kpiOled') : t('print.kpiLogic'))}</div><div class="print-kpi-val">${escapeHtml(isKcompV2 ? (state.onboard.onboard_oled ? (state.oledPaged ? t('print.oledPagedVal') : t('print.oledFullVal')) : t('print.oledDisabled')) : `${board.electrical.logicVoltage}V Logic${carrierActive ? ' · Breadboard' : ''}`)}</div></div>
     </div>
 
     <div class="print-svg-box">${svgMarkup}</div>
@@ -692,17 +861,13 @@ export function openPrintStopSheet() {
       ${jumperSummaryHtml}
     </div>
 
-    ${dipStates.length ? `
-    <div>
-      <h4 class="print-sec-title">${escapeHtml(t('print.secDip'))}</h4>
-      <div class="print-dip-row">${dipCells}</div>
-    </div>` : ''}
+    ${section2Html}
 
     <div>
       <h4 class="print-sec-title">${escapeHtml(t('print.secWires', { count: wireRows.length }))}</h4>
       ${wireRows.length ? `
         <table class="print-table">
-          <thead><tr><th style="width:28px">${escapeHtml(t('print.colOk'))}</th><th>${escapeHtml(t('print.colModule'))}</th><th>${escapeHtml(t('print.colModPin'))}</th><th>${escapeHtml(t('print.colBoardPin'))}</th></tr></thead>
+          <thead><tr><th style="width:28px">${escapeHtml(t('print.colOk'))}</th><th>${escapeHtml(t('print.colModule'))}</th><th>${escapeHtml(t('print.colModPin'))}</th><th>${escapeHtml(boardPinColHead)}</th></tr></thead>
           <tbody>${wireRows.join('')}</tbody>
         </table>` : `<p style="font-size:12px;color:#475569;margin:4px 0;">${escapeHtml(t('print.noExternal'))}</p>`}
     </div>
@@ -717,7 +882,7 @@ export function openPrintStopSheet() {
       <span>${escapeHtml(CONFIGURATOR_REPO_URL.replace('https://', ''))}</span>
     </div>`;
 
-  $('#printModal').classList.remove('hidden');
+  $('#printModal')?.classList.remove('hidden');
 }
 
 export function openSvgLibrary() {

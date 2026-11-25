@@ -5,6 +5,7 @@ import { BASE_VB, resolveAssetUrl } from './constants';
 import type { WorkbenchState, HooksRegistry } from '../types';
 import { t } from '../i18n/index';
 import { DEFAULT_BOARD_ID, getActiveBoard } from '../boards';
+import { createEmptyProposal } from './proposal';
 
 const THEME_STORAGE_KEY = 'kcomp_theme';
 const LAYOUT_STORAGE_KEY = 'kcomp_layout_v1';
@@ -17,6 +18,8 @@ export const state: WorkbenchState = (typeof window !== 'undefined' && window.__
   catalog: null,
   boardSvgEl: null,
   projectName: '',
+  proposal: createEmptyProposal(),
+  printModalTab: 'labsheet',
   theme: 'dark',        // 'dark' | 'light' (White Mode)
   hoveredNet: null,     // Active electrical net ID on direct wire/rail hover
   svgCache: new Map(),
@@ -26,6 +29,7 @@ export const state: WorkbenchState = (typeof window !== 'undefined' && window.__
   placedEntries: [],
   breadboardRails: [],
   carrierFeeders: [],
+  carrierWireMap: {},
   focusedId: null,
   search: '',
   groupMode: 'topic',
@@ -81,6 +85,8 @@ export const state: WorkbenchState = (typeof window !== 'undefined' && window.__
   catalog: null,
   boardSvgEl: null,
   projectName: '',
+  proposal: createEmptyProposal(),
+  printModalTab: 'labsheet',
   theme: 'dark',
   hoveredNet: null,
   svgCache: new Map(),
@@ -90,6 +96,7 @@ export const state: WorkbenchState = (typeof window !== 'undefined' && window.__
   placedEntries: [],
   breadboardRails: [],
   carrierFeeders: [],
+  carrierWireMap: {},
   focusedId: null,
   search: '',
   groupMode: 'topic',

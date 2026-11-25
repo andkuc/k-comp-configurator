@@ -10,6 +10,7 @@ import { getCompDef, addComponent, rebalanceOverflowPowerPins } from './hardware
 import { t, tPreset } from '../i18n/index';
 import { DEFAULT_BOARD_ID, getActiveBoard, getBoardById } from '../boards';
 import { normalizeCodeProfile } from './code-profiles';
+import { cloneProposal, createEmptyProposal, normalizeProposal, serializeProposalCompact } from './proposal';
 
 export function captureSnapshot() {
   return JSON.stringify({
@@ -18,6 +19,7 @@ export function captureSnapshot() {
     carrierEnabled: !!state.carrierEnabled,
     powerRailMode: state.powerRailMode || 'smart',
     projectName: state.projectName,
+    proposal: cloneProposal(state.proposal),
     onboard: state.onboard,
     oledPaged: state.oledPaged,
     active: state.active,
@@ -61,6 +63,7 @@ export async function restoreSnapshot(snapJson) {
   if (typeof data.carrierEnabled === 'boolean') state.carrierEnabled = data.carrierEnabled;
   state.powerRailMode = data.powerRailMode === 'rail' ? 'rail' : 'smart';
   if (typeof data.projectName === 'string') state.projectName = data.projectName;
+  state.proposal = normalizeProposal(data.proposal);
   syncProjectNameUI();
   state.onboard = { ...data.onboard };
   state.oledPaged = !!data.oledPaged;
@@ -106,6 +109,7 @@ export function serializeProjectPayload() {
       nodes: [{ id: 'node_0', boardId: board.id, codeProfile: prof }]
     },
     name: getCleanProjectName(),
+    ...(serializeProposalCompact(state.proposal) ? { pr: serializeProposalCompact(state.proposal) } : {}),
     ob: { ...state.onboard },
     pg: !!state.oledPaged,
     rt: state.wireMode,
@@ -162,6 +166,7 @@ export async function applyProjectPayload(payload, pushHistory = true) {
     state.onboard.onboard_wireless = payload.ob && payload.ob.onboard_wireless !== undefined ? !!payload.ob.onboard_wireless : false;
   }
   if (typeof payload.name === 'string') state.projectName = payload.name;
+  state.proposal = normalizeProposal(payload.pr || payload.proposal);
   syncProjectNameUI();
   state.oledPaged = !!payload.pg;
   if (payload.rt === 'smart' || payload.rt === 'curved') state.wireMode = payload.rt;
@@ -206,14 +211,14 @@ export function saveProjectFile() {
   showToast(t('toast.saved', { file: fname }));
 }
 
-function encodeBase64Url(str) {
+export function encodeBase64Url(str: string): string {
   const bytes = new TextEncoder().encode(str);
   let bin = '';
   bytes.forEach((b) => { bin += String.fromCharCode(b); });
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function decodeBase64Url(b64) {
+export function decodeBase64Url(b64: string): string {
   const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
   const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + pad);
   const bytes = new Uint8Array(bin.length);
@@ -308,6 +313,7 @@ export function resetToNewDesign(opts: any = {}) {
   if (!skipUndo && hasAnything) pushUndoState();
 
   state.projectName = '';
+  state.proposal = createEmptyProposal();
   syncProjectNameUI();
   state.onboard = {};
   for (const ob of getActiveOnboardDefs()) {
@@ -342,11 +348,16 @@ export function resetToNewDesign(opts: any = {}) {
   }
 }
 
+export function getPresetsForBoard(boardId: string = getActiveBoard().id) {
+  return (state.catalog?.presets || []).filter((p) => (p.boardId || DEFAULT_BOARD_ID) === boardId);
+}
+
 export function populatePresets() {
   const sel = $('#presetSelect');
   if (!sel || !state.catalog) return;
+  const presets = getPresetsForBoard(getActiveBoard().id);
   sel.innerHTML = `<option value="">${t('topbar.loadPreset')}</option>`;
-  for (const p of state.catalog.presets) {
+  for (const p of presets) {
     const opt = document.createElement('option');
     opt.value = p.id;
     opt.textContent = tPreset(p, 'name');
@@ -358,13 +369,24 @@ export async function loadPreset(presetId) {
   const p = state.catalog.presets.find((x) => x.id === presetId);
   if (!p) return;
   pushUndoState();
+
+  const targetBoardId = p.boardId || DEFAULT_BOARD_ID;
+  if (targetBoardId !== state.boardId) {
+    await hooks.switchBoard(targetBoardId, { force: true, skipUndo: true, silent: true });
+  }
+
+  const board = getActiveBoard();
   state.active = [];
   state.focusedId = null;
-  for (const ob of state.catalog.onboard) {
+  state.powerRailMode = 'smart';
+  state.onboard = {};
+  for (const ob of getActiveOnboardDefs()) {
     state.onboard[ob.id] = !!(p.onboard && p.onboard[ob.id]);
   }
-  state.onboard.onboard_wireless = false;
-  state.oledPaged = !!p.oledPaged;
+  if (board.capabilities.hasWirelessSlot) {
+    state.onboard.onboard_wireless = false;
+  }
+  state.oledPaged = board.id === 'kcomp-v2' ? !!p.oledPaged : false;
   state.projectName = tPreset(p, 'name').split('(')[0].trim();
   syncProjectNameUI();
   for (const ext of p.external) await addComponent(ext.id, { ...ext, skipUndo: true });

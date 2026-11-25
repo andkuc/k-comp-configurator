@@ -20,7 +20,8 @@ import {
 } from '../core/hardware';
 import { buildSketchString } from '../core/codegen';
 import { CODE_PROFILES, getDriverCompat, getSupportedProfiles } from '../core/code-profiles';
-import { applyProjectPayload, serializeProjectPayload } from '../core/persistence';
+import { applyProjectPayload, getPresetsForBoard, loadPreset, serializeProjectPayload } from '../core/persistence';
+import { openPrintStopSheet } from '../ui/modals';
 import { allocateCarrierBreadboardConnections, getCarrierPowerRailTargets, getCarrierRowHoleTargets, renderCarrierActiveOverlay } from '../core/carrier-breadboard';
 import { getBoardGeometry, isBoardCarrierActive } from '../boards';
 
@@ -31,6 +32,7 @@ function resetForBoard(boardId: string) {
   state.codeProfile = board.defaultCodeProfile;
   state.carrierEnabled = !!board.carrier?.defaultEnabled;
   state.carrierFeeders = [];
+  state.carrierWireMap = {};
   state.catalog = CATALOG;
   state.active = [];
   state.placedEntries = [];
@@ -308,5 +310,78 @@ describe('Extensible CodeProfile Engine & Project Format v24 Backward Compatibil
     expect(state.boardId).toBe('kcomp-v2');
     expect(state.onboard.onboard_oled).toBe(true);
     expect(state.active).toHaveLength(1);
+  });
+});
+
+describe('Board-Filtered Presets & Multi-Board Lab Sheet (v0.2.7)', () => {
+  beforeEach(() => resetForBoard('esp32-s3-devkit'));
+
+  it('filters presets strictly by board and loads ESP32-S3 presets with active onboard features and 0 critical warnings', async () => {
+    const k2Presets = getPresetsForBoard('kcomp-v2').map((p) => p.id);
+    const espPresets = getPresetsForBoard('esp32-s3-devkit').map((p) => p.id);
+    expect(k2Presets).toEqual(['driver_license', 'env_station']);
+    expect(espPresets).toEqual(['esp32_iot_starter', 'esp32_bio_lab']);
+
+    // Loading ESP32 IoT preset turns on Wi-Fi & RGB LED and leaves 0 critical warnings
+    await loadPreset('esp32_iot_starter');
+    expect(getActiveBoard().id).toBe('esp32-s3-devkit');
+    expect(state.onboard.onboard_wifi).toBe(true);
+    expect(state.onboard.onboard_rgb_led).toBe(true);
+    expect(state.active).toHaveLength(3);
+    expect(computeCriticalWarnings().filter((w) => w.critical)).toHaveLength(0);
+
+    // Loading ESP32 Biometric & Dual-UART preset uses ADC1 + 2x HW-UART with 0 critical warnings
+    await loadPreset('esp32_bio_lab');
+    expect(state.onboard.onboard_wifi).toBe(true);
+    expect(state.onboard.onboard_rgb_led).toBe(false);
+    expect(state.active).toHaveLength(4);
+    expect(computeCriticalWarnings().filter((w) => w.critical)).toHaveLength(0);
+
+    // Loading a K-Comp V2 preset automatically switches board to kcomp-v2
+    await loadPreset('driver_license');
+    expect(getActiveBoard().id).toBe('kcomp-v2');
+    expect(state.onboard.onboard_oled).toBe(true);
+  });
+
+  it('renders board-aware Lab Sheet for ESP32-S3 (Breadboard & Standalone) without K-Comp V2 DIP S1 artifacts', async () => {
+    document.body.innerHTML = '<div id="printModal" class="hidden"><div id="printSheet"></div></div>';
+    hooks.applyViewBox = () => {};
+
+    await loadPreset('esp32_iot_starter');
+    // Seed carrier feeders & wire map as workbench would during live render
+    state.carrierFeeders = [
+      { railId: 'BB_L_3V3', netId: 'NET_3V3', label: '+3.3V', color: '#fb923c', side: 'left', feederPinId: '3V3_L1' },
+      { railId: 'BB_L_GND', netId: 'NET_GND', label: 'GND', color: '#64748b', side: 'left', feederPinId: 'GND_L1' }
+    ];
+    state.carrierWireMap = {
+      [`${state.active[0].instanceId}::SDA`]: { kind: 'row', label: '12a' },
+      [`${state.active[0].instanceId}::VIN`]: { kind: 'rail', label: '+3.3V (L3)' }
+    };
+
+    // 1. ESP32-S3 mounted on Breadboard
+    state.carrierEnabled = true;
+    openPrintStopSheet();
+    const htmlBb = document.getElementById('printSheet')!.innerHTML;
+    expect(htmlBb).toContain('ESP32-S3 DevKitC-1 (N16R8)');
+    expect(htmlBb).toContain('Breadboard');
+    expect(htmlBb).toContain('12a');
+    expect(htmlBb).toContain('HW-UART1');
+    expect(htmlBb).not.toContain('DIP Switch Block S1');
+    expect(htmlBb).not.toContain('K-Comp V2 Single-Board Computer');
+
+    // 2. ESP32-S3 Standalone -> uses F-F jumpers for male-pin modules & hides Carrier Breadboard BOM row
+    state.carrierEnabled = false;
+    openPrintStopSheet();
+    const htmlStandalone = document.getElementById('printSheet')!.innerHTML;
+    expect(htmlStandalone).toContain('Female–Female');
+    expect(htmlStandalone).not.toContain('Breadboard (ESP32 Carrier)');
+
+    // 3. Adding a 5V-only sensor (MQ-2) automatically includes a 3.3V <-> 5V Level Shifter in BOM!
+    await addComponent('mq2', { skipUndo: true });
+    openPrintStopSheet();
+    const htmlLevelShift = document.getElementById('printSheet')!.innerHTML;
+    expect(htmlLevelShift).toContain('Level Shifter');
+
+    document.body.innerHTML = '';
   });
 });
