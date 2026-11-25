@@ -22,6 +22,8 @@
              data-i18n-title="topbar.projectTitle" autocomplete="off" />
     </div>
 
+    <nav id="workspaceSwitchSlot" class="workspace-switch" role="tablist" aria-label="Workspace mode" data-i18n-aria="ws.switcherAria"></nav>
+
     <div class="topbar-controls">
       <div class="undo-group">
         <button id="btnUndo" class="btn btn-ghost btn-icon" type="button" title="Undo (Ctrl+Z)" data-i18n-title="topbar.undoTitle" disabled>↶</button>
@@ -72,6 +74,8 @@
   <div id="corsBanner" class="cors-banner hidden">
     <strong data-i18n="cors.lead">Local file mode blocked by browser:</strong> <span data-i18n-html="cors.body">Serve over HTTP (<code>python3 -m http.server 8000</code>) or host on GitHub Pages so external SVGs &amp; JSON can load.</span>
   </div>
+
+  <section id="workspaceStage" class="workspace-stage hidden" aria-live="polite"></section>
 
   <main class="workspace" id="workspace">
     <!-- LEFT SIDEBAR: EXTERNAL COMPONENTS -->
@@ -214,7 +218,7 @@
             </div>
           </div>
           <button id="btnAutoSaveToggle" class="autosave-toggle" type="button" aria-pressed="false" title="Toggle automatic saving of your design in this browser" data-i18n-title="bottom.autoSaveToggleTitle"><span class="autosave-dot" aria-hidden="true"></span><span id="autoSaveLabel">Auto-Save: OFF</span></button>
-          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.2.8 · © Andreas Kucher</button>
+          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.3.2 · © Andreas Kucher</button>
         </div>
         <div class="bottom-right-controls">
           <div class="sram-compact">

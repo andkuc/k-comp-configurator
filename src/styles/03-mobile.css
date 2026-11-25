@@ -1,0 +1,540 @@
+/* SPDX-FileCopyrightText: 2025-2026 Andreas Kucher */
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+/* =========================================================================
+   MOBILE APP-STYLE LAYOUT (<= 960px) — Desktop (> 960px) remains untouched
+   ========================================================================= */
+.topbar-actions { display: flex; align-items: center; gap: 7px; }
+.mobile-menu-btn,
+.mobile-dip-toggle,
+.mobile-nav { display: none; }
+
+.empty-cta-btn {
+  margin-top: 12px;
+  display: none;
+}
+
+@media (max-width: 960px) {
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Compact single-row mobile header */
+  .topbar {
+    height: 48px;
+    padding: 0 10px;
+    gap: 8px;
+    position: relative;
+    z-index: 40;
+  }
+
+  .brand {
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .brand-badge {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .topbar h1 {
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  .topbar-controls {
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .topbar-controls .select-ctrl {
+    flex: 0 1 175px;
+    min-width: 112px;
+    max-width: 185px;
+    height: 34px;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* Overflow popover menu for SVG Library / Export SVG / Clear */
+  .topbar-actions {
+    display: none;
+    position: absolute;
+    top: 52px;
+    right: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 170px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 10px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+    z-index: 60;
+  }
+
+  .topbar-actions.open {
+    display: flex;
+  }
+
+  .topbar-actions .btn {
+    justify-content: flex-start;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  /* Single-panel viewport workspace driven by data-mobile-view */
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar,
+  .sidebar-resizer,
+  .stage-area,
+  .inspector,
+  .inspector-resizer {
+    display: none;
+  }
+
+  /* VIEW 1: BOARD */
+  body[data-mobile-view="board"] .stage-area {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  /* VIEW 2: PARTS CATALOG */
+  body[data-mobile-view="parts"] .sidebar {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border-right: none;
+  }
+
+  /* VIEW 3 & 4: WIRING / CODE */
+  body[data-mobile-view="wiring"] .inspector,
+  body[data-mobile-view="code"] .inspector {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .inspector-tabs {
+    display: none;
+  }
+
+  body[data-mobile-view="wiring"] #tabPins {
+    display: flex;
+  }
+  body[data-mobile-view="wiring"] #tabCode {
+    display: none;
+  }
+  body[data-mobile-view="code"] #tabCode {
+    display: flex;
+  }
+  body[data-mobile-view="code"] #tabPins {
+    display: none;
+  }
+
+  /* Maximized touch canvas on Board view */
+  .canvas-wrapper {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    touch-action: none;
+  }
+
+  .zoom-hud {
+    bottom: 8px;
+    right: 8px;
+    padding: 4px;
+    gap: 4px;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: none;
+  }
+
+  .zoom-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+
+  .zoom-pct {
+    min-width: 42px;
+    height: 32px;
+    font-size: 11px;
+  }
+
+  .zoom-btn-text {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  /* Compact multi-row Onboard strip on Board view (no horizontal scrollbar) */
+  .onboard-bar {
+    padding: 5px 10px;
+    gap: 5px 7px;
+  }
+
+  .ob-pill {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Compact DIP S1 toggle + SRAM footer on Board view */
+  .bottom-bar {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .hint-line {
+    display: none;
+  }
+
+  .bottom-right-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .mobile-dip-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border-hi);
+    background: var(--surface-2);
+    color: #fde047;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .dip-wrap {
+    display: none;
+    width: 100%;
+    order: 3;
+    padding-top: 4px;
+  }
+
+  .bottom-bar.dip-open .dip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .bottom-bar.dip-open .dip-label {
+    display: none;
+  }
+
+  .dip-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .dip-pill {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .sram-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .btn-oled-mode {
+    font-size: 11px;
+    padding: 4px 9px;
+  }
+  .cat-info-btn,
+  .card-info-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+  .cat-role {
+    font-size: 13px;
+  }
+  .cat-model {
+    font-size: 11px;
+  }
+
+  /* Parts Catalog mobile polish (16px input prevents iOS Safari auto-zoom) */
+  .catalog-section {
+    padding: 10px 12px;
+  }
+
+  .search-row input {
+    font-size: 16px;
+    padding: 9px 12px;
+    border-radius: 9px;
+  }
+
+  .category-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin: 9px 0 6px;
+    gap: 6px;
+  }
+
+  .cat-btn {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 6px 11px;
+    border-radius: 99px;
+  }
+
+  .catalog-list {
+    gap: 8px;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cat-item {
+    padding: 9px 10px;
+    gap: 10px;
+    border-radius: 10px;
+  }
+
+  .cat-thumb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cat-name {
+    font-size: 13.5px;
+  }
+
+  .cat-add-btn {
+    min-width: 38px;
+    height: 34px;
+    font-size: 13px;
+    border-radius: 7px;
+  }
+
+  /* Wiring & Code panels mobile polish */
+  .tab-panel {
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comp-card {
+    border-radius: 10px;
+  }
+
+  .comp-card-head {
+    padding: 10px 12px;
+  }
+
+  .comp-card-title {
+    font-size: 13.5px;
+  }
+
+  .comp-card-body {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+
+  .pin-row {
+    padding: 7px 9px;
+    font-size: 12.5px;
+    gap: 8px;
+  }
+
+  .pin-select {
+    font-size: 14px;
+    padding: 6px 8px;
+    max-width: 195px;
+    min-height: 34px;
+    border-radius: 6px;
+  }
+
+  .pin-fixed {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+
+  .code-actions {
+    gap: 8px;
+  }
+
+  .code-actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .code-block {
+    font-size: 12px;
+    line-height: 1.55;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .empty-cta-btn {
+    display: inline-flex;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Fixed bottom app navigation bar */
+  .mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--surface);
+    border-top: 1px solid var(--border-hi);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
+    z-index: 45;
+  }
+
+  .mnav-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mnav-btn.active {
+    color: var(--accent);
+    background: rgba(56, 189, 248, 0.12);
+  }
+
+  .mnav-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mnav-badge {
+    position: absolute;
+    top: 3px;
+    right: calc(50% - 22px);
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 99px;
+    background: #7c3aed;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+
+  .mnav-warn-dot {
+    position: absolute;
+    top: 5px;
+    right: calc(50% - 16px);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 1.5px solid var(--surface);
+  }
+
+  /* Toast sits cleanly right above bottom nav */
+  .status-toast {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+    font-size: 12px;
+    padding: 7px 14px;
+  }
+
+  /* Full-width SVG library modal on phones */
+  .modal {
+    padding: 10px;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-height: 90dvh;
+  }
+
+  .svg-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .pin-legend {
+    top: 6px;
+    left: 6px;
+    gap: 6px;
+    padding: 3px 7px;
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 400px) {
+  .zoom-pct {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .guided-panel {
+    bottom: 50px;
+    left: 8px;
+    width: calc(100% - 16px);
+  }
+  .print-dip-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .print-sign-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -1,9 +1,23 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Live GitHub docs/ModuleDocumentation PDF Auto-Discovery (andkuc/k-comp)
-import { state, hooks, $ } from './state';
+import { state, $ } from './state';
+import { appBus } from '../store/bus';
 
-const ONBOARD_DOC_SPECS = [
+export interface RepoPdfEntry {
+  name?: string;
+  path: string;
+  html_url?: string;
+}
+
+interface OnboardDocSpec {
+  id: string;
+  keywords: string[];
+  exactStem?: string;
+  fallback: string;
+}
+
+const ONBOARD_DOC_SPECS: OnboardDocSpec[] = [
   { id: 'onboard_oled',     keywords: ['oleddisplayssd1306', 'ssd1306'], fallback: 'OLEDDisplay_SSD1306.pdf' },
   { id: 'oled_grid',        keywords: ['oleddisplaygridextension', 'gridextension'], fallback: 'OLEDDisplay_GridExtension.pdf' },
   { id: 'onboard_joystick', keywords: ['joystickky023', 'ky023'], fallback: 'Joystick_KY-023.pdf' },
@@ -15,15 +29,17 @@ const ONBOARD_DOC_SPECS = [
   { id: 'onboard_distance', keywords: ['distancesensorhcsr04', 'hcsr04'], fallback: 'DistanceSensor_HC-SR04.pdf' }
 ];
 
-export function matchComponentDocs(pdfEntries) {
+export function matchComponentDocs(pdfEntries: RepoPdfEntry[]): void {
   state.repoDocsMap.clear();
-  const blobBase = state.catalog.docsRepoBlobBase || 'https://github.com/andkuc/k-comp/blob/main/';
-  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const catalog = state.catalog;
+  if (!catalog) return;
+  const blobBase = catalog.docsRepoBlobBase || 'https://github.com/andkuc/k-comp/blob/main/';
+  const norm = (s: string | undefined | null): string => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  for (const c of state.catalog.components) {
+  for (const c of catalog.components) {
     const keywords = (c.docKeywords || [c.id]).map(norm).filter((k) => k.length >= 2);
     const excludes = (c.docExclude || []).map(norm).filter((k) => k.length >= 2);
-    let bestEntry = null;
+    let bestEntry: RepoPdfEntry | null = null;
     let bestScore = 0;
 
     for (const entry of (pdfEntries || [])) {
@@ -52,9 +68,9 @@ export function matchComponentDocs(pdfEntries) {
       const url = bestEntry.html_url || (blobBase + bestEntry.path.split('/').map(encodeURIComponent).join('/'));
       state.repoDocsMap.set(c.id, {
         url,
-        filename: bestEntry.name || bestEntry.path.split('/').pop()
+        filename: bestEntry.name || bestEntry.path.split('/').pop() || ''
       });
-    } else if ((!pdfEntries || !pdfEntries.length) && c.knownDocPdf) {
+    } else if ((!pdfEntries || !pdfEntries.length) && typeof c.knownDocPdf === 'string' && c.knownDocPdf) {
       state.repoDocsMap.set(c.id, {
         url: blobBase + 'docs/ModuleDocumentation/' + encodeURIComponent(c.knownDocPdf),
         filename: c.knownDocPdf
@@ -63,7 +79,7 @@ export function matchComponentDocs(pdfEntries) {
   }
 
   for (const spec of ONBOARD_DOC_SPECS) {
-    let hit = null;
+    let hit: RepoPdfEntry | null = null;
     for (const entry of (pdfEntries || [])) {
       const fname = entry.name || entry.path.split('/').pop() || '';
       const nName = norm(fname.replace(/\.pdf$/i, ''));
@@ -74,7 +90,7 @@ export function matchComponentDocs(pdfEntries) {
     }
     if (hit) {
       const url = hit.html_url || (blobBase + hit.path.split('/').map(encodeURIComponent).join('/'));
-      state.repoDocsMap.set(spec.id, { url, filename: hit.name || hit.path.split('/').pop() });
+      state.repoDocsMap.set(spec.id, { url, filename: hit.name || hit.path.split('/').pop() || '' });
     } else if (spec.fallback) {
       state.repoDocsMap.set(spec.id, {
         url: blobBase + 'docs/ModuleDocumentation/' + encodeURIComponent(spec.fallback),
@@ -84,16 +100,17 @@ export function matchComponentDocs(pdfEntries) {
   }
 }
 
-export async function discoverRepoDocumentationPdfs() {
-  if (!state.catalog || !state.catalog.docsRepoApi) return;
+export async function discoverRepoDocumentationPdfs(): Promise<void> {
+  const catalog = state.catalog;
+  if (!catalog || !catalog.docsRepoApi) return;
   const cacheKey = 'kcomp_repo_pdfs_v17';
-  let pdfEntries = null;
+  let pdfEntries: RepoPdfEntry[] | null = null;
 
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed.entries) && (Date.now() - parsed.ts) < 12 * 3600 * 1000) {
+      const parsed = JSON.parse(cached) as { ts?: number; entries?: RepoPdfEntry[] };
+      if (Array.isArray(parsed.entries) && typeof parsed.ts === 'number' && (Date.now() - parsed.ts) < 12 * 3600 * 1000) {
         pdfEntries = parsed.entries;
       }
     }
@@ -101,26 +118,26 @@ export async function discoverRepoDocumentationPdfs() {
 
   if (!pdfEntries) {
     try {
-      const res = await fetch(state.catalog.docsRepoApi, { headers: { Accept: 'application/vnd.github+json' } });
+      const res = await fetch(catalog.docsRepoApi, { headers: { Accept: 'application/vnd.github+json' } });
       if (res.ok) {
-        const items = await res.json();
+        const items: unknown = await res.json();
         if (Array.isArray(items)) {
           pdfEntries = items
-            .filter((it) => it.type === 'file' && /\.pdf$/i.test(it.name))
-            .map((it) => ({ name: it.name, path: it.path, html_url: it.html_url }));
+            .filter((it: any) => it && it.type === 'file' && /\.pdf$/i.test(String(it.name || '')))
+            .map((it: any) => ({ name: String(it.name), path: String(it.path), html_url: it.html_url ? String(it.html_url) : undefined }));
         }
       }
     } catch (_) {}
 
-    if ((!pdfEntries || !pdfEntries.length) && state.catalog.docsRepoTreeApi) {
+    if ((!pdfEntries || !pdfEntries.length) && catalog.docsRepoTreeApi) {
       try {
-        const res = await fetch(state.catalog.docsRepoTreeApi, { headers: { Accept: 'application/vnd.github+json' } });
+        const res = await fetch(catalog.docsRepoTreeApi, { headers: { Accept: 'application/vnd.github+json' } });
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as { tree?: Array<{ type?: string; path?: string }> };
           if (Array.isArray(data.tree)) {
             pdfEntries = data.tree
-              .filter((n) => n.type === 'blob' && /^docs\/ModuleDocumentation\/.*\.pdf$/i.test(n.path))
-              .map((n) => ({ name: n.path.split('/').pop(), path: n.path }));
+              .filter((n) => n.type === 'blob' && typeof n.path === 'string' && /^docs\/ModuleDocumentation\/.*\.pdf$/i.test(n.path))
+              .map((n) => ({ name: n.path!.split('/').pop(), path: n.path! }));
           }
         }
       } catch (_) {}
@@ -139,8 +156,8 @@ export async function discoverRepoDocumentationPdfs() {
   state.repoDocsLoaded = true;
 
   if (state.openInfoCompId && !$('#compInfoModal')?.classList.contains('hidden')) {
-    const def = state.catalog.components.find((c) => c.id === state.openInfoCompId);
-    if (def) hooks.updateInfoModalDocLink(def);
+    const def = catalog.components.find((c) => c.id === state.openInfoCompId);
+    if (def) appBus.emit('modal:updateInfoDocLink', { def });
   }
-  if (state.apiDrawerOpen) hooks.recomputeAndRender();
+  if (state.apiDrawerOpen) appBus.emit('workspace:recompute');
 }

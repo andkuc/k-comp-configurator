@@ -6,29 +6,78 @@
 //   1. Create js/i18n/<lang>.js (plus optional <lang>-components.js)
 //   2. Import it below and call registerLocale(<lang>)
 import en from './en';
-import de from './de';
-import sq from './sq';
 import { getActiveBoard } from '../boards';
 
 const STORAGE_KEY = 'kcomp_lang';
 const FALLBACK_LOCALE = 'en';
 
+interface LocaleMeta {
+  code: string;
+  label: string;
+  nativeName: string;
+  dir?: 'ltr' | 'rtl';
+  loader?: () => Promise<{ default: any }>;
+}
+
+const localeCatalog: LocaleMeta[] = [
+  { code: 'en', label: 'EN', nativeName: 'English', dir: 'ltr' },
+  { code: 'de', label: 'DE', nativeName: 'Deutsch', dir: 'ltr', loader: () => import('./de') },
+  { code: 'sq', label: 'SQ', nativeName: 'Shqip',   dir: 'ltr', loader: () => import('./sq') }
+];
+
 const registry = new Map<string, any>();
+const pendingLoads = new Map<string, Promise<any>>();
 const listeners = new Set<any>();
 let currentCode = FALLBACK_LOCALE;
 let outsideClickBound = false;
 
 export function registerLocale(localeDef) {
   if (!localeDef || !localeDef.code) return;
-  registry.set(localeDef.code.toLowerCase(), localeDef);
+  const code = localeDef.code.toLowerCase();
+  registry.set(code, localeDef);
+  if (!localeCatalog.some((m) => m.code === code)) {
+    localeCatalog.push({
+      code,
+      label: localeDef.label || code.toUpperCase(),
+      nativeName: localeDef.nativeName || code,
+      dir: localeDef.dir || 'ltr'
+    });
+  }
 }
 
 registerLocale(en);
-registerLocale(de);
-registerLocale(sq);
+
+export function isSupportedLocale(code: string): boolean {
+  const norm = String(code || '').toLowerCase();
+  return registry.has(norm) || localeCatalog.some((m) => m.code === norm);
+}
+
+export async function loadLocale(code: string) {
+  const norm = String(code || '').toLowerCase();
+  if (registry.has(norm)) return registry.get(norm);
+  const meta = localeCatalog.find((m) => m.code === norm);
+  if (!meta || !meta.loader) return registry.get(FALLBACK_LOCALE);
+
+  if (!pendingLoads.has(norm)) {
+    pendingLoads.set(
+      norm,
+      meta.loader().then((mod) => {
+        const def = mod.default || mod;
+        registerLocale(def);
+        pendingLoads.delete(norm);
+        return def;
+      }).catch((err) => {
+        pendingLoads.delete(norm);
+        console.warn(`Failed to lazy-load locale "${norm}":`, err);
+        return registry.get(FALLBACK_LOCALE);
+      })
+    );
+  }
+  return pendingLoads.get(norm);
+}
 
 export function getAvailableLocales() {
-  return Array.from(registry.values());
+  return localeCatalog.map((m) => registry.get(m.code) || m);
 }
 
 export function getLocale() {
@@ -36,26 +85,35 @@ export function getLocale() {
 }
 
 export function getLocaleDef(code = currentCode) {
-  return registry.get(code) || registry.get(FALLBACK_LOCALE);
+  return registry.get(code) || localeCatalog.find((m) => m.code === code) || registry.get(FALLBACK_LOCALE);
 }
 
 export function detectInitialLocale() {
   try {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = (params.get('lang') || '').toLowerCase();
-    if (fromUrl && registry.has(fromUrl)) return fromUrl;
+    if (fromUrl && isSupportedLocale(fromUrl)) return fromUrl;
   } catch (_) {}
 
   try {
     const stored = (localStorage.getItem(STORAGE_KEY) || '').toLowerCase();
-    if (stored && registry.has(stored)) return stored;
+    if (stored && isSupportedLocale(stored)) return stored;
   } catch (_) {}
 
   return FALLBACK_LOCALE;
 }
 
 export function initI18n() {
-  currentCode = detectInitialLocale();
+  const target = detectInitialLocale();
+  currentCode = registry.has(target) ? target : FALLBACK_LOCALE;
+  syncDocumentLang();
+  return currentCode;
+}
+
+export async function initI18nAsync() {
+  const target = detectInitialLocale();
+  await loadLocale(target);
+  currentCode = registry.has(target) ? target : FALLBACK_LOCALE;
   syncDocumentLang();
   return currentCode;
 }
@@ -73,6 +131,26 @@ export function onLocaleChange(fn) {
 
 export function setLocale(code, notify = true) {
   const norm = String(code || '').toLowerCase();
+  if (!isSupportedLocale(norm)) return false;
+  if (norm === currentCode && registry.has(norm)) return false;
+  if (!registry.has(norm)) {
+    void setLocaleAsync(norm, notify);
+    return true;
+  }
+  currentCode = norm;
+  try { localStorage.setItem(STORAGE_KEY, norm); } catch (_) {}
+  syncDocumentLang();
+  applyI18nToDom();
+  if (notify) {
+    for (const fn of listeners) fn(currentCode, getLocaleDef());
+  }
+  return true;
+}
+
+export async function setLocaleAsync(code: string, notify = true): Promise<boolean> {
+  const norm = String(code || '').toLowerCase();
+  if (!isSupportedLocale(norm)) return false;
+  await loadLocale(norm);
   if (!registry.has(norm)) return false;
   if (norm === currentCode) return false;
   currentCode = norm;
@@ -236,10 +314,10 @@ export function renderLanguageSwitcher(container, onSelected = null) {
     item.setAttribute('role', 'menuitemradio');
     item.setAttribute('aria-checked', String(isActive));
     item.innerHTML = `<span class="lang-tag">${loc.label}</span><span class="lang-native">${loc.nativeName}</span><span class="lang-check" aria-hidden="true">${isActive ? '✓' : ''}</span>`;
-    item.addEventListener('click', (e: any) => {
+    item.addEventListener('click', async (e: any) => {
       e.stopPropagation();
       closeLanguageMenu();
-      if (setLocale(loc.code) && onSelected) onSelected(loc);
+      if (await setLocaleAsync(loc.code) && onSelected) onSelected(getLocaleDef(loc.code));
     });
     popover.appendChild(item);
   });

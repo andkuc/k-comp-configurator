@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import type { CatalogData, ComponentDef, ComponentPinSpec } from './catalog';
 import type { DipSwitchSpec } from './board';
-import type { CodeBlockInstance, ProjectProposal } from './project';
+import type { CodeBlockInstance, PinAttachment, ProjectProposal } from './project';
 import type { CodeProfileId } from './codegen';
 
 export interface ActiveComponentInstance {
@@ -10,7 +10,7 @@ export interface ActiveComponentInstance {
   compId: string;
   i2cHeader: string | null;
   pinMap: Record<string, string | null>;
-  bbPins?: Record<string, boolean | string>;
+  attachments?: Record<string, PinAttachment>;
   customPos: { x: number; y: number; w?: number; h?: number } | null;
   rotation: number;
 }
@@ -30,7 +30,12 @@ export interface FlashTargetOptions {
 }
 
 export interface WarningQuickAction {
-  onboardId: string;
+  onboardId?: string;
+  pinReassign?: {
+    instanceId: string;
+    compPinId: string;
+    newPinId: string;
+  };
   label: string;
 }
 
@@ -163,31 +168,6 @@ export interface WorkbenchState {
   mobileView: string;
   needsMobileFit: boolean;
   toastTimer: ReturnType<typeof setTimeout> | null;
-}
-
-export interface HooksRegistry {
-  recomputeAndRender: () => void;
-  pushUndoState: () => void;
-  performUndo: () => void | Promise<void>;
-  captureSnapshot: () => string;
-  updateHistoryButtons: () => void;
-  openComponentInfo: (compId: string) => void;
-  openBlockInfo: (type: string) => void;
-  openBlocksOverview: () => void;
-  updateInfoModalDocLink: (def: ComponentDef) => void;
-  showPinTooltip: (pinId: string, ev: any) => void;
-  showCustomTooltip: (html: string, ev?: any) => void;
-  moveTooltip: (ev: any) => void;
-  hideTooltip: () => void;
-  setHoveredNet: (netId: string | null) => void;
-  applyViewBox: () => void;
-  resetViewFit: () => void;
-  zoomToBoard: () => void;
-  loadPreset: (presetId: string) => void | Promise<void>;
-  setHwHover: (hwId: string | null) => void;
-  flashTarget: (opts?: FlashTargetOptions) => void;
-  panToComponent: (instanceId: string) => void;
-  switchBoard: (boardId: string, opts?: any) => void | Promise<void>;
 }
 
 export interface UartAssignment {

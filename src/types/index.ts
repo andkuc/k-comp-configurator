@@ -6,3 +6,4 @@ export * from './catalog';
 export * from './project';
 export * from './i18n';
 export * from './state';
+export * from './netlist';

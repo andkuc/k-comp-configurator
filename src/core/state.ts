@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Reactive Workbench State, Theme Engine, Electrical Net Classifier & Shared DOM Utilities
 import { BASE_VB, resolveAssetUrl } from './constants';
-import type { WorkbenchState, HooksRegistry } from '../types';
+import type { WorkbenchState } from '../types';
+import { appBus } from '../store/bus';
 import { t } from '../i18n/index';
 import { DEFAULT_BOARD_ID, getActiveBoard } from '../boards';
 import { createEmptyProposal } from './proposal';
@@ -11,74 +12,7 @@ const THEME_STORAGE_KEY = 'kcomp_theme';
 const LAYOUT_STORAGE_KEY = 'kcomp_layout_v1';
 const AUTOSAVE_PREF_KEY = 'kcomp_autosave_enabled';
 
-export const state: WorkbenchState = (typeof window !== 'undefined' && window.__KCOMP_STATE) || (typeof window !== 'undefined' ? (window.__KCOMP_STATE = {
-  boardId: DEFAULT_BOARD_ID,
-  codeProfile: 'kcomp-avr',
-  carrierEnabled: false,
-  catalog: null,
-  boardSvgEl: null,
-  projectName: '',
-  proposal: createEmptyProposal(),
-  printModalTab: 'labsheet',
-  theme: 'dark',        // 'dark' | 'light' (White Mode)
-  hoveredNet: null,     // Active electrical net ID on direct wire/rail hover
-  svgCache: new Map(),
-  onboard: {},
-  oledPaged: false,
-  active: [],
-  placedEntries: [],
-  breadboardRails: [],
-  carrierFeeders: [],
-  carrierWireMap: {},
-  focusedId: null,
-  search: '',
-  groupMode: 'topic',
-  category: 'All',
-  wireMode: 'smart',
-  powerRailMode: 'smart',
-  snapToGrid: true,
-  undoStack: [],
-  redoStack: [],
-  repoDocsMap: new Map(),
-  repoDocsLoaded: false,
-  nextInst: 1,
-  vb: { ...BASE_VB },
-  panning: null,
-  touchPointers: new Map(),
-  pinch: null,
-  resizingSidebar: false,
-  resizingInspector: false,
-  resizingApi: false,
-  sidebarCollapsed: false,
-  inspectorCollapsed: false,
-  pinFilter: 'all',
-  wiringSubTab: 'modules',
-  pinLegendCollapsed: false,
-  hoveredHwId: null,
-  collapsedPinGroups: new Set(),
-  bootComplete: false,
-  autoSaveEnabled: false,
-  latestSketch: '',
-  codeBlocks: [],
-  nextBlockInst: 1,
-  codeHints: true,
-  blocksDrawerOpen: false,
-  editingBlockId: null,
-  openBlockInfo: null,
-  apiDrawerOpen: false,
-  apiShowAll: false,
-  apiSearch: '',
-  apiExpandedKey: null,
-  repoDocsPromise: null,
-  openInfoCompId: null,
-  suppressClick: false,
-  dragComp: null,
-  rotateComp: null,
-  dragWire: null,
-  mobileView: 'board',
-  needsMobileFit: false,
-  toastTimer: null
-}) : ({
+export const state: WorkbenchState = {
   boardId: DEFAULT_BOARD_ID,
   codeProfile: 'kcomp-avr',
   carrierEnabled: false,
@@ -145,35 +79,7 @@ export const state: WorkbenchState = (typeof window !== 'undefined' && window.__
   mobileView: 'board',
   needsMobileFit: false,
   toastTimer: null
-}));
-
-// Registered once in js/main.js to keep the ES module dependency graph strictly acyclic
-const defaultHooks: HooksRegistry = {
-  recomputeAndRender: () => {},
-  pushUndoState: () => {},
-  performUndo: () => {},
-  captureSnapshot: () => '{}',
-  updateHistoryButtons: () => {},
-  openComponentInfo: () => {},
-  openBlockInfo: () => {},
-  openBlocksOverview: () => {},
-  updateInfoModalDocLink: () => {},
-  showPinTooltip: () => {},
-  showCustomTooltip: () => {},
-  moveTooltip: () => {},
-  hideTooltip: () => {},
-  setHoveredNet: () => {},
-  applyViewBox: () => {},
-  resetViewFit: () => {},
-  zoomToBoard: () => {},
-  loadPreset: () => {},
-  setHwHover: () => {},
-  flashTarget: () => {},
-  panToComponent: () => {},
-  switchBoard: () => {}
 };
-
-export const hooks: HooksRegistry = (typeof window !== 'undefined' && window.__KCOMP_HOOKS) || (typeof window !== 'undefined' ? (window.__KCOMP_HOOKS = defaultHooks) : defaultHooks);
 
 export const $ = (sel: string): any => document.querySelector(sel);
 
@@ -238,25 +144,12 @@ export function getNetMeta(bpId) {
   if (!bpId) return { id: 'NET_NONE', label: '' };
   const pinMeta = getActiveBoard()?.pins?.[bpId];
   const caps = pinMeta?.caps || [];
-  if (bpId === 'PWR_5V' || bpId === 'H1_VCC' || bpId === 'H2_VCC' || bpId === 'H3_VCC' || caps.includes('5V')) {
-    return { id: 'NET_5V', label: t('net.5v') };
-  }
-  if (bpId === 'PWR_3V3' || caps.includes('3V3')) {
-    return { id: 'NET_3V3', label: t('net.3v3') };
-  }
-  if (bpId === 'PWR_GND1' || bpId === 'PWR_GND2' || bpId === 'TOP_GND' || bpId === 'EXT_GND' ||
-      bpId === 'H1_GND' || bpId === 'H2_GND' || bpId === 'H3_GND' || caps.includes('GND')) {
-    return { id: 'NET_GND', label: t('net.gnd') };
-  }
-  if (bpId === 'TOP_SDA' || bpId === 'A4' || bpId === 'H1_SDA' || bpId === 'H2_SDA' || bpId === 'H3_SDA' || caps.includes('I2C_SDA')) {
-    return { id: 'NET_I2C_SDA', label: t('net.sda') };
-  }
-  if (bpId === 'TOP_SCL' || bpId === 'A5' || bpId === 'H1_SCL' || bpId === 'H2_SCL' || bpId === 'H3_SCL' || caps.includes('I2C_SCL')) {
-    return { id: 'NET_I2C_SCL', label: t('net.scl') };
-  }
-  if (bpId === 'PWR_RESET' || caps.includes('RESET')) {
-    return { id: 'NET_RESET', label: t('net.reset') };
-  }
+  if (caps.includes('5V')) return { id: 'NET_5V', label: t('net.5v') };
+  if (caps.includes('3V3')) return { id: 'NET_3V3', label: t('net.3v3') };
+  if (caps.includes('GND')) return { id: 'NET_GND', label: t('net.gnd') };
+  if (caps.includes('I2C_SDA')) return { id: 'NET_I2C_SDA', label: t('net.sda') };
+  if (caps.includes('I2C_SCL')) return { id: 'NET_I2C_SCL', label: t('net.scl') };
+  if (caps.includes('RESET')) return { id: 'NET_RESET', label: t('net.reset') };
   const pinLabel = pinMeta?.label || bpId;
   return { id: `NET_${bpId}`, label: t('net.signal', { pin: pinLabel }) };
 }
@@ -265,7 +158,7 @@ export function getCleanProjectName() {
   return (state.projectName || '').trim();
 }
 
-export function getProjectSlug(fallback = 'kcomp-v2') {
+export function getProjectSlug(fallback = getActiveBoard().id) {
   const clean = getCleanProjectName()
     .toLowerCase()
     .replace(/[ä]/g, 'ae').replace(/[ö]/g, 'oe').replace(/[ü]/g, 'ue').replace(/[ß]/g, 'ss')
@@ -431,10 +324,10 @@ export function setMobileView(view) {
   if (view === 'board') {
     if (state.needsMobileFit) {
       state.needsMobileFit = false;
-      if (state.active.length) hooks.resetViewFit();
-      else hooks.zoomToBoard();
+      if (state.active.length) appBus.emit('viewport:resetFit');
+      else appBus.emit('viewport:zoomToBoard');
     } else {
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     }
   }
 }
@@ -497,10 +390,7 @@ export function syncWorkbenchToggles() {
 }
 
 export function getActiveOnboardDefs() {
-  const board = getActiveBoard();
-  if (board.onboardPeripherals) return board.onboardPeripherals;
-  if (board.id === 'kcomp-v2') return state.catalog?.onboard || [];
-  return [];
+  return getActiveBoard().onboardPeripherals || [];
 }
 
 export function formatRamAmount(bytes: number, totalBytes: number): { usedStr: string; totalStr: string } {

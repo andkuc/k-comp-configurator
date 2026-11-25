@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Left Catalog, Onboard Strip, Footer Gauges, Warnings, Right Inspector, Tooltips & Resizers
 import { resolveAssetUrl } from '../core/constants';
-import { state, hooks, $, escapeHtml, isMobileViewport, setMobileView, applyPanelCollapseState, saveLayoutPrefs, getActiveOnboardDefs, formatRamAmount } from '../core/state';
+import { state, $, escapeHtml, isMobileViewport, setMobileView, applyPanelCollapseState, saveLayoutPrefs, getActiveOnboardDefs, formatRamAmount } from '../core/state';
 import {
   getCompDef, countActiveByCompId, getDisplayLabel, getInstanceAddress,
   getExternalPinClaims, getOnboardPinUsage, addComponent, removeComponent,
-  toggleDipSwitch, toggleOnboardComponent, computeUartAssignments
+  toggleDipSwitch, toggleOnboardComponent, computeUartAssignments, reassignComponentPin
 } from '../core/hardware';
 import { t, tComp, tOnboard, tPreset, tCategory, tBlockedPin } from '../i18n/index';
 import { DEFAULT_BOARD_ID, getActiveBoard } from '../boards';
+import { appBus } from '../store/bus';
 
 function getCssPxVar(name, fallback) {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -29,7 +30,7 @@ export function bindSidebarResizer() {
       state.sidebarCollapsed = !state.sidebarCollapsed;
       applyPanelCollapseState();
       saveLayoutPrefs();
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     });
   }
 
@@ -38,7 +39,7 @@ export function bindSidebarResizer() {
       state.sidebarCollapsed = false;
       applyPanelCollapseState();
       saveLayoutPrefs();
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     }
   });
 
@@ -82,7 +83,7 @@ export function bindInspectorResizer() {
       state.inspectorCollapsed = !state.inspectorCollapsed;
       applyPanelCollapseState();
       saveLayoutPrefs();
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     });
   }
 
@@ -91,7 +92,7 @@ export function bindInspectorResizer() {
       state.inspectorCollapsed = false;
       applyPanelCollapseState();
       saveLayoutPrefs();
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     }
   });
 
@@ -239,8 +240,8 @@ export function renderOnboardBar(dipStates) {
   strip.querySelectorAll('[data-ob-toggle]').forEach((btn) => {
     const obId = btn.dataset.obToggle;
     btn.addEventListener('click', () => toggleOnboardComponent(obId));
-    btn.addEventListener('mouseenter', () => hooks.setHwHover(obId));
-    btn.addEventListener('mouseleave', () => hooks.setHwHover(null));
+    btn.addEventListener('mouseenter', () => appBus.emit('hover:hw', { hwId: obId }));
+    btn.addEventListener('mouseleave', () => appBus.emit('hover:hw', { hwId: null }));
   });
   ensureOnboardResizeObserver();
   syncOnboardWrapLayout(true);
@@ -362,15 +363,15 @@ export function renderCatalogList() {
       const next = matches[(curIdx + 1) % matches.length];
       state.focusedId = next.instanceId;
       if (isMobileViewport()) setMobileView('board');
-      hooks.recomputeAndRender();
-      hooks.flashTarget({ instanceId: next.instanceId, panIfOffscreen: true });
+      appBus.emit('workspace:recompute');
+      appBus.emit('target:flash', { instanceId: next.instanceId, panIfOffscreen: true });
     });
   });
 
   container.querySelectorAll('.cat-info-btn').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
-      hooks.openComponentInfo(btn.dataset.info);
+      appBus.emit('modal:openComponentInfo', { compId: btn.dataset.info });
     });
   });
 
@@ -381,15 +382,15 @@ export function renderCatalogList() {
       addComponent(cid);
     });
     if (item.classList.contains('added')) {
-      item.addEventListener('mouseenter', () => hooks.setHwHover(cid));
-      item.addEventListener('mouseleave', () => hooks.setHwHover(null));
+      item.addEventListener('mouseenter', () => appBus.emit('hover:hw', { hwId: cid }));
+      item.addEventListener('mouseleave', () => appBus.emit('hover:hw', { hwId: null }));
     }
   });
 }
 
 export function renderSram(sramInfo) {
   const used = typeof sramInfo === 'object' && sramInfo !== null ? sramInfo.used : Number(sramInfo || 0);
-  const total = typeof sramInfo === 'object' && sramInfo !== null ? sramInfo.total : getActiveBoard().sramTotal;
+  const total = typeof sramInfo === 'object' && sramInfo !== null ? sramInfo.total : getActiveBoard().electrical.sramBytes;
   const breakdown = typeof sramInfo === 'object' && sramInfo !== null && Array.isArray(sramInfo.breakdown) ? sramInfo.breakdown : [];
   const pct = Math.min(100, Math.round((used / total) * 100));
   const pill = $('#sramText');
@@ -406,7 +407,7 @@ export function renderSram(sramInfo) {
 
   const oledBtn = $('#btnOledMode');
   if (oledBtn) {
-    const oledOn = getActiveBoard().id === 'kcomp-v2' && !!state.onboard.onboard_oled;
+    const oledOn = getActiveBoard().onboardPeripherals.some((o) => o.modeToggle && state.onboard[o.id]);
     oledBtn.classList.toggle('hidden', !oledOn);
     if (oledOn) {
       const suggest = !state.oledPaged && pct >= 70;
@@ -420,7 +421,7 @@ export function renderSram(sramInfo) {
 export function renderCurrent(cur) {
   const pill = $('#currentText');
   if (!pill) return;
-  const maxMa = getActiveBoard().electrical?.usbMaxMa || state.catalog.usbCurrentMaxMa || 500;
+  const maxMa = getActiveBoard().electrical.usbMaxMa;
   const pct = Math.min(100, Math.round((cur.total / maxMa) * 100));
   const lvl = cur.total >= 450 ? 'danger' : cur.total >= 350 ? 'warn' : 'ok';
   pill.innerHTML = `<span class="gauge-lbl">5V ~${cur.total}mA</span><span class="gauge-track"><span class="gauge-fill is-${lvl}" style="width:${pct}%"></span></span>`;
@@ -435,7 +436,10 @@ export function renderWarnings(warns) {
   bar.classList.toggle('is-advisory-only', warns.every((w) => !!w.advisory));
   bar.innerHTML = warns.map((w, idx) => {
     const quickHtml = (w.quickActions && w.quickActions.length)
-      ? w.quickActions.map((qa) => `<button class="warn-quick-btn" type="button" data-quick-free="${qa.onboardId}">${escapeHtml(t('warn.disableBtn', { label: qa.label }))}</button>`).join('')
+      ? w.quickActions.map((qa) => qa.pinReassign
+          ? `<button class="warn-quick-btn" type="button" data-quick-inst="${escapeHtml(qa.pinReassign.instanceId)}" data-quick-cpin="${escapeHtml(qa.pinReassign.compPinId)}" data-quick-npin="${escapeHtml(qa.pinReassign.newPinId)}">${escapeHtml(qa.label)}</button>`
+          : `<button class="warn-quick-btn" type="button" data-quick-free="${qa.onboardId}">${escapeHtml(t('warn.disableBtn', { label: qa.label }))}</button>`
+        ).join('')
       : '';
     const hasTarget = !!w.target;
     const locateHint = hasTarget ? ` title="${escapeHtml(t('warn.clickToLocate'))}"` : '';
@@ -450,16 +454,22 @@ export function renderWarnings(warns) {
       toggleOnboardComponent(btn.dataset.quickFree);
     });
   });
+  bar.querySelectorAll('[data-quick-npin]').forEach((btn) => {
+    btn.addEventListener('click', (e: any) => {
+      e.stopPropagation();
+      reassignComponentPin(btn.dataset.quickInst, btn.dataset.quickCpin, btn.dataset.quickNpin);
+    });
+  });
   bar.querySelectorAll('.warn-item.is-clickable').forEach((row) => {
     row.addEventListener('click', (e: any) => {
-      if (e.target.closest('[data-quick-free]')) return;
+      if (e.target.closest('[data-quick-free]') || e.target.closest('[data-quick-npin]')) return;
       const w = warns[parseInt(row.dataset.warnIdx, 10)];
       if (!w || !w.target) return;
       if (w.target.instanceId) {
         state.focusedId = w.target.instanceId;
-        hooks.recomputeAndRender();
+        appBus.emit('workspace:recompute');
       }
-      hooks.flashTarget(w.target);
+      appBus.emit('target:flash', w.target);
     });
   });
 }
@@ -551,7 +561,7 @@ export function buildAllBoardPinsHtml(dipStates) {
   };
 
   const board = getActiveBoard();
-  if (board.id !== 'kcomp-v2') {
+  if (board.capabilities.hasPinMux) {
     const entries = Object.entries(allPins);
     const analogPins = entries.filter(([, m]) => m.group === 'analog').map(([id, m]) => [id, id, m.capHint || 'ADC']);
     const digitalPins = entries.filter(([, m]) => m.group === 'digital').map(([id, m]) => [id, id, m.capHint || (m.strapping ? 'STRAP' : '')]);
@@ -739,9 +749,7 @@ function countFreeIoPins() {
   const extClaims = getExternalPinClaims();
   const obUsage = getOnboardPinUsage();
   const allPins = board.pins;
-  const ioPins = board.id === 'kcomp-v2'
-    ? ['D13','D12','D11','D10','D9','D8','D7','D6','D5','D4','D3','D2','D1','D0','A0','A1','A2','A3']
-    : Object.entries(allPins).filter(([, m]) => m.signalPin).map(([id]) => id);
+  const ioPins = Object.entries(allPins).filter(([, m]) => m.signalPin).map(([id]) => id);
   return ioPins.filter((id) => !allPins[id]?.blocked && !extClaims[id] && !obUsage[id]).length;
 }
 
@@ -887,7 +895,7 @@ export function renderActiveComponentsInspector(dipStates) {
   list.querySelectorAll('[data-wsub]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.wiringSubTab = btn.dataset.wsub;
-      hooks.recomputeAndRender();
+      appBus.emit('workspace:recompute');
     });
   });
 
@@ -900,7 +908,7 @@ export function renderActiveComponentsInspector(dipStates) {
       bar.classList.add('is-pulse-guide');
       setTimeout(() => bar.classList.remove('is-pulse-guide'), 1600);
     }
-    hooks.flashTarget({ onboardId: 'onboard_oled' });
+    appBus.emit('target:flash', { onboardId: 'onboard_oled' });
   });
 
   $('#btnEmptyStepCatalog')?.addEventListener('click', () => {
@@ -910,19 +918,19 @@ export function renderActiveComponentsInspector(dipStates) {
       state.sidebarCollapsed = false;
       applyPanelCollapseState();
       saveLayoutPrefs();
-      hooks.applyViewBox();
+      appBus.emit('viewport:applyViewBox');
     }
     setTimeout(() => { $('#searchInput')?.focus(); }, 40);
   });
 
   list.querySelectorAll('[data-empty-preset]').forEach((btn) => {
-    btn.addEventListener('click', () => hooks.loadPreset(btn.dataset.emptyPreset));
+    btn.addEventListener('click', () => appBus.emit('preset:load', { presetId: btn.dataset.emptyPreset }));
   });
 
   list.querySelectorAll('[data-card-hover]').forEach((card) => {
     const id = card.dataset.cardHover;
-    card.addEventListener('mouseenter', () => hooks.setHwHover(id));
-    card.addEventListener('mouseleave', () => hooks.setHwHover(null));
+    card.addEventListener('mouseenter', () => appBus.emit('hover:hw', { hwId: id }));
+    card.addEventListener('mouseleave', () => appBus.emit('hover:hw', { hwId: null }));
   });
 
   list.querySelectorAll('[data-focus]').forEach((el) => {
@@ -931,8 +939,8 @@ export function renderActiveComponentsInspector(dipStates) {
       const id = el.dataset.focus;
       const next = state.focusedId === id ? null : id;
       state.focusedId = next;
-      hooks.recomputeAndRender();
-      if (next) hooks.panToComponent(next);
+      appBus.emit('workspace:recompute');
+      if (next) appBus.emit('viewport:panToComponent', { instanceId: next });
     });
   });
   list.querySelectorAll('[data-focus-pin]').forEach((el) => {
@@ -940,8 +948,8 @@ export function renderActiveComponentsInspector(dipStates) {
       const id = el.dataset.focusPin;
       const next = state.focusedId === id ? null : id;
       state.focusedId = next;
-      hooks.recomputeAndRender();
-      if (next) hooks.flashTarget({ instanceId: next, panIfOffscreen: true });
+      appBus.emit('workspace:recompute');
+      if (next) appBus.emit('target:flash', { instanceId: next, panIfOffscreen: true });
     });
   });
   list.querySelectorAll('[data-free-ob]').forEach((btn) => {
@@ -953,7 +961,7 @@ export function renderActiveComponentsInspector(dipStates) {
   list.querySelectorAll('[data-pin-filter]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.pinFilter = btn.dataset.pinFilter;
-      hooks.recomputeAndRender();
+      appBus.emit('workspace:recompute');
     });
   });
   list.querySelectorAll('[data-pin-group]').forEach((head) => {
@@ -961,13 +969,13 @@ export function renderActiveComponentsInspector(dipStates) {
       const grp = head.dataset.pinGroup;
       if (state.collapsedPinGroups.has(grp)) state.collapsedPinGroups.delete(grp);
       else state.collapsedPinGroups.add(grp);
-      hooks.recomputeAndRender();
+      appBus.emit('workspace:recompute');
     });
   });
   list.querySelectorAll('[data-card-info]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
-      hooks.openComponentInfo(btn.dataset.cardInfo);
+      appBus.emit('modal:openComponentInfo', { compId: btn.dataset.cardInfo });
     });
   });
   list.querySelectorAll('[data-remove]').forEach((btn) => {

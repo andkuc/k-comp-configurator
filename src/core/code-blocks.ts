@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Program Structure Blocks Catalog, Drag-and-Drop Palette, Live Parameter Popover & SRAM Calculator
-import { state, hooks, $, escapeHtml, showToast } from './state';
+import { state, $, escapeHtml, showToast } from './state';
 import { t } from '../i18n/index';
+import { appBus } from '../store/bus';
 
 export const BLOCK_GROUPS = ['flow', 'time', 'hw'];
 
@@ -292,7 +293,7 @@ export function addCodeBlock(type) {
     return;
   }
 
-  hooks.pushUndoState();
+  appBus.emit('history:push');
   const blk = {
     blockId: 'blk_' + state.nextBlockInst++,
     type,
@@ -300,17 +301,17 @@ export function addCodeBlock(type) {
   };
   state.codeBlocks.push(blk);
   showToast(t('cb.toastAdded', { name: t(`cb.${type}.name`) }));
-  hooks.recomputeAndRender();
+  appBus.emit('workspace:recompute');
 }
 
 export function removeCodeBlock(blockId) {
   const blk = (state.codeBlocks || []).find((b) => b.blockId === blockId);
   if (!blk) return;
-  hooks.pushUndoState();
+  appBus.emit('history:push');
   state.codeBlocks = state.codeBlocks.filter((b) => b.blockId !== blockId);
   if (state.editingBlockId === blockId) state.editingBlockId = null;
   setSpotlightBlock(null);
-  hooks.recomputeAndRender();
+  appBus.emit('workspace:recompute');
 }
 
 export function setSpotlightBlock(blockId) {
@@ -514,7 +515,7 @@ export function renderCodeBlocksUI() {
     activeBar.querySelectorAll('[data-cb-info]').forEach((btn) => {
       btn.addEventListener('click', (e: any) => {
         e.stopPropagation();
-        hooks.openBlockInfo(btn.dataset.cbInfo);
+        appBus.emit('modal:openBlockInfo', { type: btn.dataset.cbInfo });
       });
     });
     activeBar.querySelectorAll('[data-cb-edit]').forEach((btn) => {
@@ -552,7 +553,7 @@ export function renderCodeBlocksUI() {
         const evt = (inp.tagName === 'SELECT' || inp.type === 'checkbox') ? 'change' : 'input';
         inp.addEventListener(evt, () => {
           editBlk.config[key] = inp.type === 'checkbox' ? inp.checked : inp.value;
-          hooks.recomputeAndRender();
+          appBus.emit('workspace:recompute');
         });
       });
     }
@@ -601,12 +602,12 @@ export function renderCodeBlocksUI() {
 
   drawer.querySelector('#btnOpenBlocksGuide')?.addEventListener('click', (e: any) => {
     e.stopPropagation();
-    hooks.openBlocksOverview();
+    appBus.emit('modal:openBlocksOverview');
   });
   drawer.querySelectorAll('[data-cb-info]').forEach((btn) => {
     btn.addEventListener('click', (e: any) => {
       e.stopPropagation();
-      hooks.openBlockInfo(btn.dataset.cbInfo);
+      appBus.emit('modal:openBlockInfo', { type: btn.dataset.cbInfo });
     });
   });
 
@@ -654,7 +655,7 @@ export function bindCodeBlocksEvents() {
   if (hintsBtn) {
     hintsBtn.addEventListener('click', () => {
       state.codeHints = !state.codeHints;
-      hooks.recomputeAndRender();
+      appBus.emit('workspace:recompute');
     });
   }
 

@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Red Prototyping Area (Breadboard) Visualization, Power Distribution Rails & 4+ I²C Bus Expansion Hub
 import { SVG_NS } from './constants';
-import { state, hooks, escapeHtml, getNetMeta } from './state';
+import { state, escapeHtml, getNetMeta } from './state';
 import { getDisplayLabel } from './hardware';
 import { boardToMaster } from './routing';
 import { t } from '../i18n/index';
 import { getActiveBoard, getBoardGeometry } from '../boards';
+import { appBus } from '../store/bus';
 
 export function buildBreadboardBaseLayer(container) {
   container.innerHTML = '';
@@ -24,10 +25,10 @@ export function buildBreadboardBaseLayer(container) {
   areaHit.setAttribute('style', 'cursor:help');
   areaHit.addEventListener('mouseenter', (ev: any) => {
     if (state.dragWire || state.dragComp || state.rotateComp) return;
-    hooks.showCustomTooltip(t('tip.bbArea'), ev);
+    appBus.emit('tooltip:showCustom', { html: t('tip.bbArea'), ev: ev });
   });
-  areaHit.addEventListener('mousemove', (ev: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.moveTooltip(ev); });
-  areaHit.addEventListener('mouseleave', () => hooks.hideTooltip());
+  areaHit.addEventListener('mousemove', (ev: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev: ev }); });
+  areaHit.addEventListener('mouseleave', () => appBus.emit('tooltip:hide'));
   container.appendChild(areaHit);
 
   // Subtle dashed center trench divider (top 4-hole strips are electrically separate from bottom 4-hole strips)
@@ -99,31 +100,25 @@ export function buildBreadboardBaseLayer(container) {
         if (state.dragWire || state.dragComp || state.rotateComp) return;
         const activeRail = (state.breadboardRails || []).find((r) => r.colNames.includes(colName));
         if (activeRail) {
-          hooks.setHoveredNet(activeRail.netId);
+          appBus.emit('hover:net', { netId: activeRail.netId });
           const srcLbl = getActiveBoard().pins[activeRail.bpId]?.label || activeRail.bpId;
           const users = activeRail.branches.map((b) => `${escapeHtml(getDisplayLabel(b.def))} (${escapeHtml(b.p.id)})`).join(', ');
-          hooks.showCustomTooltip(
-            t('tip.bbRail', {
+          appBus.emit('tooltip:showCustom', { html: t('tip.bbRail', {
               label: escapeHtml(activeRail.label),
               cols: activeRail.colNames.join(' + '),
               src: escapeHtml(srcLbl),
               feeder: activeRail.feederHole.colName,
               count: activeRail.branches.length,
               bridged: activeRail.bridges.length ? t('tip.bbBridged') : ''
-            }) + `<br><span class="tip-muted">${users}</span>`,
-            ev
-          );
+            }) + `<br><span class="tip-muted">${users}</span>`, ev: ev });
         } else {
-          hooks.showCustomTooltip(
-            t('tip.bbCol', { col: colName, half: half === 'T' ? t('tip.bbHalfTop') : t('tip.bbHalfBot') }),
-            ev
-          );
+          appBus.emit('tooltip:showCustom', { html: t('tip.bbCol', { col: colName, half: half === 'T' ? t('tip.bbHalfTop') : t('tip.bbHalfBot') }), ev: ev });
         }
       });
-      hit.addEventListener('mousemove', (ev: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.moveTooltip(ev); });
+      hit.addEventListener('mousemove', (ev: any) => { if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev: ev }); });
       hit.addEventListener('mouseleave', () => {
-        hooks.setHoveredNet(null);
-        hooks.hideTooltip();
+        appBus.emit('hover:net', { netId: null });
+        appBus.emit('tooltip:hide');
       });
       container.appendChild(hit);
     }
@@ -297,32 +292,34 @@ export function allocateBreadboardRails(wireJobs) {
   let nextBotCol = 1; // Bottom half (B2..B16): automatic 4+ I²C Bus Expansion Hub (VCC, GND, SCL, SDA)
 
   // Stable ordering: place Power rails first, then grouped I²C expansion pins in clean VCC/GND/SCL/SDA order
-  const i2cPinOrder = { VCC: 0, GND: 1, SCL: 2, SDA: 3 };
+  const board = getActiveBoard();
+  const i2cPinOrder: Record<string, number> = { VCC: 0, GND: 1, SCL: 2, SDA: 3 };
   const entries = Array.from(byBp.entries()).sort(([a], [b]) => {
-    const aI2c = /^H[1-3]_/.test(a);
-    const bI2c = /^H[1-3]_/.test(b);
+    const ma = board.pins[a];
+    const mb = board.pins[b];
+    const aI2c = Boolean(ma?.headerId);
+    const bI2c = Boolean(mb?.headerId);
     if (aI2c !== bI2c) return aI2c ? 1 : -1;
     if (aI2c && bI2c) {
-      const [ah, ap] = a.split('_');
-      const [bh, bp] = b.split('_');
-      if (ah !== bh) return ah.localeCompare(bh);
-      return (i2cPinOrder[ap] ?? 9) - (i2cPinOrder[bp] ?? 9);
+      if (ma.headerId !== mb.headerId) return (ma.headerId || '').localeCompare(mb.headerId || '');
+      return (i2cPinOrder[ma.headerRole || ''] ?? 9) - (i2cPinOrder[mb.headerRole || ''] ?? 9);
     }
     return a.localeCompare(b);
   });
 
   const hasI2cBottomHub = entries.some(([bpId, lst]) => {
-    const m = getActiveBoard().pins[bpId];
-    return m && m.shared && lst.length >= 2 && /^H([1-3])_(VCC|GND|SCL|SDA)$/.test(bpId);
+    const m = board.pins[bpId];
+    return Boolean(m && m.shared && lst.length >= 2 && m.headerId && m.headerRole);
   });
 
   for (const [bpId, lst] of entries) {
-    const meta = getActiveBoard().pins[bpId];
-    const forcedBb = lst.some((j) => !!j.forceBreadboard);
+    const meta = board.pins[bpId];
+    const forcedBb = lst.some((j) => Boolean(j.forceBreadboard));
     if (!meta || !meta.shared || (lst.length < 2 && !forcedBb)) continue;
 
-    const isI2cExp = /^H([1-3])_(VCC|GND|SCL|SDA)$/.test(bpId);
-    const i2cMatch = isI2cExp ? bpId.match(/^H([1-3])_(VCC|GND|SCL|SDA)$/) : null;
+    const isI2cExp = Boolean(meta.headerId && meta.headerRole);
+    const hdrId = meta.headerId || null;
+    const hdrRole = meta.headerRole || null;
     const netCheck = getNetMeta(bpId);
     const isBottomGndRail = !isI2cExp && !hasI2cBottomHub && netCheck.id === 'NET_GND';
     const half = (isI2cExp || isBottomGndRail) ? 'B' : 'T';
@@ -352,14 +349,14 @@ export function allocateBreadboardRails(wireJobs) {
     }
 
     const shortLbl = isI2cExp
-      ? `I²C ${i2cMatch[2]}`
+      ? `I²C ${hdrRole}`
       : bpId
           .replace('PWR_', '')
           .replace('GND1', 'GND')
           .replace('GND2', 'GND')
           .replace('TOP_', '')
           .replace('EXT_', '');
-    const shortTag = isI2cExp ? i2cMatch[2] : shortLbl;
+    const shortTag = isI2cExp ? hdrRole : shortLbl;
     const railColor = lst[0].p.color;
     const feederCol = colsUsed[0];
     const feederRow = 0;
@@ -409,7 +406,7 @@ export function allocateBreadboardRails(wireJobs) {
       netLabel: net.label,
       half,
       isI2cExpansion: isI2cExp,
-      i2cHeader: i2cMatch ? `H${i2cMatch[1]}` : null,
+      i2cHeader: hdrId,
       label: shortLbl,
       shortTag,
       color: railColor,

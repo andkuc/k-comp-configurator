@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Interactive Fillable Student Project Charter (Proposal) & Optional Part 2 Evaluation Sheet
 import { APP_VERSION, COPYRIGHT_AUTHOR, COPYRIGHT_YEARS, CONFIGURATOR_REPO_URL } from '../core/constants';
-import { state, hooks, $, escapeHtml, getCleanProjectName, syncProjectNameUI, getActiveOnboardDefs } from '../core/state';
+import { state, $, escapeHtml, getCleanProjectName, syncProjectNameUI, getActiveOnboardDefs } from '../core/state';
 import {
   getCompDef, getDisplayLabel, getExternalPinClaims, getOnboardPinUsage,
   computeDipStates, computeCriticalWarnings, computeUartAssignments
@@ -14,6 +14,7 @@ import { scheduleAutoSave } from '../core/persistence';
 import { getActiveBoard, isBoardCarrierActive } from '../boards';
 import { computeLayoutBounds, updateBoardSvgState, renderDockedComponentsAndWires } from './workbench';
 import { t, tOnboard, tBlockedPin, getLocale } from '../i18n/index';
+import { appBus } from '../store/bus';
 
 function captureCleanDiagramSvg(): string {
   const svg = $('#masterSvg');
@@ -36,7 +37,7 @@ function captureCleanDiagramSvg(): string {
 
   state.focusedId = prevFocused;
   state.vb = prevVb;
-  hooks.applyViewBox();
+  appBus.emit('viewport:applyViewBox');
   updateBoardSvgState(dipStates);
   renderDockedComponentsAndWires();
   return markup;
@@ -67,7 +68,7 @@ function buildLivePinManagementHtml(): string {
     return { status: 'free', text: t('charter.pinFree') };
   };
 
-  if (board.id === 'kcomp-v2') {
+  if (!board.capabilities.hasPinMux) {
     const leftPins = ['D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9'];
     const rightPins = ['D10', 'D11', 'D12', 'D13', 'A0', 'A1', 'A2', 'A3'];
     const rows = leftPins.map((lp, idx) => {
@@ -600,7 +601,7 @@ export function openProjectCharter() {
   });
 
   sheet.querySelector('#btnCharterReset')?.addEventListener('click', () => {
-    hooks.pushUndoState();
+    appBus.emit('history:push');
     state.proposal = createEmptyProposal();
     scheduleAutoSave();
     openProjectCharter();

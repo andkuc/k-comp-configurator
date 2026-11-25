@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Standard ESP32-S3-DevKitC-1 (N16R8, 44-Pin) Board Profile & Mechanical Spec
+// Standard ESP32-S3-DevKitC-1 (N16R8, 44-Pin) Complete Declarative BoardProfile
 import type { BoardProfile } from '../../types';
 
 export const ESP32_S3_DEVKIT_BOARD: BoardProfile = {
@@ -19,8 +19,6 @@ export const ESP32_S3_DEVKIT_BOARD: BoardProfile = {
     "ty": 56,
     "scale": 1.12
   },
-  "sramTotal": 524288,
-  "sramBaseOverhead": 32768,
   "electrical": {
     "logicVoltage": 3.3,
     "sramBytes": 524288,

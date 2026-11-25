@@ -3,6 +3,7 @@
 import type { CodeProfileId } from './codegen';
 
 export type McuArchitecture = 'atmega328p' | 'esp32s3' | 'multi-node';
+export type I2CHeaderPinRole = 'VCC' | 'GND' | 'SCL' | 'SDA';
 
 export interface BoardPin {
   label: string;
@@ -24,6 +25,8 @@ export interface BoardPin {
   strappingNote?: string;
   capHint?: string;
   signalPin?: boolean;
+  headerId?: string;
+  headerRole?: I2CHeaderPinRole;
   x: number;
   y: number;
 }
@@ -41,6 +44,7 @@ export interface DipSwitchSpec {
 export interface I2CHeaderSpec {
   label: string;
   locationKey?: string;
+  supportsBreadboardHub?: boolean;
   VCC: string;
   GND: string;
   SCL: string;
@@ -52,7 +56,6 @@ export interface BoardCanvasPlacement {
   ty: number;
   scale: number;
 }
-
 
 export interface BoardCarrierPowerRailSpec {
   id: string;
@@ -71,8 +74,8 @@ export interface BoardCarrierSpec {
   defaultEnabled: boolean;
   localBounds: { minX: number; minY: number; maxX: number; maxY: number };
   canvasPlacement: BoardCanvasPlacement;
-  leftHoleXs: number[];   // ordered from inner (closest to MCU) to outer
-  rightHoleXs: number[];  // ordered from inner (closest to MCU) to outer
+  leftHoleXs: number[];
+  rightHoleXs: number[];
   rowYs: number[];
   powerRails: BoardCarrierPowerRailSpec[];
 }
@@ -95,6 +98,14 @@ export interface BoardOnboardZone {
   flashRect?: { x: number; y: number; w: number; h: number };
 }
 
+export interface BoardOnboardPinBinding {
+  pinId: string;
+  roleLabel?: string;
+  roleSuffix?: string;
+  dip?: number | null;
+  hardwired?: boolean;
+}
+
 export interface BoardOnboardPeripheral {
   id: string;
   name: string;
@@ -108,14 +119,17 @@ export interface BoardOnboardPeripheral {
   dip?: number | null;
   accent?: string;
   currentMa?: number;
-  pins?: Array<{ pinId: string; roleLabel?: string; dip?: number | null; hardwired?: boolean }>;
+  i2cAddr?: string;
+  conflictPins?: string[];
+  conflictWarningKey?: string;
+  pins?: BoardOnboardPinBinding[];
   isWifiRadio?: boolean;
   code?: Record<string, any>;
   codeFull?: Record<string, any>;
   codePaged?: Record<string, any>;
 }
 
-/** Optional mechanical geometry (in mm) reserved for future 2-layer plug-in shield PCB design & Gerber export */
+/** Optional mechanical geometry (in mm) for 2-layer plug-in shield PCB design & Gerber export */
 export interface MechanicalHoleSpec {
   id: string;
   xMm: number;
@@ -190,34 +204,29 @@ export interface BoardTargetMeta {
   defaultBaud: number;
 }
 
-export interface BoardData {
-  viewBox: { width: number; height: number };
-  sramTotal: number;
-  sramBaseOverhead: number;
-  pins: Record<string, BoardPin>;
-  dipSwitches: DipSwitchSpec[];
-  i2cHeaders: Record<string, I2CHeaderSpec>;
-}
-
-export interface BoardProfile extends BoardData {
+export interface BoardProfile {
   id: string;
   name: string;
   shortName: string;
   badge: string;
   mcu: McuArchitecture;
   svgAsset: string;
+  viewBox: { width: number; height: number };
   canvasPlacement: BoardCanvasPlacement;
   electrical: BoardElectricalSpec;
   capabilities: BoardCapabilitiesSpec;
   powerPinPriority: BoardPowerPinPriority;
   i2cHeaderOrder: string[];
   defaultI2cPins?: { sda: string; scl: string };
+  i2cHeaders: Record<string, I2CHeaderSpec>;
+  dipSwitches: DipSwitchSpec[];
   breadboard?: BoardBreadboardSpec;
   carrier?: BoardCarrierSpec;
   onboardZones?: BoardOnboardZone[];
-  onboardPeripherals?: BoardOnboardPeripheral[];
+  onboardPeripherals: BoardOnboardPeripheral[];
   defaultCodeProfile: CodeProfileId;
   supportedCodeProfiles: CodeProfileId[];
   targetMeta?: BoardTargetMeta;
   mechanical?: BoardMechanicalSpec;
+  pins: Record<string, BoardPin>;
 }

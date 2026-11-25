@@ -3,7 +3,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setActiveBoard } from '../boards';
 import { CATALOG } from '../catalog';
-import { state, hooks, getActiveOnboardDefs } from '../core/state';
+import { state, getActiveOnboardDefs } from '../core/state';
+import { appBus, projectStore } from '../store';
 import { initI18n } from '../i18n';
 import { addComponent } from '../core/hardware';
 import {
@@ -13,14 +14,17 @@ import {
   serializeProposalCompact
 } from '../core/proposal';
 import {
-  applyProjectPayload,
+  applyProjectDocument,
   captureSnapshot,
-  decodeBase64Url,
-  encodeBase64Url,
   resetToNewDesign,
   restoreSnapshot,
-  serializeProjectPayload
+  serializeProjectDocument
 } from '../core/persistence';
+import {
+  decodeDocumentFromHashPayload,
+  encodeDocumentToHashPayload,
+  validateProjectDocument
+} from '../core/document';
 import { openProjectCharter } from '../ui/charter';
 
 function resetWorkbench(boardId = 'kcomp-v2') {
@@ -43,27 +47,25 @@ function resetWorkbench(boardId = 'kcomp-v2') {
     state.svgCache.set(comp.svgFile, document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
   }
 
-  hooks.recomputeAndRender = () => {};
-  hooks.pushUndoState = () => {};
-  hooks.flashTarget = () => {};
-  hooks.resetViewFit = () => {};
-  hooks.applyViewBox = () => {};
-  hooks.switchBoard = async (nextId: string) => {
+  projectStore.reset();
+  appBus.handle('board:switch', ({ boardId: nextId }) => {
     const b = setActiveBoard(nextId);
     state.boardId = b.id;
     state.codeProfile = b.defaultCodeProfile;
-    state.carrierEnabled = !!b.carrier?.defaultEnabled;
-  };
+    state.carrierEnabled = Boolean(b.carrier?.defaultEnabled);
+  });
 }
 
 describe('Student Project Charter — Data Model, Persistence & Base64URL #cfg= Round-Trip', () => {
   beforeEach(() => resetWorkbench('kcomp-v2'));
 
-  it('omits empty proposal from serialized payload so plain hardware #cfg= links stay compact', () => {
+  it('omits empty proposal from ProjectDocument v1 and rejects malformed schemas', () => {
     expect(hasProposalContent(state.proposal)).toBe(false);
     expect(serializeProposalCompact(state.proposal)).toBeNull();
-    const payload = serializeProjectPayload();
-    expect(payload.pr).toBeUndefined();
+    const doc = serializeProjectDocument();
+    expect(doc.schema).toBe('kcomp-project/1');
+    expect(doc.proposal).toBeUndefined();
+    expect(() => validateProjectDocument({ v: 23, act: [] })).toThrow();
   });
 
   it('round-trips full UTF-8 Project Charter + hardware cleanly via .kcomp.json and Base64URL #cfg=', async () => {
@@ -96,17 +98,19 @@ describe('Student Project Charter — Data Model, Persistence & Base64URL #cfg= 
     expect(hrs.totalPersonHours).toBe(12.5);
     expect(hrs.overLimitIndices).toEqual([]);
 
-    // Base64URL round-trip (exact mechanism used by #cfg= share links!)
-    const encoded = encodeBase64Url(JSON.stringify(serializeProjectPayload()));
-    expect(encoded).not.toMatch(/[+/=]/);
-    const decodedPayload = JSON.parse(decodeBase64Url(encoded));
-    expect(decodedPayload.pr).toBeDefined();
+    // Deflate/Base64URL round-trip (exact mechanism used by #cfg= share links!)
+    const doc = serializeProjectDocument();
+    const encoded = await encodeDocumentToHashPayload(doc);
+    expect(encoded).toMatch(/^[zj]\.[A-Za-z0-9_-]+$/);
+    const decodedDoc = await decodeDocumentFromHashPayload(encoded);
+    expect(decodedDoc.schema).toBe('kcomp-project/1');
+    expect(decodedDoc.proposal).toBeDefined();
 
-    // Reset state completely, then restore from decoded Base64URL payload
+    // Reset state completely, then restore from decoded ProjectDocument
     resetToNewDesign({ silent: true });
     expect(hasProposalContent(state.proposal)).toBe(false);
 
-    await applyProjectPayload(decodedPayload, false);
+    await applyProjectDocument(decodedDoc, false);
     expect(state.projectName).toBe('Reaktions-Spiel');
     expect(state.proposal.student1).toBe('Anna Müller');
     expect(state.proposal.student2).toBe('Ardit Çela');

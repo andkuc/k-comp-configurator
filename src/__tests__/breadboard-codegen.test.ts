@@ -3,7 +3,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import { setActiveBoard } from '../boards';
-import { state, hooks } from '../core/state';
+import { state, getActiveOnboardDefs } from '../core/state';
+import { projectStore } from '../store';
 import { initI18n } from '../i18n';
 import { addComponent, computeDipStates } from '../core/hardware';
 import { allocateBreadboardRails } from '../core/breadboard';
@@ -23,7 +24,7 @@ function resetAll() {
   state.oledPaged = false;
   state.projectName = 'UnitTestBot';
   state.onboard = {};
-  for (const ob of CATALOG.onboard) {
+  for (const ob of getActiveOnboardDefs()) {
     state.onboard[ob.id] = false;
   }
   state.onboard.onboard_wireless = false;
@@ -34,9 +35,7 @@ function resetAll() {
     state.svgCache.set(comp.svgFile, dummy);
   }
 
-  hooks.recomputeAndRender = () => {};
-  hooks.pushUndoState = () => {};
-  hooks.flashTarget = () => {};
+  projectStore.reset();
 }
 
 describe('Breadboard Rail Allocator', () => {

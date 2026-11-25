@@ -25,7 +25,21 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const norm = id.replace(/\\/g, '/');
+          if (norm.includes('/src/catalog/library-api-data')) return 'chunk-library-api';
+          if (norm.includes('/src/catalog/component-guide-data')) return 'chunk-component-guides';
+          if (norm.includes('/src/i18n/de') || norm.includes('/src/i18n/block-guides-de')) return 'chunk-i18n-de';
+          if (norm.includes('/src/i18n/sq') || norm.includes('/src/i18n/block-guides-sq')) return 'chunk-i18n-sq';
+          if (norm.includes('/src/ui/charter')) return 'chunk-charter';
+          if (norm.includes('/src/ui/block-guide')) return 'chunk-block-guide';
+          return undefined;
+        }
+      }
+    }
   },
   test: {
     environment: 'jsdom',

@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Centered Breadboard Carrier Layer & Per-Hole Tie-Point / Power-Rail Allocator (Inkscape-Safe, zero <filter>)
 import { SVG_NS } from './constants';
-import { state, hooks, escapeHtml, isLightTheme } from './state';
+import type { PinAttachment } from '../types';
+import { state, escapeHtml, isLightTheme } from './state';
 import { getActiveBoard, isBoardCarrierActive } from '../boards';
 import { boardToMaster } from './routing';
 import { moduleSupports3v3 } from './hardware';
 import { t } from '../i18n/index';
+import { appBus } from '../store/bus';
 
 export interface CarrierFeederSpec {
   railId: string;
@@ -218,15 +220,12 @@ export function buildCarrierBreadboardLayer(container: SVGGElement) {
     });
     hit.addEventListener('mouseenter', (e: any) => {
       if (state.dragWire || state.dragComp || state.rotateComp) return;
-      hooks.showCustomTooltip(
-        `<strong>${escapeHtml(t('carrier.railTipTitle', { label: rail.label }))}</strong><br>${escapeHtml(t('carrier.railTipSub', { side: rail.side === 'left' ? t('carrier.sideLeft') : t('carrier.sideRight') }))}`,
-        e
-      );
+      appBus.emit('tooltip:showCustom', { html: `<strong>${escapeHtml(t('carrier.railTipTitle', { label: rail.label }))}</strong><br>${escapeHtml(t('carrier.railTipSub', { side: rail.side === 'left' ? t('carrier.sideLeft') : t('carrier.sideRight') }))}`, ev: e });
     });
     hit.addEventListener('mousemove', (e: any) => {
-      if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.moveTooltip(e);
+      if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev: e });
     });
-    hit.addEventListener('mouseleave', () => hooks.hideTooltip());
+    hit.addEventListener('mouseleave', () => appBus.emit('tooltip:hide'));
     container.appendChild(hit);
   }
 
@@ -287,12 +286,12 @@ export function buildCarrierBreadboardLayer(container: SVGGElement) {
       fill: 'transparent'
     });
     rowHit.addEventListener('mouseenter', (e: any) => {
-      if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.showPinTooltip(bpId, e);
+      if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:showPin', { pinId: bpId, ev: e });
     });
     rowHit.addEventListener('mousemove', (e: any) => {
-      if (!state.dragWire && !state.dragComp && !state.rotateComp) hooks.moveTooltip(e);
+      if (!state.dragWire && !state.dragComp && !state.rotateComp) appBus.emit('tooltip:move', { ev: e });
     });
-    rowHit.addEventListener('mouseleave', () => hooks.hideTooltip());
+    rowHit.addEventListener('mouseleave', () => appBus.emit('tooltip:hide'));
     container.appendChild(rowHit);
   }
 
@@ -326,26 +325,8 @@ export function getCarrierRowAnchorBoardPt(bpId: string): { x: number; y: number
   return null;
 }
 
-/**
- * Parses a carrier placement preference string stored in inst.bbPins[compPinId]:
- *   - 'hole:<idx>'             -> exact tie-point hole (0..3) on the pin's own horizontal row (e.g. 'hole:2' = 1b)
- *   - 'rail:<railId>:<idx>'    -> exact hole (0..21) on an outer breadboard power rail
- *   - '<railId>' (legacy)      -> auto hole on that outer breadboard power rail
- *   - 'direct' (legacy)        -> auto hole on the pin's own horizontal row
- */
-export function parseCarrierPref(pref: any): {
-  mode: 'auto' | 'row' | 'rail';
-  railId?: string;
-  holeIdx?: number;
-} {
-  if (typeof pref !== 'string' || !pref) return { mode: 'auto' };
-  if (pref === 'direct') return { mode: 'row' };
-  const hm = pref.match(/^hole:(\d+)$/);
-  if (hm) return { mode: 'row', holeIdx: parseInt(hm[1], 10) };
-  const rm = pref.match(/^rail:([^:]+):(\d+)$/);
-  if (rm) return { mode: 'rail', railId: rm[1], holeIdx: parseInt(rm[2], 10) };
-  if (pref.startsWith('BB_')) return { mode: 'rail', railId: pref };
-  return { mode: 'auto' };
+function hasExplicitHole(att: PinAttachment | null | undefined): boolean {
+  return Boolean(att && (att.kind === 'carrier-row' || att.kind === 'carrier-rail') && typeof att.holeIndex === 'number');
 }
 
 /**
@@ -435,26 +416,20 @@ export function allocateCarrierBreadboardConnections(wireJobs: any[]): {
   };
 
   // Process explicitly pinned holes FIRST so auto-placed wires never steal a manually chosen hole (e.g. 1b)!
-  const orderedJobs = [...wireJobs].sort((a, b) => {
-    const pa = parseCarrierPref(a.carrierRailPref);
-    const pb = parseCarrierPref(b.carrierRailPref);
-    const sa = typeof pa.holeIdx === 'number' ? 0 : 1;
-    const sb = typeof pb.holeIdx === 'number' ? 0 : 1;
-    return sa - sb;
-  });
+  const orderedJobs = [...wireJobs].sort((a, b) => (hasExplicitHole(a.attachment) ? 0 : 1) - (hasExplicitHole(b.attachment) ? 0 : 1));
 
   for (const job of orderedJobs) {
     const meta = board.pins[job.bpId];
     if (!meta) continue;
     const isCardRight = job.start.x >= boardCenterMasterX;
-    const pref = parseCarrierPref(job.carrierRailPref);
+    const att: PinAttachment | null = job.attachment || null;
     const isPowerNet = job.net.id === 'NET_3V3' || job.net.id === 'NET_5V' || job.net.id === 'NET_GND';
 
-    // 1. Power Rail placement (default for power/GND nets unless user explicitly placed on a pin row 'hole:...' / 'direct')
-    if (pref.mode === 'rail' || (pref.mode === 'auto' && isPowerNet)) {
+    // 1. Power Rail placement (default for power/GND nets unless user explicitly attached to a pin row)
+    if (att?.kind === 'carrier-rail' || (att?.kind !== 'carrier-row' && isPowerNet)) {
       let targetRailId: string | null = null;
-      if (pref.railId && railById.has(pref.railId)) {
-        targetRailId = pref.railId;
+      if (att?.kind === 'carrier-rail' && railById.has(att.railId)) {
+        targetRailId = att.railId;
       } else if (job.net.id === 'NET_3V3') {
         targetRailId = 'BB_L_3V3';
       } else if (job.net.id === 'NET_5V') {
@@ -466,7 +441,8 @@ export function allocateCarrierBreadboardConnections(wireJobs: any[]): {
       const rail = targetRailId ? railById.get(targetRailId) : null;
       if (rail) {
         activeRailIds.add(rail.id);
-        const hIdx = pickNearestFreeRailHole(rail.id, job.start.y, pref.holeIdx);
+        const prefHole = att?.kind === 'carrier-rail' ? att.holeIndex : undefined;
+        const hIdx = pickNearestFreeRailHole(rail.id, job.start.y, prefHole);
         const bPt = { x: rail.x, y: rail.ys[hIdx] };
         const mPt = boardToMaster(bPt.x, bPt.y);
         job.origBoardEnd = job.end;
@@ -491,7 +467,8 @@ export function allocateCarrierBreadboardConnections(wireJobs: any[]): {
 
     const side: 'left' | 'right' = isLeft ? 'left' : 'right';
     const holeXs = isLeft ? carrier.leftHoleXs : carrier.rightHoleXs;
-    const holeIdx = pickFreeRowHole(job.bpId, holeXs.length, pref.holeIdx);
+    const prefRowHole = att?.kind === 'carrier-row' ? att.holeIndex : undefined;
+    const holeIdx = pickFreeRowHole(job.bpId, holeXs.length, prefRowHole);
     const hx = holeXs[holeIdx];
     const bPt = { x: hx, y: meta.y };
     const mPt = boardToMaster(bPt.x, bPt.y);

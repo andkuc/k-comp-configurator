@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Interactive Library API & Functions Browser (Onboard A-Z -> External A-Z, Strict Accordion, Resizable Split)
-import { state, hooks, $, escapeHtml, showToast, saveLayoutPrefs } from '../core/state';
+import { state, $, escapeHtml, showToast, saveLayoutPrefs } from '../core/state';
 import { getCompDef, getDisplayLabel, computeDipStates } from '../core/hardware';
 import { hasBlockType } from '../core/code-blocks';
 import { highlightCppCode, highlightCppSignature } from '../core/codegen';
-import { LIBRARY_API } from '../catalog/library-api-data';
+import { getCachedLibraryApi, loadLibraryApiData } from '../catalog/lazy-data';
 import { getActiveBoard } from '../boards';
 import { getDriverCompat } from '../core/code-profiles';
 import { t, tOnboard, getLocale } from '../i18n/index';
+import { appBus } from '../store/bus';
 
 function getLocalizedDesc(descObj) {
   if (!descObj) return '';
@@ -124,6 +125,8 @@ export function formatApiDescription(text, sig, entry) {
 }
 
 function resolveActiveApiEntries() {
+  const LIBRARY_API = getCachedLibraryApi();
+  if (!LIBRARY_API) return [];
   const dipStates = computeDipStates();
   const isOnboardActive = (ob) => {
     if (!state.onboard[ob.id]) return false;
@@ -138,7 +141,7 @@ function resolveActiveApiEntries() {
   // 1. Onboard Peripherals FIRST (sorted A-Z by localized title)
   const board = getActiveBoard();
   const obEntries = [];
-  const obSource = board.id === 'kcomp-v2' ? (state.catalog?.onboard || []) : [];
+  const obSource = board.onboardPeripherals || [];
   for (const ob of obSource) {
     if (!showAll && !isOnboardActive(ob)) continue;
     const api = LIBRARY_API[ob.id];
@@ -225,11 +228,27 @@ async function copyTextWithFeedback(text, btnEl, toastLabel) {
 }
 
 function countActiveBoardApis() {
-  const prev = state.apiShowAll;
-  state.apiShowAll = false;
-  const n = resolveActiveApiEntries().length;
-  state.apiShowAll = prev;
-  return n;
+  if (getCachedLibraryApi()) {
+    const prev = state.apiShowAll;
+    state.apiShowAll = false;
+    const n = resolveActiveApiEntries().length;
+    state.apiShowAll = prev;
+    return n;
+  }
+  // Lightweight pre-load count (avoids loading 163 KB library-api-data until user opens ƒx API!)
+  const board = getActiveBoard();
+  const dipStates = computeDipStates();
+  let count = 0;
+  for (const ob of (board.onboardPeripherals || [])) {
+    if (!state.onboard[ob.id]) continue;
+    const dip = ob.dip ? dipStates.find((d) => d.id === ob.dip) : null;
+    if (!dip || dip.on) {
+      count++;
+      if (ob.id === 'onboard_oled') count++;
+    }
+  }
+  const uniqueExt = new Set((state.active || []).map((i) => i.compId));
+  return count + uniqueExt.size;
 }
 
 export function renderApiBrowserUI() {
@@ -251,6 +270,14 @@ export function renderApiBrowserUI() {
   drawer.classList.toggle('hidden', !state.apiDrawerOpen);
   if (resizer) resizer.classList.toggle('hidden', !state.apiDrawerOpen);
   if (!state.apiDrawerOpen) return;
+
+  if (!getCachedLibraryApi()) {
+    drawer.innerHTML = `<div class="api-empty" style="padding:14px;">${escapeHtml(t('common.loading'))}</div>`;
+    void loadLibraryApiData().then(() => {
+      if (state.apiDrawerOpen) renderApiBrowserUI();
+    });
+    return;
+  }
 
   const q = (state.apiSearch || '').trim().toLowerCase();
   const entries = resolveActiveApiEntries();
@@ -383,8 +410,8 @@ export function renderApiBrowserUI() {
   // Strict single-open accordion + bidirectional hardware spotlight on hover/open
   drawer.querySelectorAll('[data-api-toggle]').forEach((head) => {
     const key = head.dataset.apiToggle;
-    head.addEventListener('mouseenter', () => hooks.setHwHover(key));
-    head.addEventListener('mouseleave', () => hooks.setHwHover(null));
+    head.addEventListener('mouseenter', () => appBus.emit('hover:hw', { hwId: key }));
+    head.addEventListener('mouseleave', () => appBus.emit('hover:hw', { hwId: null }));
     head.addEventListener('click', (ev: any) => {
       if (ev.target.closest('[data-api-inc]') || ev.target.closest('.api-pdf-link')) return;
       const willOpen = state.apiExpandedKey !== key;
@@ -393,10 +420,10 @@ export function renderApiBrowserUI() {
       if (willOpen) {
         const obKey = key === 'oled_grid' ? 'onboard_oled' : key;
         if (obKey.startsWith('onboard_')) {
-          hooks.flashTarget({ onboardId: obKey });
+          appBus.emit('target:flash', { onboardId: obKey });
         } else {
           const inst = state.active.find((i) => i.compId === key);
-          if (inst) hooks.flashTarget({ instanceId: inst.instanceId, panIfOffscreen: true });
+          if (inst) appBus.emit('target:flash', { instanceId: inst.instanceId, panIfOffscreen: true });
         }
       }
     });
@@ -495,7 +522,8 @@ export function bindApiBrowserEvents() {
 // Reusable expandable library reference card (functions, struct fields, #define macros & #include)
 // Used inside the Component Info popup with identical formatting & click-to-copy behavior as ƒx API
 export function buildComponentApiCardHtml(compKey) {
-  const api = LIBRARY_API[compKey];
+  const LIBRARY_API = getCachedLibraryApi();
+  const api = LIBRARY_API ? LIBRARY_API[compKey] : null;
   if (!api) return '';
 
   const entry = {
@@ -559,7 +587,8 @@ export function buildComponentApiCardHtml(compKey) {
 
 export function bindComponentApiCardEvents(containerEl, compKey) {
   if (!containerEl) return;
-  const api = LIBRARY_API[compKey];
+  const LIBRARY_API = getCachedLibraryApi();
+  const api = LIBRARY_API ? LIBRARY_API[compKey] : null;
   if (!api) return;
 
   const card = containerEl.querySelector(`[data-info-api-card="${compKey}"]`);

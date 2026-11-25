@@ -103,13 +103,9 @@ export interface PresetDef {
 
 export interface CatalogData {
   version: string;
-  board: string;
-  baseCurrentMa: number;
-  usbCurrentMaxMa: number;
   docsRepoApi?: string;
   docsRepoBlobBase?: string;
   docsRepoTreeApi?: string;
-  onboard: OnboardDef[];
   components: ComponentDef[];
   presets: PresetDef[];
 }

@@ -1,0 +1,1267 @@
+/* SPDX-FileCopyrightText: 2025-2026 Andreas Kucher */
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+/* =========================================================================
+   v16 PROJECT NAME INPUT (Desktop & Mobile)
+   ========================================================================= */
+.brand {
+  min-width: 0;
+}
+.brand-sep {
+  color: var(--border-hi);
+  font-weight: 400;
+  font-size: 16px;
+  user-select: none;
+}
+.project-name-input {
+  background: var(--surface-2);
+  color: var(--ink-bright);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  width: 175px;
+  min-width: 110px;
+  outline: none;
+  transition: border-color 0.14s ease, background 0.14s ease, width 0.14s ease;
+}
+.project-name-input::placeholder {
+  color: #64748b;
+  font-weight: 500;
+}
+.project-name-input:hover {
+  border-color: var(--border-hi);
+}
+.project-name-input:focus {
+  border-color: var(--accent);
+  background: #0b1120;
+  width: 210px;
+}
+
+@media (max-width: 960px) {
+  .brand-sep {
+    display: none;
+  }
+  .topbar h1 {
+    display: none;
+  }
+  .project-name-input {
+    width: 132px;
+    min-width: 92px;
+    height: 34px;
+    font-size: 14px;
+    padding: 4px 8px;
+  }
+  .project-name-input:focus {
+    width: 155px;
+  }
+  .topbar-controls .select-ctrl {
+    flex: 0 1 130px;
+    min-width: 94px;
+  }
+}
+
+/* =========================================================================
+   v17 LEFT SIDEBAR RESIZER + C/C++ .INO SYNTAX HIGHLIGHTING (DARK+ THEME)
+   ========================================================================= */
+.sidebar {
+  min-width: 0;
+}
+.sidebar-resizer {
+  width: 6px;
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.14s ease;
+}
+.sidebar-resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 36px;
+  border-radius: 99px;
+  background: #475569;
+  transition: background 0.14s ease, height 0.14s ease;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.dragging {
+  background: rgba(56, 189, 248, 0.35);
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer.dragging::after {
+  background: var(--accent);
+  height: 54px;
+}
+
+/* C/C++ (.ino) Syntax Highlighting — VS Code Dark+ / One Dark inspired */
+.code-block {
+  background: #080d17;
+  color: #d4d4d4;
+  font-size: 11.5px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+.code-block .tok-com   { color: #6a9955; font-style: italic; }   /* Comments */
+.code-block .tok-prep  { color: #c586c0; font-weight: 700; }     /* #include, #define */
+.code-block .tok-hdr   { color: #ce9178; }                       /* <kcomp_*.h> */
+.code-block .tok-str   { color: #ce9178; }                       /* "string literals" */
+.code-block .tok-kw    { color: #569cd6; font-weight: 700; }     /* void, if, while, int, bool */
+.code-block .tok-type  { color: #4ec9b0; }                       /* Serial, Wire, SoftwareSerial, RH_ASK */
+.code-block .tok-fn    { color: #dcdcaa; }                       /* initDisplay, println, setup, loop */
+.code-block .tok-num   { color: #b5cea8; }                       /* 115200, 0x30, 1.0f */
+.code-block .tok-const { color: #4fc1ff; }                       /* MQ135_PIN, SERVO_TYPE_180, HIGH, OUTPUT */
+
+@media (max-width: 960px) {
+  .bottom-right-controls {
+    justify-content: flex-end;
+  }
+  .sram-compact {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* =========================================================================
+   v18 CARD QUICK ACTIONS (i / ↻ / ×) & INTERACTIVE BREADBOARD STRIPS
+   ========================================================================= */
+.comp-quick-btn {
+  cursor: pointer;
+  opacity: 0.86;
+  transition: opacity 0.12s ease;
+}
+.comp-quick-btn:hover {
+  opacity: 1;
+}
+.comp-quick-info:hover rect {
+  fill: #0284c7;
+  stroke: #7dd3fc;
+}
+.comp-quick-remove:hover rect {
+  fill: #b91c1c;
+  stroke: #fca5a5;
+}
+.comp-quick-remove:hover text {
+  fill: #ffffff;
+}
+.bb-strip-hit {
+  cursor: pointer;
+  fill: transparent;
+}
+.bb-strip-hover-hl {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.bb-strip-group:hover .bb-strip-hover-hl {
+  opacity: 1;
+}
+
+/* =========================================================================
+   v19 DECLUTTERED DESKTOP TOPBAR (PROJECT POPOVER) & EXTENSIBLE DE | EN SWITCHER
+   ========================================================================= */
+.project-name-input {
+  width: 205px;
+}
+.project-name-input:focus {
+  width: 255px;
+}
+
+.project-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.project-menu-trigger .caret {
+  font-size: 10px;
+  opacity: 0.78;
+  margin-left: 1px;
+}
+.project-menu-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 224px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.62);
+  flex-direction: column;
+  gap: 2px;
+  z-index: 80;
+}
+.project-menu-popover.open {
+  display: flex;
+}
+.pm-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.pm-item:hover {
+  background: var(--surface-2);
+  color: var(--ink-bright);
+}
+.pm-item.pm-danger {
+  color: #fca5a5;
+}
+.pm-item.pm-danger:hover {
+  background: rgba(127, 29, 29, 0.65);
+  color: #fff;
+}
+.pm-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-hi);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.lang-switch.is-select {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.lang-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.25;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.lang-btn:hover {
+  color: var(--ink-bright);
+}
+.lang-btn.active {
+  background: #0284c7;
+  color: #fff;
+}
+
+@media (max-width: 1180px) and (min-width: 961px) {
+  .brand-sub {
+    display: none;
+  }
+  .project-name-input {
+    width: 165px;
+  }
+  .project-name-input:focus {
+    width: 205px;
+  }
+}
+
+@media (max-width: 960px) {
+  .project-menu-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .project-menu-trigger {
+    display: none;
+  }
+  .project-menu-popover {
+    display: flex;
+    position: static;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 4px;
+  }
+  .pm-item {
+    padding: 9px 10px;
+    font-size: 13px;
+    border-radius: 7px;
+    background: var(--surface-2);
+  }
+  .pm-item.pm-danger {
+    background: transparent;
+    border: 1px solid #7f1d1d;
+  }
+  .topbar-actions .lang-switch {
+    justify-content: center;
+    margin-top: 4px;
+    padding: 3px;
+  }
+  .topbar-actions .lang-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+/* =========================================================================
+   v20 DIRECT WIRE HOVER & ELECTRICAL NET HIGHLIGHTING + I²C EXPANSION + WHITE MODE
+   ========================================================================= */
+.theme-btn {
+  font-size: 14px;
+  line-height: 1;
+  min-width: 30px;
+  justify-content: center;
+  padding: 5px 7px;
+}
+
+/* Direct Wire Hover & Electrical Net Highlighting (zero SVG <filter> — 100% Inkscape-safe!) */
+.wire-hit-path {
+  cursor: pointer;
+}
+#masterSvg.net-hovering .wire-net-group {
+  opacity: 0.16;
+  transition: opacity 0.1s ease;
+}
+#masterSvg.net-hovering .bb-rail-group {
+  opacity: 0.22;
+  transition: opacity 0.1s ease;
+}
+#masterSvg.net-hovering .wire-net-group.net-active,
+#masterSvg.net-hovering .bb-rail-group.net-active {
+  opacity: 1 !important;
+}
+#masterSvg.net-hovering .wire-net-group.net-active .wire-stroke {
+  stroke-width: 4.1;
+  opacity: 1 !important;
+}
+#masterSvg.net-hovering .wire-net-group.net-active .wire-halo {
+  stroke: #38bdf8;
+  stroke-width: 8.5;
+  opacity: 0.48 !important;
+}
+#masterSvg.net-hovering .wire-net-group.net-active .drag-dot {
+  stroke-width: 2.3;
+}
+#masterSvg.net-hovering .bb-rail-group.net-active rect {
+  stroke-width: 1.9;
+  fill-opacity: 0.68;
+}
+
+/* Inspector row highlight for Automatic 4+ I²C Breadboard Bus Expansion */
+.bp-row.is-i2c-expanded {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(192, 132, 252, 0.35);
+}
+.bp-row.is-i2c-expanded .bp-name {
+  color: #d8b4fe;
+}
+
+/* =========================================================================
+   WHITE MODE ("Classic Light Style" — activated via html[data-theme="light"])
+   ========================================================================= */
+html[data-theme="light"] {
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #e2e8f0;
+  --border: #cbd5e1;
+  --border-hi: #94a3b8;
+  --ink: #1e293b;
+  --ink-bright: #0f172a;
+  --muted: #475569;
+  --accent: #0284c7;
+  --accent-dim: #e0f2fe;
+  --danger: #dc2626;
+  --warn: #d97706;
+  --ok: #16a34a;
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html[data-theme="light"] .topbar {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="light"] .btn-ghost {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .btn-ghost:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+html[data-theme="light"] .btn-danger-ghost {
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+html[data-theme="light"] .btn-danger-ghost:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+html[data-theme="light"] .btn-accent-ghost {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .btn-accent-ghost:hover,
+html[data-theme="light"] .btn-accent-ghost.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .btn-stop-ghost {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+html[data-theme="light"] .btn-stop-ghost:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+html[data-theme="light"] .project-name-input {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .project-name-input:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .project-menu-popover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+html[data-theme="light"] .pm-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+html[data-theme="light"] .pm-item.pm-danger {
+  color: #b91c1c;
+}
+html[data-theme="light"] .pm-item.pm-danger:hover {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* White-mode Canvas, Legend, Zoom HUD, Tooltips & Guided Panel */
+html[data-theme="light"] .canvas-wrapper {
+  background: #f8fafc;
+}
+html[data-theme="light"] .pin-legend,
+html[data-theme="light"] .zoom-hud {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: #cbd5e1;
+  color: #334155;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+}
+html[data-theme="light"] .zoom-btn,
+html[data-theme="light"] .zoom-pct,
+html[data-theme="light"] .zoom-btn-text {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .zoom-btn:hover,
+html[data-theme="light"] .zoom-pct:hover,
+html[data-theme="light"] .zoom-btn-text:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+html[data-theme="light"] .zoom-btn-text.is-active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .board-tooltip {
+  background: rgba(255, 255, 255, 0.97);
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.16);
+}
+html[data-theme="light"] .board-tooltip code {
+  background: #e2e8f0;
+  color: #0369a1;
+}
+html[data-theme="light"] .guided-panel {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: #0284c7;
+  color: #1e293b;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+html[data-theme="light"] .guided-step-badge {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .guided-tip {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* White-mode Left Catalog & Right Inspector */
+html[data-theme="light"] .search-row input {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .search-row input:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .grp-mode-btn {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .grp-mode-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .cat-btn {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .cat-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .cat-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .cat-item:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+html[data-theme="light"] .cat-item.added {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .cat-thumb {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .cat-info-btn,
+html[data-theme="light"] .card-info-btn {
+  background: #f1f5f9;
+  color: #0369a1;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .cat-add-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+html[data-theme="light"] .cat-item.added .cat-add-btn {
+  background: #0284c7;
+  color: #ffffff;
+}
+html[data-theme="light"] .badge {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .badge-i2c {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #d8b4fe;
+}
+html[data-theme="light"] .badge-uart {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .badge-pwm {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+html[data-theme="light"] .badge-analog {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+html[data-theme="light"] .badge-warn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+html[data-theme="light"] .badge-proto {
+  background: #ffe4e6;
+  color: #be123c;
+  border-color: #fda4af;
+}
+
+/* White-mode Onboard Strip, Warnings & Bottom Bar */
+html[data-theme="light"] .ob-pill {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .ob-pill.active {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+html[data-theme="light"] .ob-dip-tag {
+  background: #e2e8f0;
+  color: #334155;
+}
+html[data-theme="light"] .sram-pill {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .sram-pill.warn {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+html[data-theme="light"] .sram-pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+html[data-theme="light"] .btn-oled-mode {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .warnings-bar {
+  background: #fef2f2;
+  border-bottom-color: #fca5a5;
+  color: #991b1b;
+}
+html[data-theme="light"] .warn-item.action-needed {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+html[data-theme="light"] .warn-quick-btn {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+/* White-mode Inspector Cards & Board Pins Table */
+html[data-theme="light"] .itab {
+  color: #475569;
+}
+html[data-theme="light"] .itab.active {
+  color: #0284c7;
+  border-bottom-color: #0284c7;
+  background: #f8fafc;
+}
+html[data-theme="light"] .comp-card,
+html[data-theme="light"] .pin-group-box {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .comp-card.focused {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.25);
+}
+html[data-theme="light"] .comp-card-head,
+html[data-theme="light"] .pin-group-head {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+html[data-theme="light"] .import-chip {
+  background: #f1f5f9;
+  color: #0369a1;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .comp-warn-note {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+html[data-theme="light"] .comp-warn-note.danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+html[data-theme="light"] .comp-action-note {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+html[data-theme="light"] .bp-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .bp-row.is-free {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+html[data-theme="light"] .bp-row.is-onboard {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+html[data-theme="light"] .bp-row.is-reserved {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+html[data-theme="light"] .bp-row.is-i2c-expanded {
+  background: #f5f3ff;
+  border-color: #d8b4fe;
+}
+html[data-theme="light"] .bp-row.is-i2c-expanded .bp-name {
+  color: #6b21a8;
+}
+html[data-theme="light"] .bp-status-free {
+  color: #15803d;
+}
+html[data-theme="light"] .bp-free-btn {
+  background: #ffffff;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+html[data-theme="light"] .bp-free-btn:hover {
+  background: #f59e0b;
+  color: #ffffff;
+}
+html[data-theme="light"] .empty-state {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* White-mode Code (.ino) Tab — VS Code Light+ C/C++ Syntax Highlighting */
+html[data-theme="light"] .code-block {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+html[data-theme="light"] .code-block .tok-com   { color: #008000; font-style: italic; }
+html[data-theme="light"] .code-block .tok-prep  { color: #af00db; font-weight: 700; }
+html[data-theme="light"] .code-block .tok-hdr   { color: #a31515; }
+html[data-theme="light"] .code-block .tok-str   { color: #a31515; }
+html[data-theme="light"] .code-block .tok-kw    { color: #0000ff; font-weight: 700; }
+html[data-theme="light"] .code-block .tok-type  { color: #267f99; }
+html[data-theme="light"] .code-block .tok-fn    { color: #795e26; }
+html[data-theme="light"] .code-block .tok-num   { color: #098658; }
+html[data-theme="light"] .code-block .tok-const { color: #0070c1; }
+
+/* White-mode Modals & Toast */
+html[data-theme="light"] .modal {
+  background: rgba(15, 23, 42, 0.45);
+}
+html[data-theme="light"] .modal-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+html[data-theme="light"] .info-hero-img,
+html[data-theme="light"] .info-lib-code,
+html[data-theme="light"] .gallery-tile {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+html[data-theme="light"] .info-idea-chip {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+html[data-theme="light"] .pin-conn-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .status-toast {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #334155;
+}
+html[data-theme="light"] .sidebar-resizer,
+html[data-theme="light"] .inspector-resizer {
+  background: #e2e8f0;
+}
+html[data-theme="light"] .sidebar-resizer::after,
+html[data-theme="light"] .inspector-resizer::after {
+  background: #94a3b8;
+}
+/* =========================================================================
+   v21 TOP-RIGHT LANGUAGE DROPDOWN MENU (EN | DE | SQ + FUTURE LANGUAGES)
+   ========================================================================= */
+.lang-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.lang-menu-trigger {
+  gap: 5px;
+  padding: 5px 8px;
+}
+.lang-menu-trigger .lang-globe {
+  font-size: 12.5px;
+  line-height: 1;
+}
+.lang-menu-trigger .lang-code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.lang-menu-trigger .caret {
+  font-size: 10px;
+  opacity: 0.78;
+}
+.lang-menu-popover {
+  min-width: 162px;
+}
+.lang-item {
+  justify-content: flex-start;
+}
+.lang-item .lang-tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink-bright);
+  min-width: 28px;
+  text-align: center;
+}
+.lang-item .lang-native {
+  flex: 1;
+}
+.lang-item .lang-check {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 12px;
+  min-width: 12px;
+  text-align: right;
+}
+.lang-item.active {
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--ink-bright);
+  font-weight: 600;
+}
+.lang-item.active .lang-tag {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* White Mode overrides for Language Dropdown */
+html[data-theme="light"] .lang-item .lang-tag {
+  background: #e2e8f0;
+  color: #334155;
+}
+html[data-theme="light"] .lang-item.active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+html[data-theme="light"] .lang-item.active .lang-tag {
+  background: #0284c7;
+  color: #ffffff;
+}
+html[data-theme="light"] .lang-item .lang-check {
+  color: #0284c7;
+}
+
+@media (max-width: 960px) {
+  /* Flatten language menu inside mobile ⋯ overflow popover so phones never get nested dropdowns */
+  .lang-menu-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 4px;
+  }
+  .lang-menu-trigger {
+    display: none;
+  }
+  .lang-menu-popover {
+    display: flex;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 5px;
+  }
+  .lang-menu-popover .lang-item {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 7px 8px;
+    gap: 5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-hi);
+  }
+  .lang-menu-popover .lang-item .lang-native,
+  .lang-menu-popover .lang-item .lang-check {
+    display: none;
+  }
+  .lang-menu-popover .lang-item.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+  }
+  .lang-menu-popover .lang-item.active .lang-tag {
+    background: transparent;
+    color: #ffffff;
+  }
+}
+/* =========================================================================
+   v22 LAB SHEET BOM / JUMPER WIRE SUMMARY + SEMANTIC TOOLTIP COLORS + WHITE-MODE CONTRAST FIXES
+   ========================================================================= */
+
+/* Semantic tooltip highlight classes (theme-aware contrast in Dark & White modes) */
+.board-tooltip .tip-accent { color: #38bdf8; }
+.board-tooltip .tip-warn   { color: #fde68a; }
+.board-tooltip .tip-danger { color: #fca5a5; }
+.board-tooltip .tip-muted  { color: #94a3b8; }
+
+html[data-theme="light"] .board-tooltip .tip-accent { color: #0369a1; font-weight: 600; }
+html[data-theme="light"] .board-tooltip .tip-warn   { color: #b45309; font-weight: 600; }
+html[data-theme="light"] .board-tooltip .tip-danger { color: #b91c1c; font-weight: 600; }
+html[data-theme="light"] .board-tooltip .tip-muted  { color: #475569; }
+html[data-theme="light"] .board-tooltip strong      { color: #0f172a; }
+
+/* Hardware Lab Sheet: Bill of Materials (BOM) & Jumper Wire Summary */
+.print-row-wire {
+  background: #f0f9ff;
+}
+.print-row-rail {
+  background: #fefce8;
+}
+.print-jumper-bar {
+  margin-top: 7px;
+  padding: 8px 11px;
+  border: 1.5px solid #bae6fd;
+  border-radius: 6px;
+  background: #f0f9ff;
+  color: #0c4a6e;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.print-jumper-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+.print-jumper-split {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #ffffff;
+  border: 1px solid #7dd3fc;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.print-wire-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.print-color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+/* =========================================================================
+   COMPLETE WHITE-MODE READABILITY & WCAG AA CONTRAST AUDIT OVERRIDES
+   ========================================================================= */
+html[data-theme="light"] body {
+  color-scheme: light;
+}
+html[data-theme="light"] .stage-area {
+  background: #f8fafc;
+}
+html[data-theme="light"] .cors-banner {
+  background: #fef2f2;
+  color: #991b1b;
+  border-bottom-color: #ef4444;
+}
+
+/* Left Sidebar: Group Mode Toggle, Search, Catalog Cards & Maxed Button */
+html[data-theme="light"] .group-mode-row {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+}
+html[data-theme="light"] .cat-role {
+  color: #0f172a;
+}
+html[data-theme="light"] .cat-model {
+  color: #475569;
+}
+html[data-theme="light"] .cat-item.maxed .cat-add-btn {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+html[data-theme="light"] .cat-info-btn:hover,
+html[data-theme="light"] .card-info-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .badge-proto {
+  background: #ffe4e6;
+  color: #be123c;
+  border-color: #fda4af;
+}
+html[data-theme="light"] .badge-pdf {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+/* Center Stage: Pin Legend, Warnings, Guided Wiring Panel */
+html[data-theme="light"] .leg-onboard {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #92400e;
+}
+html[data-theme="light"] .leg-blocked {
+  background: #fee2e2;
+  border-color: #dc2626;
+  color: #991b1b;
+}
+html[data-theme="light"] .warn-item {
+  color: #991b1b;
+}
+html[data-theme="light"] .warn-item.action-needed {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+html[data-theme="light"] .warn-quick-btn:hover {
+  background: #d97706;
+  color: #ffffff;
+}
+
+html[data-theme="light"] .guided-head {
+  background: #f0f9ff;
+  border-bottom-color: #bae6fd;
+}
+html[data-theme="light"] .guided-title {
+  color: #0369a1;
+}
+html[data-theme="light"] .guided-prog {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+html[data-theme="light"] .guided-close {
+  color: #475569;
+}
+html[data-theme="light"] .guided-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+html[data-theme="light"] .guided-bar-track {
+  background: #e2e8f0;
+}
+html[data-theme="light"] .guided-body {
+  color: #1e293b;
+}
+html[data-theme="light"] .guided-foot {
+  background: #f8fafc;
+  border-top-color: #cbd5e1;
+}
+html[data-theme="light"] .guided-check-lbl {
+  color: #15803d;
+}
+
+/* Bottom Onboard Bar & Status Footer */
+html[data-theme="light"] .onboard-bar {
+  background: #f1f5f9;
+  border-top-color: #cbd5e1;
+}
+html[data-theme="light"] .bar-label {
+  color: #6b21a8;
+}
+html[data-theme="light"] .ob-pill .ob-dot {
+  background: #94a3b8;
+}
+html[data-theme="light"] .ob-pill.ext-blocked {
+  background: #fff7ed;
+  border-color: #fb923c;
+  color: #9a3412;
+}
+html[data-theme="light"] .ob-pill.ext-blocked .ob-dip-tag {
+  background: #fed7aa;
+  color: #9a3412;
+}
+html[data-theme="light"] .current-pill {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .current-pill.warn {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+html[data-theme="light"] .current-pill.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+html[data-theme="light"] .btn-oled-mode {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .btn-oled-mode:hover {
+  background: #bae6fd;
+  color: #0c4a6e;
+}
+html[data-theme="light"] .btn-oled-mode.is-paged {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+html[data-theme="light"] .btn-oled-mode.suggest-paged {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+
+/* Right Inspector: Tabs, Active Module Cards & Complete Board Pins Table */
+html[data-theme="light"] .inspector-tabs {
+  background: #f1f5f9;
+  border-bottom-color: #cbd5e1;
+}
+html[data-theme="light"] .section-mini-head {
+  color: #0369a1;
+}
+html[data-theme="light"] .import-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+html[data-theme="light"] .import-lbl {
+  color: #475569;
+}
+html[data-theme="light"] .pin-group-title {
+  color: #334155;
+}
+html[data-theme="light"] .pin-group-free {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+html[data-theme="light"] .pin-group-free.none-free {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+html[data-theme="light"] .bp-name {
+  color: #0f172a;
+}
+html[data-theme="light"] .bp-cap {
+  background: #e2e8f0;
+  color: #475569;
+}
+html[data-theme="light"] .bp-status-who {
+  color: #1e293b;
+}
+html[data-theme="light"] .bp-row.is-onboard .bp-status-who {
+  color: #92400e;
+}
+html[data-theme="light"] .bp-row.is-reserved {
+  opacity: 1;
+}
+html[data-theme="light"] .bp-row.is-reserved .bp-status-who {
+  color: #991b1b;
+}
+html[data-theme="light"] .bp-row.is-clickable:hover {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+}
+
+/* Modals: Component Info Popup, Lab Sheet & SVG Library */
+html[data-theme="light"] .modal-head {
+  background: #f8fafc;
+  border-bottom-color: #cbd5e1;
+}
+html[data-theme="light"] .info-modal-foot {
+  background: #f8fafc;
+  border-top-color: #cbd5e1;
+}
+html[data-theme="light"] .info-model-sub {
+  color: #475569;
+}
+html[data-theme="light"] .info-section h3 {
+  color: #0369a1;
+}
+html[data-theme="light"] .info-section p {
+  color: #1e293b;
+}
+html[data-theme="light"] .info-tip-list {
+  color: #92400e;
+}
+html[data-theme="light"] .pin-conn-row .pin-lbl {
+  color: #0f172a;
+}
+html[data-theme="light"] .pin-conn-row .pin-dest,
+html[data-theme="light"] .pin-dest {
+  color: #0369a1;
+}
+html[data-theme="light"] .gallery-tile img {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .print-svg-box {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Mobile 4-Tab Bottom Navigation in White Mode */
+html[data-theme="light"] .mobile-nav {
+  background: #ffffff;
+  border-top-color: #cbd5e1;
+}
+html[data-theme="light"] .mnav-btn {
+  color: #475569;
+}
+html[data-theme="light"] .mnav-btn.active {
+  color: #0284c7;
+}
+html[data-theme="light"] .topbar-actions {
+  background: var(--surface);
+}

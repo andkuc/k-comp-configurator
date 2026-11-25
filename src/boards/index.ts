@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// Declarative Multi-Board Registry (Zero window.* Globals)
 import type { BoardProfile } from '../types';
 import { KCOMP_V2_BOARD } from './kcomp-v2/pinmap';
 import { ESP32_S3_DEVKIT_BOARD } from './esp32-s3-devkit/pinmap';
@@ -13,6 +14,7 @@ export const BOARDS: Record<string, BoardProfile> = {
 };
 
 let activeBoardId = DEFAULT_BOARD_ID;
+let activeCarrierEnabled = Boolean(KCOMP_V2_BOARD.carrier?.defaultEnabled);
 
 export function getBoardById(boardId: string | null | undefined): BoardProfile | null {
   if (!boardId) return null;
@@ -26,25 +28,27 @@ export function getActiveBoard(): BoardProfile {
 export function setActiveBoard(boardId: string): BoardProfile {
   activeBoardId = BOARDS[boardId] ? boardId : DEFAULT_BOARD_ID;
   const board = getActiveBoard();
-  if (typeof window !== 'undefined') window.KCOMP_BOARD = board;
+  activeCarrierEnabled = Boolean(board.carrier?.defaultEnabled);
   return board;
+}
+
+export function setActiveCarrierEnabled(enabled: boolean): void {
+  const board = getActiveBoard();
+  activeCarrierEnabled = Boolean(board.carrier && enabled);
 }
 
 export function listBoards(): BoardProfile[] {
   return Object.values(BOARDS);
 }
 
-export function isBoardCarrierActive(board: BoardProfile = getActiveBoard(), carrierEnabled?: boolean): boolean {
+export function isBoardCarrierActive(board: BoardProfile = getActiveBoard(), carrierOverride?: boolean): boolean {
   if (!board.carrier) return false;
-  if (typeof carrierEnabled === 'boolean') return carrierEnabled;
-  if (typeof window !== 'undefined' && window.__KCOMP_STATE && typeof window.__KCOMP_STATE.carrierEnabled === 'boolean') {
-    return window.__KCOMP_STATE.carrierEnabled;
-  }
-  return !!board.carrier.defaultEnabled;
+  if (typeof carrierOverride === 'boolean') return carrierOverride;
+  return activeCarrierEnabled;
 }
 
-export function getBoardGeometry(board: BoardProfile = getActiveBoard(), carrierEnabled?: boolean) {
-  const useCarrier = isBoardCarrierActive(board, carrierEnabled);
+export function getBoardGeometry(board: BoardProfile = getActiveBoard(), carrierOverride?: boolean) {
+  const useCarrier = isBoardCarrierActive(board, carrierOverride);
   if (useCarrier && board.carrier) {
     const { tx, ty, scale } = board.carrier.canvasPlacement;
     const b = board.carrier.localBounds;
@@ -90,7 +94,7 @@ export function detectInitialCarrier(board: BoardProfile): boolean {
     if (c === 'standalone' || c === 'none' || c === '0' || c === 'off') return false;
     if (c === 'breadboard' || c === '1' || c === 'on') return true;
   } catch (_) {}
-  return !!board.carrier.defaultEnabled;
+  return Boolean(board.carrier.defaultEnabled);
 }
 
 export function detectInitialBoardId(): string {
@@ -101,8 +105,4 @@ export function detectInitialBoardId(): string {
     if (p === 'esp32' || p === 'esp32s3' || p === 's3') return 'esp32-s3-devkit';
   } catch (_) {}
   return DEFAULT_BOARD_ID;
-}
-
-if (typeof window !== 'undefined' && !window.KCOMP_BOARD) {
-  window.KCOMP_BOARD = KCOMP_V2_BOARD;
 }

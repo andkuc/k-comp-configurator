@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Declarative Multi-Board Hardware Constraint Engine (K-Comp V2 & ESP32-S3)
-import { state, hooks, showToast, isMobileViewport, loadComponentSvg, getActiveOnboardDefs, formatRamAmount } from './state';
+import { state, showToast, isMobileViewport, loadComponentSvg, getActiveOnboardDefs, formatRamAmount } from './state';
 import { computeCodeBlocksSram } from './code-blocks';
 import { t, tComp, tOnboard, tDipName } from '../i18n/index';
 import { getActiveBoard } from '../boards';
 import type { DipSwitchState, UartAssignment } from '../types';
+import { appBus } from '../store/bus';
 
 export function getCompDef(compId) {
   return state.catalog.components.find((c) => c.id === compId);
@@ -145,47 +146,30 @@ export function getOnboardPinUsage() {
   const board = getActiveBoard();
   const used = {};
 
-  if (board.onboardPeripherals) {
-    for (const ob of board.onboardPeripherals) {
-      if (!state.onboard[ob.id]) continue;
-      for (const p of (ob.pins || [])) {
-        used[p.pinId] = {
-          onboardId: ob.id,
-          name: p.roleLabel || tOnboard(ob, 'name'),
-          dip: p.dip ?? null,
-          color: ob.accent || '#38bdf8',
-          hardwired: !!p.hardwired
-        };
-      }
+  for (const ob of (board.onboardPeripherals || [])) {
+    if (!state.onboard[ob.id]) continue;
+    const baseName = tOnboard(ob, 'name');
+    for (const p of (ob.pins || [])) {
+      const label = p.roleLabel || (p.roleSuffix ? `${baseName} ${p.roleSuffix}` : baseName);
+      used[p.pinId] = {
+        onboardId: ob.id,
+        name: label,
+        dip: p.dip ?? ob.dip ?? null,
+        color: ob.accent || '#38bdf8',
+        hardwired: Boolean(p.hardwired ?? ob.hardwired)
+      };
     }
-    return used;
   }
 
-  const hasWirelessComp = state.active.some((i) => getCompDef(i.compId)?.onboardWirelessSlot);
-  const obById = {};
-  for (const ob of (state.catalog?.onboard || [])) obById[ob.id] = ob;
-  const obName = (id, fallback) => (obById[id] ? tOnboard(obById[id], 'name') : fallback);
+  if (board.capabilities.hasWirelessSlot) {
+    const hasWirelessComp = state.active.some((i) => getCompDef(i.compId)?.onboardWirelessSlot);
+    if (state.onboard.onboard_wireless || hasWirelessComp) {
+      const wl = t('onboard.wireless');
+      used['D6'] = { onboardId: 'onboard_wireless', name: `${wl} RX`, dip: 7, color: '#c084fc', lockedBySlot: hasWirelessComp };
+      used['D7'] = { onboardId: 'onboard_wireless', name: `${wl} TX`, dip: 8, color: '#c084fc', lockedBySlot: hasWirelessComp };
+    }
+  }
 
-  if (state.onboard.onboard_led)    used['D5'] = { onboardId: 'onboard_led',    name: obName('onboard_led', 'Red LED'),          dip: 2, color: '#ef4444' };
-  if (state.onboard.onboard_pot)    used['A0'] = { onboardId: 'onboard_pot',    name: obName('onboard_pot', 'Potentiometer'),    dip: 3, color: '#fbbf24' };
-  if (state.onboard.onboard_start)  used['D3'] = { onboardId: 'onboard_start',  name: obName('onboard_start', 'START Button'),   dip: 4, color: '#22c55e' };
-  if (state.onboard.onboard_select) used['D4'] = { onboardId: 'onboard_select', name: obName('onboard_select', 'SELECT Button'), dip: 5, color: '#0ea5e9' };
-  if (state.onboard.onboard_buzzer) used['D9'] = { onboardId: 'onboard_buzzer', name: obName('onboard_buzzer', 'Buzzer'),        dip: 6, color: '#facc15' };
-  if (state.onboard.onboard_wireless || hasWirelessComp) {
-    const wl = t('onboard.wireless');
-    used['D6'] = { onboardId: 'onboard_wireless', name: `${wl} RX`, dip: 7, color: '#c084fc', lockedBySlot: hasWirelessComp };
-    used['D7'] = { onboardId: 'onboard_wireless', name: `${wl} TX`, dip: 8, color: '#c084fc', lockedBySlot: hasWirelessComp };
-  }
-  if (state.onboard.onboard_distance) {
-    const us = obName('onboard_distance', 'Ultrasonic');
-    used['D10'] = { onboardId: 'onboard_distance', name: `${us} TRIG`, dip: null, color: '#38bdf8' };
-    used['D11'] = { onboardId: 'onboard_distance', name: `${us} ECHO`, dip: null, color: '#38bdf8' };
-  }
-  if (state.onboard.onboard_joystick) {
-    const js = obName('onboard_joystick', 'Joystick');
-    used['A1'] = { onboardId: 'onboard_joystick', name: `${js} VRX`, dip: null, color: '#34d399', hardwired: true };
-    used['A2'] = { onboardId: 'onboard_joystick', name: `${js} VRY`, dip: null, color: '#34d399', hardwired: true };
-  }
   return used;
 }
 
@@ -223,27 +207,27 @@ export function getSharedPinCandidates(role: string, excludeInstId: any = null, 
   };
   const prio = board.powerPinPriority || { GND: [], POWER_5V: [], POWER_3V3: [], RESET: [] };
 
+  const borrowableHeaders = (board.i2cHeaderOrder || []).filter((hk) => board.i2cHeaders[hk]?.supportsBreadboardHub);
+  // Borrow power pins from secondary I2C headers first (primary header last so I2C modules prefer it cleanly)
+  const borrowOrder = borrowableHeaders.length > 1 ? [...borrowableHeaders.slice(1), borrowableHeaders[0]] : borrowableHeaders;
+
   if (role === 'GND') {
     for (const bpId of (prio.GND || [])) pushIfValid(bpId);
     for (const [bpId, meta] of Object.entries(allPins)) {
-      if (meta.blocked || /^H[1-3]_/.test(bpId) || bpId === 'EXT_GND') continue;
+      if (meta.blocked || meta.headerId || bpId === 'EXT_GND') continue;
       if ((meta.caps || []).includes('GND')) pushIfValid(bpId);
     }
-    if (board.i2cHeaders?.H1) {
-      for (const hk of ['H1', 'H3', 'H2']) {
-        if (!usedI2c.has(hk)) pushIfValid(`${hk}_GND`);
-      }
+    for (const hk of borrowOrder) {
+      if (!usedI2c.has(hk) && board.i2cHeaders[hk]?.GND) pushIfValid(board.i2cHeaders[hk].GND);
     }
   } else if (role === 'POWER_5V') {
     for (const bpId of (prio.POWER_5V || [])) pushIfValid(bpId);
     for (const [bpId, meta] of Object.entries(allPins)) {
-      if (meta.blocked || /^H[1-3]_/.test(bpId)) continue;
+      if (meta.blocked || meta.headerId) continue;
       if ((meta.caps || []).includes('5V')) pushIfValid(bpId);
     }
-    if (board.i2cHeaders?.H1) {
-      for (const hk of ['H1', 'H3', 'H2']) {
-        if (!usedI2c.has(hk)) pushIfValid(`${hk}_VCC`);
-      }
+    for (const hk of borrowOrder) {
+      if (!usedI2c.has(hk) && board.i2cHeaders[hk]?.VCC) pushIfValid(board.i2cHeaders[hk].VCC);
     }
   } else if (role === 'POWER_3V3') {
     for (const bpId of (prio.POWER_3V3 || [])) pushIfValid(bpId);
@@ -278,7 +262,7 @@ export function pickBestSharedPin(role: string, fallbackPin: any, pickedThisInst
   // When user selects "Breadboard Rail" mode on a board with an onboard breadboard,
   // consolidate shared power/GND pins directly onto the common breadboard rail!
   if (state.powerRailMode === 'rail' && board.breadboard && (role === 'GND' || role === 'POWER_5V' || role === 'POWER_3V3' || role === 'RESET')) {
-    const existingRail = candidates.find((bpId) => !/^H[1-3]_/.test(bpId) && (counts[bpId] || 0) >= 1);
+    const existingRail = candidates.find((bpId) => !board.pins[bpId]?.headerId && (counts[bpId] || 0) >= 1);
     if (existingRail) return existingRail;
     const primaryRail = getPrimarySharedPinForRole(role, fallbackPin);
     return candidates.includes(primaryRail) ? primaryRail : (candidates[0] || fallbackPin);
@@ -289,7 +273,7 @@ export function pickBestSharedPin(role: string, fallbackPin: any, pickedThisInst
       return bpId;
     }
   }
-  const existingRail = candidates.find((bpId) => !/^H[1-3]_/.test(bpId) && (counts[bpId] || 0) >= 2);
+  const existingRail = candidates.find((bpId) => !board.pins[bpId]?.headerId && (counts[bpId] || 0) >= 2);
   if (existingRail) return existingRail;
 
   const prioList = board.powerPinPriority?.[role] || [];
@@ -299,7 +283,7 @@ export function pickBestSharedPin(role: string, fallbackPin: any, pickedThisInst
 
 export function setPowerRailMode(mode: 'smart' | 'rail', opts: any = {}) {
   const nextMode: 'smart' | 'rail' = mode === 'rail' ? 'rail' : 'smart';
-  if (!opts.skipUndo) hooks.pushUndoState();
+  if (!opts.skipUndo) appBus.emit('history:push');
   state.powerRailMode = nextMode;
   const board = getActiveBoard();
 
@@ -307,17 +291,17 @@ export function setPowerRailMode(mode: 'smart' | 'rail', opts: any = {}) {
     for (const inst of state.active) {
       const def = getCompDef(inst.compId);
       if (!def || def.onboardWirelessSlot) continue;
-      if (!inst.bbPins) inst.bbPins = {};
+      if (!inst.attachments) inst.attachments = {};
       for (const p of def.pins) {
         if (p.role !== 'GND' && p.role !== 'POWER_5V' && p.role !== 'POWER_3V3' && p.role !== 'RESET') continue;
         if (nextMode === 'rail') {
           const primaryPin = getPrimarySharedPinForRole(p.role, p.defaultPin);
           if (primaryPin) {
             inst.pinMap[p.id] = primaryPin;
-            inst.bbPins[p.id] = true;
+            inst.attachments[p.id] = { kind: 'board-breadboard', forceRail: true };
           }
         } else {
-          delete inst.bbPins[p.id];
+          delete inst.attachments[p.id];
         }
       }
     }
@@ -326,14 +310,16 @@ export function setPowerRailMode(mode: 'smart' | 'rail', opts: any = {}) {
     }
   }
   if (!opts.silent) {
-    hooks.recomputeAndRender();
+    appBus.emit('workspace:recompute');
   }
 }
 
 export function relocateBorrowedHeaderPins(headerKey: any, claimingInstId: any = null) {
-  if (!headerKey || !/^H[1-3]$/.test(headerKey)) return;
-  const gndPin = `${headerKey}_GND`;
-  const vccPin = `${headerKey}_VCC`;
+  const board = getActiveBoard();
+  const hdr = headerKey ? board.i2cHeaders?.[headerKey] : null;
+  if (!hdr || !hdr.supportsBreadboardHub) return;
+  const gndPin = hdr.GND;
+  const vccPin = hdr.VCC;
   for (const inst of state.active) {
     if (inst.instanceId === claimingInstId || inst.i2cHeader === headerKey) continue;
     const def = getCompDef(inst.compId);
@@ -359,7 +345,7 @@ export function rebalanceOverflowPowerPins() {
       if (!def) continue;
       for (const p of def.pins) {
         if (p.role !== 'GND' && p.role !== 'POWER_5V' && p.role !== 'POWER_3V3') continue;
-        if (inst.bbPins && inst.bbPins[p.id]) continue; // Respect manual Breadboard Rail placement!
+        if (inst.attachments?.[p.id]?.kind === 'board-breadboard') continue;
         const cur = inst.pinMap[p.id];
         if (!cur || (counts[cur] || 0) < 2) continue;
         const cands = getSharedPinCandidates(p.role, inst.instanceId);
@@ -416,11 +402,10 @@ export function getSuitableBoardPins(pinSpec: any, excludeInstId: any = null, ex
     if (meta.blocked) continue;
     const caps = meta.caps || [];
     let matches = allowed.some((cap) => caps.includes(cap));
-    if (!matches && /^H([1-3])_(GND|VCC)$/.test(bpId)) {
-      const m = bpId.match(/^H([1-3])_(GND|VCC)$/);
-      if (m && !usedI2c.has(`H${m[1]}`)) {
-        if (m[2] === 'GND' && allowed.includes('GND')) matches = true;
-        if (m[2] === 'VCC' && allowed.includes('5V')) matches = true;
+    if (!matches && meta.headerId && (meta.headerRole === 'GND' || meta.headerRole === 'VCC')) {
+      if (!usedI2c.has(meta.headerId)) {
+        if (meta.headerRole === 'GND' && allowed.includes('GND')) matches = true;
+        if (meta.headerRole === 'VCC' && allowed.includes('5V')) matches = true;
       }
     }
     if (!matches) continue;
@@ -551,7 +536,7 @@ export async function addComponent(compId: string, opts: any = {}) {
   if (!def) return;
   if (!canAddComponent(compId)) {
     const existing = state.active.find((a) => a.compId === compId);
-    if (existing) { state.focusedId = existing.instanceId; hooks.recomputeAndRender(); }
+    if (existing) { state.focusedId = existing.instanceId; appBus.emit('workspace:recompute'); }
     const max = def.maxPerDesign ?? 1;
     showToast(t('toast.maxComp', { max, name: getDisplayLabel(def), reason: tComp(def, 'maxReason') || t('toast.hardwareLimit') }));
     return;
@@ -561,9 +546,9 @@ export async function addComponent(compId: string, opts: any = {}) {
     return;
   }
 
-  if (!opts.skipUndo) hooks.pushUndoState();
+  if (!opts.skipUndo) appBus.emit('history:push');
   await loadComponentSvg(def.svgFile);
-  const inst = { instanceId: 'inst_' + state.nextInst++, compId, i2cHeader: null, pinMap: {}, bbPins: {}, customPos: null, rotation: 0 };
+  const inst = { instanceId: 'inst_' + state.nextInst++, compId, i2cHeader: null, pinMap: {}, attachments: {}, customPos: null, rotation: 0 };
 
   if (def.i2cHeaderSelectable) {
     const chosenHdr = (opts.i2cHeader && board.i2cHeaders?.[opts.i2cHeader]) ? opts.i2cHeader : pickDefaultI2CHeader();
@@ -594,7 +579,7 @@ export async function addComponent(compId: string, opts: any = {}) {
         const best = pickBestSharedPin(targetRole, p.defaultPin, pickedThisInst, inst.instanceId, p.id);
         inst.pinMap[p.id] = best;
         if (state.powerRailMode === 'rail' && board.breadboard) {
-          inst.bbPins[p.id] = true;
+          inst.attachments[p.id] = { kind: 'board-breadboard', forceRail: true };
         }
         pickedThisInst.add(best);
         continue;
@@ -631,9 +616,9 @@ export async function addComponent(compId: string, opts: any = {}) {
     state.needsMobileFit = true;
     showToast(t('toast.addedMobile', { name: getDisplayLabel(def) }));
   }
-  hooks.recomputeAndRender();
+  appBus.emit('workspace:recompute');
   if (!opts.skipUndo) {
-    hooks.flashTarget({ instanceId: inst.instanceId, panIfOffscreen: true });
+    appBus.emit('target:flash', { instanceId: inst.instanceId, panIfOffscreen: true });
   }
 }
 
@@ -641,7 +626,7 @@ export function removeComponent(instanceId) {
   const inst = state.active.find((i) => i.instanceId === instanceId);
   const def = inst ? getCompDef(inst.compId) : null;
   const removedName = def ? getDisplayLabel(def) : '';
-  hooks.pushUndoState();
+  appBus.emit('history:push');
   state.active = state.active.filter((i) => i.instanceId !== instanceId);
   if (state.focusedId === instanceId) state.focusedId = null;
   rebalanceOverflowPowerPins();
@@ -649,8 +634,31 @@ export function removeComponent(instanceId) {
   const msg = autoConn.length
     ? t('toast.autoConnected', { list: autoConn.join(', ') })
     : (removedName ? t('toast.removedComp', { name: removedName }) : t('toast.removedGeneric'));
-  showToast(msg, { actionLabel: t('toast.undoBtn'), onAction: () => hooks.performUndo() });
-  hooks.recomputeAndRender();
+  showToast(msg, { actionLabel: t('toast.undoBtn'), onAction: () => appBus.emit('history:undo') });
+  appBus.emit('workspace:recompute');
+}
+
+
+export function reassignComponentPin(instanceId: string, compPinId: string, newPinId: string) {
+  const board = getActiveBoard();
+  const inst = state.active.find((i) => i.instanceId === instanceId);
+  const def = inst ? getCompDef(inst.compId) : null;
+  if (!inst || !def || !board.pins[newPinId]) return false;
+
+  appBus.emit('history:push');
+  inst.pinMap[compPinId] = newPinId;
+  if (inst.attachments && inst.attachments[compPinId]) {
+    delete inst.attachments[compPinId];
+  }
+  autoConnectPendingPins();
+  showToast(t('toast.rewired', {
+    comp: getDisplayLabel(def),
+    pin: compPinId,
+    dest: board.pins[newPinId].label || newPinId
+  }));
+  appBus.emit('workspace:recompute');
+  appBus.emit('target:flash', { instanceId, pinId: newPinId, panIfOffscreen: true });
+  return true;
 }
 
 export function toggleDipSwitch(dipNum) {
@@ -674,11 +682,11 @@ export function toggleDipSwitch(dipNum) {
       showToast(t('toast.dipWirelessExternal', { who }));
       return;
     }
-    hooks.pushUndoState();
+    appBus.emit('history:push');
     state.onboard.onboard_wireless = !state.onboard.onboard_wireless;
     const autoConn = !state.onboard.onboard_wireless ? autoConnectPendingPins() : [];
     if (autoConn.length) showToast(t('toast.autoConnected', { list: autoConn.join(', ') }));
-    hooks.recomputeAndRender();
+    appBus.emit('workspace:recompute');
     return;
   }
 
@@ -687,11 +695,11 @@ export function toggleDipSwitch(dipNum) {
     return;
   }
   if (dip.onboardId && state.onboard[dip.onboardId] !== undefined) {
-    hooks.pushUndoState();
+    appBus.emit('history:push');
     state.onboard[dip.onboardId] = !state.onboard[dip.onboardId];
     const autoConn = !state.onboard[dip.onboardId] ? autoConnectPendingPins() : [];
     if (autoConn.length) showToast(t('toast.autoConnected', { list: autoConn.join(', ') }));
-    hooks.recomputeAndRender();
+    appBus.emit('workspace:recompute');
   }
 }
 
@@ -712,11 +720,11 @@ export function toggleOnboardComponent(obId) {
     }
   }
 
-  hooks.pushUndoState();
+  appBus.emit('history:push');
   state.onboard[obId] = !state.onboard[obId];
   const autoConn = !state.onboard[obId] ? autoConnectPendingPins() : [];
   if (autoConn.length) showToast(t('toast.autoConnected', { list: autoConn.join(', ') }));
-  hooks.recomputeAndRender();
+  appBus.emit('workspace:recompute');
 }
 
 export function computeDipStates(): DipSwitchState[] {
@@ -749,7 +757,13 @@ export function computeCriticalWarnings() {
   // 1. I2C Address Collisions
   const addrMap = {};
   const addrInst = {};
-  if (board.id === 'kcomp-v2' && state.onboard.onboard_oled) addrMap['0x3C'] = ['OLED'];
+  for (const ob of (board.onboardPeripherals || [])) {
+    if (ob.i2cAddr && state.onboard[ob.id]) {
+      if (!addrMap[ob.i2cAddr]) addrMap[ob.i2cAddr] = [];
+      addrMap[ob.i2cAddr].push(ob.shortName || ob.name);
+      if (!addrInst[ob.i2cAddr]) addrInst[ob.i2cAddr] = null;
+    }
+  }
   for (const inst of state.active) {
     const addr = getInstanceAddress(inst);
     if (addr) {
@@ -788,14 +802,18 @@ export function computeCriticalWarnings() {
     });
   }
 
-  // 4. K-Comp V2 Ultrasonic Conflict
-  if (board.id === 'kcomp-v2' && state.onboard.onboard_distance && (extClaims['D10'] || extClaims['D11'])) {
-    const claim = extClaims['D10'] || extClaims['D11'];
-    warns.push({
-      critical: true,
-      text: t('warn.ultrasonicConflict'),
-      target: { instanceId: claim.instanceId, pinId: extClaims['D10'] ? 'D10' : 'D11', onboardId: 'onboard_distance', panIfOffscreen: true }
-    });
+  // 4. Declarative Onboard Peripheral Pin Conflict Checks (e.g. K-Comp V2 Ultrasonic D10/D11)
+  for (const ob of (board.onboardPeripherals || [])) {
+    if (!state.onboard[ob.id] || !ob.conflictPins?.length) continue;
+    const hitPin = ob.conflictPins.find((pid) => Boolean(extClaims[pid]));
+    if (hitPin) {
+      const claim = extClaims[hitPin];
+      warns.push({
+        critical: true,
+        text: t(ob.conflictWarningKey || 'warn.ultrasonicConflict'),
+        target: { instanceId: claim.instanceId, pinId: hitPin, onboardId: ob.id, panIfOffscreen: true }
+      });
+    }
   }
 
   // 5. UART / SoftwareSerial Check (Board-Aware)
@@ -868,7 +886,7 @@ export function computeCriticalWarnings() {
     }
   }
 
-  // 7. Strapping-Pin Advisory
+  // 7. Strapping-Pin Advisory (with 1-click Move-to-Safe-GPIO quick action)
   const strappingSet = new Set(board.capabilities.strappingPins || []);
   if (strappingSet.size) {
     for (const inst of state.active) {
@@ -877,10 +895,16 @@ export function computeCriticalWarnings() {
       for (const p of def.pins) {
         const bpId = inst.pinMap[p.id];
         if (bpId && strappingSet.has(bpId)) {
+          const safeCand = getSuitableBoardPins(p, inst.instanceId, p.id, def)
+            .find((c) => !c.takenBy && !c.onboardBy && !c.strapping && !c.isDefaultI2c);
           warns.push({
             critical: false,
             advisory: true,
             text: t('warn.strappingPin', { pin: bpId, name: getDisplayLabel(def) }),
+            quickActions: safeCand ? [{
+              pinReassign: { instanceId: inst.instanceId, compPinId: p.id, newPinId: safeCand.id },
+              label: t('warn.moveToPinBtn', { pin: safeCand.id })
+            }] : [],
             target: { instanceId: inst.instanceId, pinId: bpId, panIfOffscreen: true }
           });
         }
@@ -888,8 +912,9 @@ export function computeCriticalWarnings() {
     }
   }
 
-  // 8. ADC2 + Wi-Fi Conflict Check
+  // 8. ADC2 + Wi-Fi Conflict Check (with 1-click Move-to-ADC1 quick action)
   const adc2Set = new Set(board.capabilities.adc2WifiConflictPins || []);
+  const adc1Set = new Set(board.capabilities.adc1Pins || []);
   if (adc2Set.size && isWifiRadioActive()) {
     for (const inst of state.active) {
       const def = getCompDef(inst.compId);
@@ -897,9 +922,15 @@ export function computeCriticalWarnings() {
       for (const p of def.pins) {
         const bpId = inst.pinMap[p.id];
         if (bpId && p.role === 'ANALOG' && adc2Set.has(bpId)) {
+          const safeAdc1 = getSuitableBoardPins(p, inst.instanceId, p.id, def)
+            .find((c) => !c.takenBy && !c.onboardBy && !c.strapping && !c.isDefaultI2c && adc1Set.has(c.id));
           warns.push({
             critical: true,
             text: t('warn.adc2WifiConflict', { pin: bpId, name: getDisplayLabel(def) }),
+            quickActions: safeAdc1 ? [{
+              pinReassign: { instanceId: inst.instanceId, compPinId: p.id, newPinId: safeAdc1.id },
+              label: t('warn.moveToAdc1Btn', { pin: safeAdc1.id })
+            }] : [],
             target: { instanceId: inst.instanceId, pinId: bpId, onboardId: 'onboard_wifi', panIfOffscreen: true }
           });
         }
@@ -938,7 +969,7 @@ export function computeCriticalWarnings() {
 
   // 10. 5V USB Power Budget Check
   const cur = computeUsbCurrent();
-  const maxMa = board.electrical?.usbMaxMa || state.catalog.usbCurrentMaxMa || 500;
+  const maxMa = board.electrical.usbMaxMa;
   if (cur.total >= Math.round(maxMa * 0.9)) {
     let topInst = null;
     let topMa = -1;
@@ -958,8 +989,8 @@ export function computeCriticalWarnings() {
 
 export function computeSramBreakdown() {
   const board = getActiveBoard();
-  const base = board.sramBaseOverhead;
-  const total = board.sramTotal;
+  const base = board.electrical.sramBaseOverheadBytes;
+  const total = board.electrical.sramBytes;
   let used = base;
   const fmtBase = formatRamAmount(base, total).usedStr;
   const breakdown = [t('sram.base', { bytes: total >= 16384 ? fmtBase : `${base} B` }).replace(' B B', ' B')];
@@ -992,7 +1023,7 @@ export function computeSramBreakdown() {
     used += blkBytes;
     breakdown.push(t('sram.blocksItem', { bytes: blkBytes }));
   }
-  if (board.id === 'kcomp-v2' && state.onboard.onboard_oled && !state.oledPaged) {
+  if (board.onboardPeripherals.some((o) => o.modeToggle && state.onboard[o.id]) && !state.oledPaged) {
     breakdown.push(t('sram.oledSaveTip'));
   }
   return { used, total, breakdown };
@@ -1004,7 +1035,7 @@ export function computeSram() {
 
 export function computeUsbCurrent() {
   const board = getActiveBoard();
-  const base = board.electrical?.baseCurrentMa || state.catalog.baseCurrentMa || 45;
+  const base = board.electrical.baseCurrentMa;
   let onboardMa = 0;
   const breakdown = [t('current.base', { ma: base })];
   for (const ob of getActiveOnboardDefs()) {

@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { getActiveBoard, KCOMP_V2_BOARD } from '../boards';
 import { CATALOG } from '../catalog';
 import { setActiveBoard } from '../boards';
-import { state, hooks } from '../core/state';
+import { state, getActiveOnboardDefs } from '../core/state';
+import { projectStore } from '../store';
 import { initI18n } from '../i18n';
 import { allocateBreadboardRails, getBreadboardDropTarget } from '../core/breadboard';
 import {
@@ -40,7 +41,7 @@ function resetWorkbenchState() {
   state.nextInst = 1;
   state.oledPaged = false;
   state.onboard = {};
-  for (const ob of CATALOG.onboard) {
+  for (const ob of getActiveOnboardDefs()) {
     state.onboard[ob.id] = false;
   }
   state.onboard.onboard_wireless = false;
@@ -52,10 +53,7 @@ function resetWorkbenchState() {
     state.svgCache.set(comp.svgFile, dummy);
   }
 
-  // Silence UI hooks during pure hardware unit tests
-  hooks.recomputeAndRender = () => {};
-  hooks.pushUndoState = () => {};
-  hooks.flashTarget = () => {};
+  projectStore.reset();
 }
 
 describe('K-Comp V2 Board Profile & Blank Board Defaults', () => {
@@ -64,15 +62,15 @@ describe('K-Comp V2 Board Profile & Blank Board Defaults', () => {
   it('exposes the K-Comp V2 board profile with 2 KB SRAM and 8 DIP switches', () => {
     const board = getActiveBoard();
     expect(board.id).toBe('kcomp-v2');
-    expect(board.sramTotal).toBe(2048);
-    expect(board.sramBaseOverhead).toBe(210);
+    expect(board.electrical.sramBytes).toBe(2048);
+    expect(board.electrical.sramBaseOverheadBytes).toBe(210);
     expect(board.dipSwitches).toHaveLength(8);
     expect(Object.keys(board.i2cHeaders)).toEqual(['H1', 'H2', 'H3']);
     expect(board.electrical.logicVoltage).toBe(5);
   });
 
   it('starts on a blank board with all onboard peripherals disabled and DIP S1-1 locked ON', () => {
-    for (const ob of CATALOG.onboard) {
+    for (const ob of getActiveOnboardDefs()) {
       expect(state.onboard[ob.id]).toBe(false);
     }
     expect(state.onboard.onboard_wireless).toBe(false);
@@ -214,7 +212,7 @@ describe('Hardware Constraint Engine — Pin Governance & Conflicts', () => {
 
   it('calculates 2 KB SRAM breakdown accurately including OLED Full vs Paged savings', () => {
     const empty = computeSramBreakdown();
-    expect(empty.used).toBe(KCOMP_V2_BOARD.sramBaseOverhead);
+    expect(empty.used).toBe(KCOMP_V2_BOARD.electrical.sramBaseOverheadBytes);
     expect(empty.total).toBe(2048);
 
     state.onboard.onboard_oled = true;
@@ -246,12 +244,12 @@ describe('Hardware Constraint Engine — Pin Governance & Conflicts', () => {
     expect(bbTarget!.forceBreadboard).toBe(true);
 
     ir.pinMap.GND = bbTarget!.boardPinId;
-    ir.bbPins = { GND: true };
+    ir.attachments = { GND: { kind: 'board-breadboard', forceRail: true } };
 
     // Rebalance must NOT undo the user's manual Breadboard GND placement!
     rebalanceOverflowPowerPins();
     expect(ir.pinMap.GND).toBe('PWR_GND1');
-    expect(ir.bbPins.GND).toBe(true);
+    expect(ir.attachments.GND?.kind).toBe('board-breadboard');
 
     // Even a single forced wire allocates its own breadboard GND rail
     const singleJob = [
@@ -282,7 +280,7 @@ describe('Hardware Constraint Engine — Pin Governance & Conflicts', () => {
 
   it('estimates 5V USB current and warns at >= 450 mA', async () => {
     const idle = computeUsbCurrent();
-    expect(idle.total).toBe(CATALOG.baseCurrentMa);
+    expect(idle.total).toBe(KCOMP_V2_BOARD.electrical.baseCurrentMa);
 
     // MQ gas sensors draw ~150 mA each; 3 MQ sensors + 45 mA base >= 495 mA -> triggers USB warning
     await addComponent('mq2', { skipUndo: true });

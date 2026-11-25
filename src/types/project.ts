@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+import type { CodeProfileId } from './codegen';
 
 export interface CodeBlockInstance {
   blockId: string;
@@ -22,36 +23,12 @@ export interface CodeBlockDef {
   summary: (cfg: Record<string, any>) => string;
 }
 
-export interface ProjectExternalRecord {
-  id: string;
-  h?: string | null;
-  p?: Record<string, string | null>;
-  bb?: Record<string, boolean | string>;
-  pos?: [number, number] | null;
-  rot?: number;
-}
-
-export interface ProjectPayload {
-  v?: number | string;
-  b?: string;
-  cp?: string;
-  cr?: boolean;
-  prm?: 'smart' | 'rail';
-  target?: { boardId: string; codeProfile?: string; nodes?: Array<{ id: string; boardId: string; codeProfile?: string }> };
-  appVersion?: string;
-  author?: string;
-  repo?: string;
-  name?: string;
-  ob?: Record<string, boolean>;
-  op?: boolean;
-  wm?: string;
-  sg?: boolean;
-  ch?: boolean;
-  act: ProjectExternalRecord[];
-  cb?: Array<{ t: string; c?: Record<string, any> }>;
-  pr?: Record<string, any>;
-  [key: string]: any;
-}
+/** Typed wire attachment target replacing legacy string-encoded breadboard flags */
+export type PinAttachment =
+  | { kind: 'board-pin' }
+  | { kind: 'board-breadboard'; forceRail: true }
+  | { kind: 'carrier-row'; holeIndex?: number }
+  | { kind: 'carrier-rail'; railId: string; holeIndex?: number };
 
 export interface ProposalWorkPackage {
   goal: string;
@@ -72,4 +49,53 @@ export interface ProjectProposal {
   boardMods: string;
   workPackages: ProposalWorkPackage[];
   includeGrading: boolean;
+}
+
+export interface PlacedModuleRecord {
+  compId: string;
+  i2cHeader?: string | null;
+  pinMap: Record<string, string | null>;
+  attachments?: Record<string, PinAttachment>;
+  position?: { x: number; y: number; w?: number; h?: number } | null;
+  rotation?: number;
+}
+
+export interface ProjectNode {
+  id: string;
+  boardId: string;
+  codeProfile: CodeProfileId;
+  carrierId: string | null;
+  powerDistribution: 'smart' | 'rail';
+  onboard: Record<string, boolean>;
+  oledPaged: boolean;
+  modules: PlacedModuleRecord[];
+  codeBlocks: Array<{ type: string; config: Record<string, any> }>;
+}
+
+/** Reserved for future Multi-Node AI-Computing + MCU links (UART / I2C / Network) */
+export interface InterNodeLink {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+  bus: 'uart' | 'i2c' | 'usb' | 'wifi';
+  label?: string;
+}
+
+export interface ProjectDocument {
+  schema: 'kcomp-project/1';
+  appVersion: string;
+  name: string;
+  nodes: ProjectNode[];
+  links: InterNodeLink[];
+  proposal?: ProjectProposal;
+  uiPrefs: {
+    wireMode: 'smart' | 'curved';
+    snapToGrid: boolean;
+    codeHints: boolean;
+  };
+  meta?: {
+    generator: string;
+    author: string;
+    source: string;
+  };
 }

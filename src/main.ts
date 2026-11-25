@@ -1,19 +1,20 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.1.1)
+// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.3.2)
 import './styles/style.css';
 import { resolveAssetUrl } from './core/constants';
 import { CATALOG } from './catalog';
-import { detectInitialBoardId, detectInitialCarrier, getActiveBoard, getBoardById, isBoardCarrierActive, listBoards, setActiveBoard } from './boards';
+import { detectInitialBoardId, detectInitialCarrier, getActiveBoard, getBoardById, isBoardCarrierActive, listBoards, setActiveBoard, setActiveCarrierEnabled } from './boards';
 import { getSupportedProfiles, normalizeCodeProfile } from './core/code-profiles';
 import {
-  state, hooks, $, getProjectSlug, syncProjectNameUI, showToast, getActiveOnboardDefs,
+  state, $, getProjectSlug, syncProjectNameUI, showToast, getActiveOnboardDefs,
   setMobileView, updateMobileNavIndicators, syncWorkbenchToggles, initTheme, applyThemeToDom, toggleTheme, loadLayoutPrefs, saveLayoutPrefs, applyPinLegendState,
   detectInitialAutoSaveEnabled, syncAutoSaveUI, setAutoSaveEnabled
 } from './core/state';
 import { discoverRepoDocumentationPdfs } from './core/docs-discovery';
+import { appBus, projectStore, type DerivedWorkspace } from './store';
 import {
-  addComponent, removeComponent, computeDipStates, computeCriticalWarnings, computeSramBreakdown, computeUsbCurrent, setPowerRailMode
+  addComponent, removeComponent, computeDipStates, setPowerRailMode
 } from './core/hardware';
 import {
   mountBoardSvg, syncCarrierVisuals, applyViewBox, resetViewFit, zoomToBoard,
@@ -29,19 +30,63 @@ import {
 } from './ui/inspector';
 import { renderSketchCode } from './core/codegen';
 import { renderCodeBlocksUI, bindCodeBlocksEvents } from './core/code-blocks';
-import { openBlockInfo, openBlocksOverview, closeBlockInfoModal, refreshOpenBlockInfo, bindBlockGuideEvents } from './ui/block-guide';
+// Lazy-loaded modules (block-guide & project charter are loaded on demand via dynamic import())
 import { renderApiBrowserUI, bindApiBrowserEvents } from './ui/api-browser';
 import { updateInfoModalDocLink, openComponentInfo, openPrintStopSheet, openSvgLibrary, openAboutModal } from './ui/modals';
-import { openProjectCharter } from './ui/charter';
 import {
   captureSnapshot, pushUndoState, updateHistoryButtons, performUndo, performRedo,
-  applyProjectPayload, saveProjectFile, shareConfigLink, tryLoadFromUrlHash,
+  applyProjectDocument, saveProjectFile, shareConfigLink, tryLoadFromUrlHash,
   populatePresets, loadPreset, scheduleAutoSave, clearAutoSaveDraft, tryLoadFromAutoSave, resetToNewDesign
 } from './core/persistence';
 import {
-  initI18n, t, applyI18nToDom, renderLanguageSwitcher, onLocaleChange, closeLanguageMenu
+  initI18nAsync, t, applyI18nToDom, renderLanguageSwitcher, onLocaleChange, closeLanguageMenu
 } from './i18n/index';
+import { initWorkspaceShell, renderActiveWorkspaceStage, renderWorkspaceSwitcher } from './workspaces';
 
+
+
+let blockGuideModPromise: Promise<typeof import('./ui/block-guide')> | null = null;
+let blockGuideEventsBound = false;
+function loadBlockGuideMod() {
+  if (!blockGuideModPromise) {
+    blockGuideModPromise = import('./ui/block-guide').then((mod) => {
+      if (!blockGuideEventsBound) {
+        blockGuideEventsBound = true;
+        mod.bindBlockGuideEvents();
+      }
+      return mod;
+    });
+  }
+  return blockGuideModPromise;
+}
+
+async function openProjectCharterLazy() {
+  const { openProjectCharter } = await import('./ui/charter');
+  openProjectCharter();
+}
+
+function openBlockInfoLazy(type: string) {
+  void loadBlockGuideMod().then((m) => m.openBlockInfo(type));
+}
+
+function openBlocksOverviewLazy() {
+  void loadBlockGuideMod().then((m) => m.openBlocksOverview());
+}
+
+function closeBlockInfoModalSafe() {
+  if (blockGuideModPromise) {
+    void blockGuideModPromise.then((m) => m.closeBlockInfoModal());
+  } else {
+    $('#blockInfoModal')?.classList.add('hidden');
+    state.openBlockInfo = null;
+  }
+}
+
+function refreshOpenBlockInfoSafe() {
+  if (blockGuideModPromise && state.openBlockInfo) {
+    void blockGuideModPromise.then((m) => m.refreshOpenBlockInfo());
+  }
+}
 
 function syncBoardHeaderUI() {
   const board = getActiveBoard();
@@ -116,7 +161,8 @@ async function switchBoard(targetBoardId: string, opts: any = {}) {
   setActiveBoard(target.id);
   state.boardId = target.id;
   state.codeProfile = normalizeCodeProfile(opts.codeProfile, target);
-  state.carrierEnabled = typeof opts.carrierEnabled === 'boolean' ? opts.carrierEnabled : !!target.carrier?.defaultEnabled;
+  state.carrierEnabled = typeof opts.carrierEnabled === 'boolean' ? opts.carrierEnabled : Boolean(target.carrier?.defaultEnabled);
+  setActiveCarrierEnabled(state.carrierEnabled);
 
   if (!opts.preserveState) {
     state.active = [];
@@ -135,6 +181,8 @@ async function switchBoard(targetBoardId: string, opts: any = {}) {
 
   mountBoardSvg(svgText);
   syncBoardHeaderUI();
+  renderWorkspaceSwitcher();
+  renderActiveWorkspaceStage();
   populatePresets();
 
   if (!opts.preserveState) {
@@ -147,11 +195,8 @@ async function switchBoard(targetBoardId: string, opts: any = {}) {
   }
 }
 
-function recomputeAndRender() {
-  const dipStates = computeDipStates();
-  const warnings = computeCriticalWarnings();
-  const sramInfo = computeSramBreakdown();
-  const usbCurrent = computeUsbCurrent();
+function renderWorkspaceViews(derived: DerivedWorkspace) {
+  const { dipStates, warnings, sram, usbCurrent } = derived;
 
   syncCarrierVisuals();
   syncCarrierToggleUI();
@@ -160,7 +205,7 @@ function recomputeAndRender() {
   renderOnboardBar(dipStates);
   renderDipStrip(dipStates);
   renderCatalogList();
-  renderSram(sramInfo);
+  renderSram(sram);
   renderCurrent(usbCurrent);
   renderWarnings(warnings);
   renderActiveComponentsInspector(dipStates);
@@ -169,34 +214,37 @@ function recomputeAndRender() {
   renderSketchCode(dipStates);
   updateResetPositionsVisibility();
   updateMobileNavIndicators(warnings);
+  renderActiveWorkspaceStage(derived);
   scheduleAutoSave();
 }
 
-// Register acyclic cross-module hooks once before bootstrapping
-Object.assign(hooks, {
-  recomputeAndRender,
-  pushUndoState,
-  performUndo,
-  captureSnapshot,
-  updateHistoryButtons,
-  openComponentInfo,
-  openBlockInfo,
-  openBlocksOverview,
-  updateInfoModalDocLink,
-  showPinTooltip,
-  showCustomTooltip,
-  moveTooltip,
-  hideTooltip,
-  setHoveredNet,
-  applyViewBox,
-  resetViewFit,
-  zoomToBoard,
-  loadPreset,
-  setHwHover,
-  flashTarget,
-  panToComponent,
-  switchBoard
-});
+function recomputeAndRender() {
+  projectStore.recompute();
+}
+
+// Wire central ProjectStore & Typed Application Event/Command Bus once before bootstrapping
+projectStore.subscribe(renderWorkspaceViews);
+appBus.on('history:push', () => pushUndoState());
+appBus.on('history:undo', () => { void performUndo(); });
+appBus.on('history:updateButtons', () => updateHistoryButtons());
+appBus.on('modal:openComponentInfo', ({ compId }) => openComponentInfo(compId));
+appBus.on('modal:openBlockInfo', ({ type }) => openBlockInfoLazy(type));
+appBus.on('modal:openBlocksOverview', () => openBlocksOverviewLazy());
+appBus.on('modal:updateInfoDocLink', ({ def }) => updateInfoModalDocLink(def));
+appBus.on('tooltip:showPin', ({ pinId, ev }) => showPinTooltip(pinId, ev));
+appBus.on('tooltip:showCustom', ({ html, ev }) => showCustomTooltip(html, ev));
+appBus.on('tooltip:move', ({ ev }) => moveTooltip(ev));
+appBus.on('tooltip:hide', () => hideTooltip());
+appBus.on('hover:net', ({ netId }) => setHoveredNet(netId));
+appBus.on('hover:hw', ({ hwId }) => setHwHover(hwId));
+appBus.on('viewport:applyViewBox', () => applyViewBox());
+appBus.on('viewport:resetFit', () => resetViewFit());
+appBus.on('viewport:zoomToBoard', () => zoomToBoard());
+appBus.on('viewport:panToComponent', ({ instanceId }) => panToComponent(instanceId));
+appBus.on('target:flash', (opts) => flashTarget(opts));
+appBus.on('preset:load', ({ presetId }) => { void loadPreset(presetId); });
+appBus.handle('history:captureSnapshot', () => captureSnapshot());
+appBus.handle('board:switch', ({ boardId, opts }) => switchBoard(boardId, opts));
 
 function closeProjectMenu() {
   const menu = $('#projectMenuPopover');
@@ -238,7 +286,7 @@ function refreshLanguageUI() {
     openComponentInfo(state.openInfoCompId);
   }
   if (!$('#printModal')?.classList.contains('hidden')) {
-    if (state.printModalTab === 'charter') openProjectCharter();
+    if (state.printModalTab === 'charter') void openProjectCharterLazy();
     else openPrintStopSheet();
   }
   if (!$('#svgModal')?.classList.contains('hidden')) {
@@ -247,7 +295,7 @@ function refreshLanguageUI() {
   if (!$('#aboutModal')?.classList.contains('hidden')) {
     openAboutModal();
   }
-  refreshOpenBlockInfo();
+  refreshOpenBlockInfoSafe();
 }
 
 function bindUIEvents() {
@@ -284,6 +332,7 @@ function bindUIEvents() {
     if (!board.carrier) return;
     pushUndoState();
     state.carrierEnabled = !state.carrierEnabled;
+    setActiveCarrierEnabled(state.carrierEnabled);
     syncCarrierVisuals();
     syncCarrierToggleUI();
     resetViewFit();
@@ -324,7 +373,7 @@ function bindUIEvents() {
     const next = toggleTheme();
     showToast(next === 'light' ? t('toast.themeLight') : t('toast.themeDark'));
     renderDockedComponentsAndWires();
-    refreshOpenBlockInfo();
+    refreshOpenBlockInfoSafe();
   });
 
   $('#btnUndo').addEventListener('click', performUndo);
@@ -339,7 +388,7 @@ function bindUIEvents() {
     if (!file) return;
     try {
       const text = await file.text();
-      await applyProjectPayload(JSON.parse(text), true);
+      await applyProjectDocument(JSON.parse(text), true);
       showToast(t('toast.loadedFile', { file: file.name }));
     } catch (err) {
       console.error(err);
@@ -348,9 +397,9 @@ function bindUIEvents() {
   });
 
   $('#btnPrintStop').addEventListener('click', () => { closeProjectMenu(); openPrintStopSheet(); });
-  $('#btnProjectCharter')?.addEventListener('click', () => { closeProjectMenu(); openProjectCharter(); });
+  $('#btnProjectCharter')?.addEventListener('click', () => { closeProjectMenu(); void openProjectCharterLazy(); });
   $('#btnPrintTabLab')?.addEventListener('click', () => openPrintStopSheet());
-  $('#btnPrintTabCharter')?.addEventListener('click', () => openProjectCharter());
+  $('#btnPrintTabCharter')?.addEventListener('click', () => { void openProjectCharterLazy(); });
   $('#btnPrintShareLink')?.addEventListener('click', () => shareConfigLink());
   $('#btnDoPrint').addEventListener('click', () => window.print());
   $('#btnClosePrintModal').addEventListener('click', () => $('#printModal').classList.add('hidden'));
@@ -499,7 +548,7 @@ function bindUIEvents() {
       $('#svgModal').classList.add('hidden');
       $('#printModal').classList.add('hidden');
       $('#aboutModal')?.classList.add('hidden');
-      closeBlockInfoModal();
+      closeBlockInfoModalSafe();
       $('#shortcutsPopover')?.classList.add('hidden');
       $('#btnShortcutsHelp')?.setAttribute('aria-expanded', 'false');
       setHoveredNet(null);
@@ -606,7 +655,7 @@ function bindUIEvents() {
 
 async function init() {
   try {
-    initI18n();
+    await initI18nAsync();
     initTheme();
     applyI18nToDom();
     applyThemeToDom();
@@ -620,6 +669,7 @@ async function init() {
     state.boardId = boardProfile.id;
     state.codeProfile = boardProfile.defaultCodeProfile;
     state.carrierEnabled = detectInitialCarrier(boardProfile);
+    setActiveCarrierEnabled(state.carrierEnabled);
     const boardRes = await fetch(resolveAssetUrl(boardProfile.svgAsset));
     if (!boardRes.ok) throw new Error('HTTP load failed');
     state.catalog = CATALOG;
@@ -638,7 +688,6 @@ async function init() {
     renderCategoryTabs();
     bindUIEvents();
     bindCodeBlocksEvents();
-    bindBlockGuideEvents();
     bindApiBrowserEvents();
     bindViewportAndDragEvents();
     bindSidebarResizer();
@@ -665,6 +714,7 @@ async function init() {
     syncWorkbenchToggles();
     syncAutoSaveUI();
     applyThemeToDom();
+    initWorkspaceShell();
     recomputeAndRender();
 
     state.repoDocsPromise = discoverRepoDocumentationPdfs();

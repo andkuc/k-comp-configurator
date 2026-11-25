@@ -9,7 +9,8 @@ import {
   setActiveBoard
 } from '../boards';
 import { CATALOG } from '../catalog';
-import { state, hooks, getActiveOnboardDefs, getNetMeta } from '../core/state';
+import { state, getActiveOnboardDefs, getNetMeta } from '../core/state';
+import { appBus, projectStore } from '../store';
 import { initI18n } from '../i18n';
 import {
   addComponent,
@@ -20,7 +21,7 @@ import {
 } from '../core/hardware';
 import { buildSketchString } from '../core/codegen';
 import { CODE_PROFILES, getDriverCompat, getSupportedProfiles } from '../core/code-profiles';
-import { applyProjectPayload, getPresetsForBoard, loadPreset, serializeProjectPayload } from '../core/persistence';
+import { applyProjectDocument, getPresetsForBoard, loadPreset, serializeProjectDocument } from '../core/persistence';
 import { openPrintStopSheet } from '../ui/modals';
 import { allocateCarrierBreadboardConnections, getCarrierPowerRailTargets, getCarrierRowHoleTargets, renderCarrierActiveOverlay } from '../core/carrier-breadboard';
 import { getBoardGeometry, isBoardCarrierActive } from '../boards';
@@ -55,15 +56,12 @@ function resetForBoard(boardId: string) {
     state.svgCache.set(comp.svgFile, dummy);
   }
 
-  hooks.recomputeAndRender = () => {};
-  hooks.pushUndoState = () => {};
-  hooks.flashTarget = () => {};
-  hooks.resetViewFit = () => {};
-  hooks.switchBoard = async (nextId: string) => {
+  projectStore.reset();
+  appBus.handle('board:switch', ({ boardId: nextId }) => {
     const b = setActiveBoard(nextId);
     state.boardId = b.id;
     state.codeProfile = b.defaultCodeProfile;
-  };
+  });
 }
 
 describe('Declarative Multi-Board Schema & Mechanical Spec (v0.2.0)', () => {
@@ -231,10 +229,10 @@ describe('ESP32-S3 Hardware Constraint Rules', () => {
     const gndTargets = getCarrierPowerRailTargets({ role: 'GND', allowedTypes: ['GND'] });
     expect(new Set(gndTargets.map((t) => t.carrierRailId))).toEqual(new Set(['BB_L_GND', 'BB_R_GND']));
 
-    // Moving a 3.3V wire specifically onto hole 1b ('hole:2' on 3V3_L1) or onto an exact power rail hole ('rail:BB_R_GND:5')
+    // Moving a 3.3V wire specifically onto hole 1b (typed carrier-row holeIndex: 2) or exact power rail hole (typed carrier-rail)
     const manualJobs: any[] = [
-      { bpId: '3V3_L1', p: { id: 'VCC', color: '#fb923c' }, net: getNetMeta('3V3_L1'), start: { x: 150, y: 120 }, end: { x: 540, y: 140 }, carrierRailPref: 'hole:2' },
-      { bpId: 'GND_L1', p: { id: 'GND', color: '#64748b' }, net: getNetMeta('GND_L1'), start: { x: 150, y: 240 }, end: { x: 540, y: 520 }, carrierRailPref: 'rail:BB_R_GND:5' }
+      { bpId: '3V3_L1', p: { id: 'VCC', color: '#fb923c' }, net: getNetMeta('3V3_L1'), start: { x: 150, y: 120 }, end: { x: 540, y: 140 }, attachment: { kind: 'carrier-row', holeIndex: 2 } },
+      { bpId: 'GND_L1', p: { id: 'GND', color: '#64748b' }, net: getNetMeta('GND_L1'), start: { x: 150, y: 240 }, end: { x: 540, y: 520 }, attachment: { kind: 'carrier-rail', railId: 'BB_R_GND', holeIndex: 5 } }
     ];
     allocateCarrierBreadboardConnections(manualJobs);
     expect(manualJobs[0].carrierHole?.kind).toBe('row');
@@ -289,23 +287,40 @@ describe('Extensible CodeProfile Engine & Project Format v24 Backward Compatibil
     expect(code).toContain('Serial1.begin');
   });
 
-  it('serializes v24 target.nodes payload and cleanly loads legacy v0.1.x payloads as kcomp-v2', async () => {
+  it('serializes and restores canonical ProjectDocument v1 (kcomp-project/1) across board switches', async () => {
     await addComponent('bmi160', { skipUndo: true });
-    const v24 = serializeProjectPayload();
-    expect(v24.v).toBe(24);
-    expect(v24.b).toBe('esp32-s3-devkit');
-    expect(v24.target.nodes).toHaveLength(1);
-    expect(v24.target.nodes[0].boardId).toBe('esp32-s3-devkit');
+    state.active[0].attachments = { VIN: { kind: 'carrier-row', holeIndex: 2 } };
+    const doc = serializeProjectDocument();
+    expect(doc.schema).toBe('kcomp-project/1');
+    expect(doc.nodes).toHaveLength(1);
+    expect(doc.nodes[0].boardId).toBe('esp32-s3-devkit');
+    expect(doc.nodes[0].carrierId).toBe('breadboard-center');
+    expect(doc.nodes[0].modules[0].attachments?.VIN).toEqual({ kind: 'carrier-row', holeIndex: 2 });
 
-    // Legacy v0.1.x payload without 'b' or 'target' must switch cleanly to kcomp-v2
-    const legacyV23 = {
-      v: 23,
-      name: 'LegacyBot',
-      ob: { onboard_oled: true },
-      pg: false,
-      act: [{ id: 'bmi160', h: 'H2', pm: { VIN: 'H2_VCC', GND: 'H2_GND', SCL: 'H2_SCL', SDA: 'H2_SDA' } }]
+    // Apply a K-Comp V2 ProjectDocument v1 and verify automatic board switch + state restoration
+    const k2Doc = {
+      schema: 'kcomp-project/1' as const,
+      appVersion: '0.3.0',
+      name: 'CleanBot',
+      nodes: [{
+        id: 'node_0',
+        boardId: 'kcomp-v2',
+        codeProfile: 'kcomp-avr' as const,
+        carrierId: null,
+        powerDistribution: 'smart' as const,
+        onboard: { onboard_oled: true },
+        oledPaged: false,
+        modules: [{
+          compId: 'bmi160',
+          i2cHeader: 'H2',
+          pinMap: { VIN: 'H2_VCC', GND: 'H2_GND', SCL: 'H2_SCL', SDA: 'H2_SDA' }
+        }],
+        codeBlocks: []
+      }],
+      links: [],
+      uiPrefs: { wireMode: 'smart' as const, snapToGrid: true, codeHints: true }
     };
-    await applyProjectPayload(legacyV23, false);
+    await applyProjectDocument(k2Doc, false);
     expect(getActiveBoard().id).toBe('kcomp-v2');
     expect(state.boardId).toBe('kcomp-v2');
     expect(state.onboard.onboard_oled).toBe(true);
@@ -345,7 +360,6 @@ describe('Board-Filtered Presets & Multi-Board Lab Sheet (v0.2.7)', () => {
 
   it('renders board-aware Lab Sheet for ESP32-S3 (Breadboard & Standalone) without K-Comp V2 DIP S1 artifacts', async () => {
     document.body.innerHTML = '<div id="printModal" class="hidden"><div id="printSheet"></div></div>';
-    hooks.applyViewBox = () => {};
 
     await loadPreset('esp32_iot_starter');
     // Seed carrier feeders & wire map as workbench would during live render
