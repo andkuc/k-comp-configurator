@@ -381,6 +381,25 @@ export const ESP32_S3_DEVKIT_BOARD: BoardProfile = {
     "flashProtocol": "esptool",
     "defaultBaud": 115200
   },
+  "flashProfile": {
+    "protocol": "esptool",
+    "uploadBaud": 460800,
+    "flashSizeBytes": 16777216,
+    "defaultAppOffset": 0x10000,
+    "chipFamily": "ESP32-S3",
+    "resetChain": ["cdc-dtr-rts", "manual"],
+    "usbFilters": [
+      { "vendorId": 0x303a, "productId": 0x1001 },
+      { "vendorId": 0x10c4, "productId": 0xea60 },
+      { "vendorId": 0x1a86, "productId": 0x55d3 }
+    ],
+    "flashOffsetPresets": [
+      { "label": "0x10000 (App)", "offset": 0x10000 },
+      { "label": "0x0 (Merged)", "offset": 0x0 }
+    ],
+    "acceptedFileExtensions": [".bin"],
+    "supportsVerify": true
+  },
   "mechanical": {
     "widthMm": 27.94,
     "heightMm": 69.0,

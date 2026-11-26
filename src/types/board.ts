@@ -199,6 +199,42 @@ export interface BoardPowerPinPriority {
   RESET: string[];
 }
 
+export type BoardResetStrategyId = 'mcp2221-webhid' | 'cdc-dtr' | 'cdc-dtr-rts' | 'manual';
+
+export interface BoardUsbFilter {
+  vendorId: number;
+  productId?: number;
+}
+
+export interface BoardFlashOffsetPreset {
+  label: string;
+  offset: number;
+}
+
+/** Declarative browser-flashing profile per board (zero hardcoded board switches in flash services). */
+export interface BoardFlashProfile {
+  protocol: 'stk500v1' | 'esptool' | 'none';
+  uploadBaud: number;
+  /** Optional fallback bootloader baud rates probed if primary uploadBaud fails sync (e.g. [57600] for AVR). */
+  fallbackUploadBauds?: ReadonlyArray<number>;
+  flashSizeBytes: number;
+  pageSizeBytes?: number;
+  defaultAppOffset?: number;
+  /** Expected target chip family prefix for ROM bootloader verification (e.g. 'ESP32-S3'). */
+  chipFamily?: string;
+  /** Expected 3-byte MCU signature (e.g. ATmega328P: [0x1e, 0x95, 0x0f]). */
+  signature?: readonly [number, number, number];
+  /** Ordered cascade of reset strategies before bootloader sync. */
+  resetChain: ReadonlyArray<BoardResetStrategyId>;
+  /** Optional DIP switch ID that physically gates auto-reset (e.g. K-Comp V2 S1-1). */
+  autoResetDipSwitchId?: number;
+  usbFilters?: ReadonlyArray<BoardUsbFilter>;
+  /** Optional selectable flash offset presets for single-binary uploads (e.g. 0x10000 App vs 0x0 Merged). */
+  flashOffsetPresets?: ReadonlyArray<BoardFlashOffsetPreset>;
+  acceptedFileExtensions: ReadonlyArray<string>;
+  supportsVerify: boolean;
+}
+
 export interface BoardTargetMeta {
   flashProtocol: 'stk500v1' | 'esptool' | 'none';
   defaultBaud: number;
@@ -227,6 +263,7 @@ export interface BoardProfile {
   defaultCodeProfile: CodeProfileId;
   supportedCodeProfiles: CodeProfileId[];
   targetMeta?: BoardTargetMeta;
+  flashProfile?: BoardFlashProfile;
   mechanical?: BoardMechanicalSpec;
   pins: Record<string, BoardPin>;
 }

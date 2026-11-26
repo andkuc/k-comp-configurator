@@ -492,6 +492,21 @@ export const KCOMP_V2_BOARD: BoardProfile = {
     "flashProtocol": "stk500v1",
     "defaultBaud": 115200
   },
+  "flashProfile": {
+    "protocol": "stk500v1",
+    "uploadBaud": 115200,
+    "fallbackUploadBauds": [57600],
+    "flashSizeBytes": 32256,
+    "pageSizeBytes": 128,
+    "signature": [0x1e, 0x95, 0x0f],
+    "resetChain": ["mcp2221-webhid", "cdc-dtr", "manual"],
+    "autoResetDipSwitchId": 1,
+    "usbFilters": [
+      { "vendorId": 0x04d8, "productId": 0x00dd }
+    ],
+    "acceptedFileExtensions": [".hex", ".ihex"],
+    "supportsVerify": true
+  },
   "mechanical": {
     "widthMm": 135.0,
     "heightMm": 91.0,

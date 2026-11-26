@@ -273,12 +273,48 @@ export class SimulatorTransport implements DeviceTransport {
     this.emitLine(`--- [${ctx.boardShortName} RESET @ ${this.baudRate} baud] ---`);
   }
 
+  async suspendForFlash(): Promise<void> {
+    if (this.stateMachine.getState() !== 'monitoring') {
+      throw new Error('Simulator is not actively monitoring.');
+    }
+    this.stateMachine.transition('releasing', 'Suspending simulator monitor for flash');
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.stateMachine.transition('flashing', 'Simulating firmware flash');
+  }
+
+  async resumeAfterFlash(): Promise<void> {
+    if (this.stateMachine.getState() !== 'flashing') return;
+    this.stateMachine.transition('reconnecting', 'Resuming simulator monitor');
+    this.tick = 0;
+    this.pausedByCommand = false;
+    this.stateMachine.transition('monitoring', 'Simulator monitor resumed');
+
+    const ecgMode = this.isHighRateEcgMode();
+    if (ecgMode) {
+      this.timer = setInterval(() => {
+        if (this.pausedByCommand) return;
+        for (let k = 0; k < 4; k++) {
+          this.stepOnce();
+        }
+      }, 20);
+    } else {
+      this.timer = setInterval(() => {
+        if (!this.pausedByCommand) {
+          this.stepOnce();
+        }
+      }, this.intervalMs);
+    }
+  }
+
   async flash(
     _protocol: FlashProtocolId,
     _segments: FlashSegment[],
     _onProgress?: (p: FlashProgress) => void
   ): Promise<void> {
-    throw new Error('Flashing is not applicable to the demo simulator.');
+    throw new Error('Use DeviceSessionController.flashArtifact() to flash via SimulatorFlasher.');
   }
 }
 

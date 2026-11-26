@@ -6,15 +6,25 @@ import { parseCharList } from '../../core/code-blocks';
 import {
   COMMON_BAUD_RATES,
   buildSimulatorContextFromBoard,
+  createEspSingleBinArtifact,
+  createIHexArtifact,
   deviceSession,
   formatTimestampMs,
   getCompilerProvider,
+  hasPairedMcp2221WebHid,
+  inspectEspBinary,
+  isWebHidAvailable,
   isWebSerialAvailable,
+  parseFlashOffset,
+  requestMcp2221WebHidPairing,
   type DeviceSessionSnapshot,
+  type FirmwareArtifact,
+  type FlashResetPreference,
   type LineEndingMode,
   type SerialLogEntry
 } from '../../services';
 import { appBus, type DerivedWorkspace } from '../../store/bus';
+import { settingsStore } from '../../store/settings';
 import { uiSessionStore } from '../../store/ui-session';
 import type { WorkspaceContext, WorkspaceModule } from '../types';
 import { createDevicePlotter, type DevicePlotterController } from './device-plotter';
@@ -39,6 +49,11 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
   let lastRenderedFilter = '';
   let lastRenderedTimestamps = true;
   let initializedBaudForBoard: string | null = null;
+  let resetPreference: FlashResetPreference = 'auto';
+  let flashOffsetSelection = 'auto';
+  let mcp2221HidPaired = false;
+  let flashInfoModalOpen = false;
+  let flashInfoEscHandler: ((ev: KeyboardEvent) => void) | null = null;
 
   function triggerDownload(filename: string, content: string, mime: string): void {
     const blob = new Blob([content], { type: mime });
@@ -69,6 +84,9 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
         return { cls: 'is-sim', label: t('dev.statusSim') };
       }
       return { cls: 'is-connected', label: t('dev.statusConnected') };
+    }
+    if (snap.portState === 'flashing' || snap.portState === 'releasing') {
+      return { cls: 'is-busy', label: t('dev.statusFlashing') };
     }
     if (snap.portState === 'connecting' || snap.portState === 'reconnecting') {
       return { cls: 'is-busy', label: t('dev.statusConnecting') };
@@ -153,7 +171,90 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
     }
 
     const btnReset = host.querySelector<HTMLButtonElement>('#btnDevReset');
-    if (btnReset) btnReset.disabled = !connected;
+    if (btnReset) btnReset.disabled = !connected || snap.flashActive;
+
+    const btnFlashFile = host.querySelector<HTMLButtonElement>('#btnDevFlashFile');
+    const flashInput = host.querySelector<HTMLInputElement>('#devFlashFileInput');
+    const protoId = board.flashProfile?.protocol ?? board.targetMeta?.flashProtocol ?? 'none';
+    const simActive = connected && snap.mode === 'simulator';
+    const flashSupported = protoId === 'stk500v1' || protoId === 'esptool' || simActive;
+    const isEspBoard = protoId === 'esptool';
+    if (btnFlashFile) {
+      const flashLabel = isEspBoard ? t('dev.flashBin') : t('dev.flashHex');
+      btnFlashFile.innerHTML = `⚡ ${escapeHtml(flashLabel)} <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span>`;
+      btnFlashFile.disabled = snap.flashActive || !flashSupported || (!webSerialOk && !simActive);
+      btnFlashFile.title = !flashSupported
+        ? t('dev.flashUnsupportedBoard')
+        : (isEspBoard ? t('dev.flashBinTitle') : t('dev.flashHexTitle'));
+    }
+    if (flashInput) {
+      flashInput.accept = (
+        board.flashProfile?.acceptedFileExtensions ?? (isEspBoard ? ['.bin'] : ['.hex', '.ihex'])
+      ).join(',');
+    }
+
+    const resetModeSel = host.querySelector<HTMLSelectElement>('#devResetModeSelect');
+    if (resetModeSel) {
+      const showResetSel =
+        (protoId === 'stk500v1' || protoId === 'esptool') &&
+        (board.flashProfile?.resetChain.length ?? 0) > 1 &&
+        settingsStore.get().preset !== 'beginner';
+      resetModeSel.classList.toggle('hidden', !showResetSel);
+      resetModeSel.disabled = snap.flashActive;
+      if (resetModeSel.value !== resetPreference) {
+        resetModeSel.value = resetPreference;
+      }
+    }
+
+    const btnPairHid = host.querySelector<HTMLButtonElement>('#btnDevPairHid');
+    if (btnPairHid) {
+      const needsMcp2221 = Boolean(board.flashProfile?.resetChain.includes('mcp2221-webhid'));
+      const showPairHid = needsMcp2221 && !simActive && isWebHidAvailable();
+      btnPairHid.classList.toggle('hidden', !showPairHid);
+      btnPairHid.disabled = snap.flashActive;
+      btnPairHid.classList.toggle('is-active', mcp2221HidPaired);
+      btnPairHid.textContent = `${mcp2221HidPaired ? '✓' : '🔌'} ${t('dev.pairMcp2221')}`;
+    }
+
+    const offsetSel = host.querySelector<HTMLSelectElement>('#devFlashOffsetSelect');
+    if (offsetSel) {
+      const presets = board.flashProfile?.flashOffsetPresets ?? [];
+      const showOffsetSel =
+        isEspBoard && presets.length > 0 && settingsStore.get().preset !== 'beginner';
+      offsetSel.classList.toggle('hidden', !showOffsetSel);
+      offsetSel.disabled = snap.flashActive;
+      const expectedKey = `${board.id}:${presets.map((p) => p.offset).join(',')}`;
+      if (offsetSel.dataset.boardKey !== expectedKey) {
+        offsetSel.dataset.boardKey = expectedKey;
+        offsetSel.innerHTML = [
+          `<option value="auto">${escapeHtml(t('dev.flashOffsetAuto'))}</option>`,
+          ...presets.map((p) => `<option value="0x${p.offset.toString(16)}">${escapeHtml(p.label)}</option>`)
+        ].join('');
+        flashOffsetSelection = 'auto';
+      }
+      if (offsetSel.value !== flashOffsetSelection) {
+        offsetSel.value = flashOffsetSelection;
+      }
+    }
+
+    const flashBanner = host.querySelector<HTMLElement>('#devFlashBanner');
+    if (flashBanner) {
+      const prog = snap.flashProgress;
+      if (snap.flashActive && prog) {
+        flashBanner.classList.remove('hidden');
+        const phaseEl = flashBanner.querySelector<HTMLElement>('#devFlashPhase');
+        const msgEl = flashBanner.querySelector<HTMLElement>('#devFlashMsg');
+        const barEl = flashBanner.querySelector<HTMLElement>('#devFlashBarFill');
+        const pctEl = flashBanner.querySelector<HTMLElement>('#devFlashPct');
+        if (phaseEl) phaseEl.textContent = prog.phase.toUpperCase();
+        if (msgEl) msgEl.textContent = prog.message;
+        const pct = Math.max(0, Math.min(100, Math.round(prog.percent)));
+        if (barEl) barEl.style.width = `${pct}%`;
+        if (pctEl) pctEl.textContent = `${pct}%`;
+      } else {
+        flashBanner.classList.add('hidden');
+      }
+    }
 
     const btnPause = host.querySelector<HTMLButtonElement>('#btnDevPause');
     if (btnPause) {
@@ -341,6 +442,7 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       ? `<div class="dev-capability-banner" role="status">
            <strong>${escapeHtml(t('dev.noWebSerialTitle'))}</strong>
            <span>${escapeHtml(t('dev.noWebSerialDesc'))}</span>
+           <button type="button" class="btn btn-ghost btn-sm dev-cap-info-btn" data-open-flash-info="1">ⓘ ${escapeHtml(t('dev.flashInfoBtnShort'))}</button>
          </div>`
       : '';
 
@@ -352,6 +454,19 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
             <button type="button" id="btnDevSim" class="btn btn-ghost btn-sm">${escapeHtml(t('dev.startSim'))}</button>
             <select id="devBaudSelect" class="dev-select" aria-label="${escapeHtml(t('dev.baudLabel'))}">${baudOptions}</select>
             <button type="button" id="btnDevReset" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.resetTitle'))}">↻ ${escapeHtml(t('dev.reset'))}</button>
+            <div class="dev-flash-btn-group">
+              <button type="button" id="btnDevFlashFile" class="btn btn-ghost btn-sm dev-flash-btn" title="${escapeHtml(t('dev.flashHexTitle'))}">⚡ ${escapeHtml(t('dev.flashHex'))} <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span></button>
+              <button type="button" id="btnDevFlashInfo" class="btn btn-ghost btn-sm dev-info-icon-btn" title="${escapeHtml(t('dev.flashInfoBtnTitle'))}" aria-label="${escapeHtml(t('dev.flashInfoBtnTitle'))}" aria-haspopup="dialog">ⓘ</button>
+            </div>
+            <input type="file" id="devFlashFileInput" accept=".hex,.ihex" hidden />
+            <select id="devFlashOffsetSelect" class="dev-select dev-select-sm hidden" aria-label="${escapeHtml(t('dev.flashOffsetLabel'))}" title="${escapeHtml(t('dev.flashOffsetLabel'))}">
+              <option value="auto">${escapeHtml(t('dev.flashOffsetAuto'))}</option>
+            </select>
+            <select id="devResetModeSelect" class="dev-select dev-select-sm hidden" aria-label="${escapeHtml(t('dev.resetModeLabel'))}" title="${escapeHtml(t('dev.resetModeLabel'))}">
+              <option value="auto" ${resetPreference === 'auto' ? 'selected' : ''}>${escapeHtml(t('dev.resetModeAuto'))}</option>
+              <option value="manual" ${resetPreference === 'manual' ? 'selected' : ''}>${escapeHtml(t('dev.resetModeManual'))}</option>
+            </select>
+            <button type="button" id="btnDevPairHid" class="btn btn-ghost btn-sm hidden" title="${escapeHtml(t('dev.pairMcp2221Title'))}">🔌 ${escapeHtml(t('dev.pairMcp2221'))}</button>
             <span id="devStatusPill" class="dev-status-pill is-idle"></span>
           </div>
           <div class="dev-toolbar-right">
@@ -369,6 +484,13 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
 
         ${browserGateHtml}
         <div id="devErrorBanner" class="dev-error-banner hidden" role="alert"></div>
+        <div id="devFlashBanner" class="dev-flash-banner hidden" role="status" aria-live="polite">
+          <span id="devFlashPhase" class="dev-flash-phase">SYNC</span>
+          <div class="dev-flash-bar-track" aria-hidden="true"><div id="devFlashBarFill" class="dev-flash-bar-fill"></div></div>
+          <span id="devFlashPct" class="dev-flash-pct">0%</span>
+          <span id="devFlashMsg" class="dev-flash-msg"></span>
+          <button type="button" id="btnDevFlashCancel" class="btn btn-ghost btn-sm">✕ ${escapeHtml(t('dev.flashCancel'))}</button>
+        </div>
 
         <div id="devBodyGrid" class="dev-body-grid mode-${viewMode}">
           <div class="dev-monitor-card">
@@ -410,6 +532,22 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
         <div class="dev-monitor-foot">
           <span id="devMonitorStats" class="dev-stats-text"></span>
           <span class="dev-next-hint">${escapeHtml(t('dev.plotFormatHint'))}</span>
+        </div>
+
+        <div id="devFlashInfoModal" class="dev-flash-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="devFlashInfoTitle">
+          <div class="dev-flash-modal-card">
+            <div class="dev-flash-modal-head">
+              <div class="dev-flash-modal-title-wrap">
+                <h3 id="devFlashInfoTitle">${escapeHtml(t('dev.flashInfoTitle'))}</h3>
+                <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span>
+              </div>
+              <button type="button" id="btnDevFlashInfoCloseX" class="btn btn-ghost btn-sm" aria-label="${escapeHtml(t('dev.flashInfoClose'))}">✕</button>
+            </div>
+            <div id="devFlashInfoBody" class="dev-flash-modal-body"></div>
+            <div class="dev-flash-modal-foot">
+              <button type="button" id="btnDevFlashInfoClose" class="btn btn-primary btn-sm">${escapeHtml(t('dev.flashInfoClose'))}</button>
+            </div>
+          </div>
         </div>
       </div>`;
 
@@ -480,6 +618,196 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
     host.querySelector<HTMLButtonElement>('#btnDevReset')?.addEventListener('click', () => {
       const d = currentDerived || context?.getDerived();
       if (d) void deviceSession.resetBoard(d.board.mcu);
+    });
+
+    host.querySelector<HTMLSelectElement>('#devFlashOffsetSelect')?.addEventListener('change', (ev) => {
+      flashOffsetSelection = (ev.target as HTMLSelectElement).value || 'auto';
+    });
+
+    host.querySelector<HTMLSelectElement>('#devResetModeSelect')?.addEventListener('change', (ev) => {
+      const val = (ev.target as HTMLSelectElement).value;
+      resetPreference = val === 'manual' ? 'manual' : 'auto';
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevFlashCancel')?.addEventListener('click', () => {
+      deviceSession.cancelFlash();
+    });
+
+    const closeFlashInfoModal = (): void => {
+      flashInfoModalOpen = false;
+      host?.querySelector<HTMLElement>('#devFlashInfoModal')?.classList.add('hidden');
+      if (flashInfoEscHandler) {
+        document.removeEventListener('keydown', flashInfoEscHandler);
+        flashInfoEscHandler = null;
+      }
+    };
+
+    const renderFlashInfoModalBody = (): void => {
+      if (!host || !context) return;
+      const bodyEl = host.querySelector<HTMLElement>('#devFlashInfoBody');
+      if (!bodyEl) return;
+      const { t: tr } = context;
+      const serialNow = isWebSerialAvailable();
+      const hidNow = isWebHidAvailable();
+      const secureNow = typeof window !== 'undefined' && Boolean(window.isSecureContext);
+
+      const chip = (ok: boolean, label: string): string =>
+        `<span class="dev-cap-chip ${ok ? 'is-ok' : 'is-no'}">${ok ? '✓' : '✕'} ${escapeHtml(label)}</span>`;
+
+      bodyEl.innerHTML = `
+        <p class="dev-info-lead">${escapeHtml(tr('dev.flashInfoIntro'))}</p>
+
+        <div class="dev-cap-check-row" aria-label="${escapeHtml(tr('dev.flashInfoDetectLabel'))}">
+          <span class="dev-cap-check-lbl">${escapeHtml(tr('dev.flashInfoDetectLabel'))}</span>
+          ${chip(serialNow, `Web Serial: ${serialNow ? tr('dev.flashInfoYes') : tr('dev.flashInfoNo')}`)}
+          ${chip(hidNow, `WebHID: ${hidNow ? tr('dev.flashInfoYes') : tr('dev.flashInfoNo')}`)}
+          ${chip(secureNow, `${tr('dev.flashInfoSecureCtx')}: ${secureNow ? tr('dev.flashInfoYes') : tr('dev.flashInfoNo')}`)}
+        </div>
+
+        <h4 class="dev-info-subhead">${escapeHtml(tr('dev.flashInfoBrowserHead'))}</h4>
+        <table class="dev-compat-table">
+          <thead>
+            <tr>
+              <th>${escapeHtml(tr('dev.flashInfoColBrowser'))}</th>
+              <th>${escapeHtml(tr('dev.flashInfoColSerial'))}</th>
+              <th>${escapeHtml(tr('dev.flashInfoColHid'))}</th>
+              <th>${escapeHtml(tr('dev.flashInfoColNotes'))}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Chrome / Edge</strong></td>
+              <td><span class="dev-compat-ok">✓</span></td>
+              <td><span class="dev-compat-ok">✓</span></td>
+              <td>${escapeHtml(tr('dev.flashInfoRowChrome'))}</td>
+            </tr>
+            <tr>
+              <td><strong>Brave / Opera</strong></td>
+              <td><span class="dev-compat-ok">✓</span></td>
+              <td><span class="dev-compat-warn">~</span></td>
+              <td>${escapeHtml(tr('dev.flashInfoRowBrave'))}</td>
+            </tr>
+            <tr>
+              <td><strong>Firefox / Safari</strong></td>
+              <td><span class="dev-compat-no">✕</span></td>
+              <td><span class="dev-compat-no">✕</span></td>
+              <td>${escapeHtml(tr('dev.flashInfoRowFirefox'))}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4 class="dev-info-subhead">${escapeHtml(tr('dev.flashInfoTechHead'))}</h4>
+        <ul class="dev-info-list">
+          <li><strong>${escapeHtml(tr('dev.flashInfoKcompTitle'))}</strong> ${escapeHtml(tr('dev.flashInfoKcompDesc'))}</li>
+          <li><strong>${escapeHtml(tr('dev.flashInfoEspTitle'))}</strong> ${escapeHtml(tr('dev.flashInfoEspDesc'))}</li>
+          <li><strong>${escapeHtml(tr('dev.flashInfoLinuxTitle'))}</strong> ${escapeHtml(tr('dev.flashInfoLinuxDesc'))}</li>
+          <li><strong>${escapeHtml(tr('dev.flashInfoContextTitle'))}</strong> ${escapeHtml(tr('dev.flashInfoContextDesc'))}</li>
+        </ul>
+
+        <p class="dev-info-foot-note">${escapeHtml(tr('dev.flashInfoAlwaysWorks'))}</p>`;
+    };
+
+    const openFlashInfoModal = (): void => {
+      if (!host) return;
+      renderFlashInfoModalBody();
+      const modal = host.querySelector<HTMLElement>('#devFlashInfoModal');
+      if (!modal) return;
+      flashInfoModalOpen = true;
+      modal.classList.remove('hidden');
+      if (flashInfoEscHandler) {
+        document.removeEventListener('keydown', flashInfoEscHandler);
+      }
+      flashInfoEscHandler = (ev: KeyboardEvent) => {
+        if (ev.key === 'Escape' && flashInfoModalOpen) {
+          closeFlashInfoModal();
+        }
+      };
+      document.addEventListener('keydown', flashInfoEscHandler);
+    };
+
+    host.querySelector<HTMLButtonElement>('#btnDevFlashInfo')?.addEventListener('click', openFlashInfoModal);
+    host.querySelectorAll<HTMLButtonElement>('[data-open-flash-info]').forEach((btn) => {
+      btn.addEventListener('click', openFlashInfoModal);
+    });
+    host.querySelector<HTMLButtonElement>('#btnDevFlashInfoClose')?.addEventListener('click', closeFlashInfoModal);
+    host.querySelector<HTMLButtonElement>('#btnDevFlashInfoCloseX')?.addEventListener('click', closeFlashInfoModal);
+    host.querySelector<HTMLElement>('#devFlashInfoModal')?.addEventListener('click', (ev) => {
+      if (ev.target === ev.currentTarget) {
+        closeFlashInfoModal();
+      }
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevPairHid')?.addEventListener('click', () => {
+      if (!context) return;
+      const ctxRef = context;
+      // Call requestMcp2221WebHidPairing() synchronously inside the click event so Chrome's WebHID picker ALWAYS opens!
+      void requestMcp2221WebHidPairing().then((res) => {
+        if (res.ok) {
+          mcp2221HidPaired = true;
+          deviceSession.logSystem(`[HID] Paired MCP2221 WebHID auto-reset: ${res.deviceName || '04D8:00DD'}.`);
+          appBus.emit('ui:toast', { msg: ctxRef.t('dev.pairMcp2221Ok') });
+        } else {
+          deviceSession.logError(`[HID] ${res.error || 'MCP2221 WebHID pairing failed.'}`);
+          appBus.emit('ui:toast', { msg: res.error || ctxRef.t('dev.pairMcp2221Skipped') });
+        }
+        updateLiveDom();
+      });
+    });
+
+    if (isWebHidAvailable()) {
+      void hasPairedMcp2221WebHid().then((paired) => {
+        if (paired !== mcp2221HidPaired) {
+          mcp2221HidPaired = paired;
+          updateLiveDom();
+        }
+      });
+    }
+
+    const flashFileInput = host.querySelector<HTMLInputElement>('#devFlashFileInput');
+    host.querySelector<HTMLButtonElement>('#btnDevFlashFile')?.addEventListener('click', () => {
+      if (!flashFileInput) return;
+      flashFileInput.value = '';
+      flashFileInput.click();
+    });
+
+    flashFileInput?.addEventListener('change', async () => {
+      const file = flashFileInput.files?.[0];
+      if (!file || !context) return;
+      const d = currentDerived || context.getDerived();
+      const targetBoard = d.board;
+      try {
+        const proto = targetBoard.flashProfile?.protocol ?? targetBoard.targetMeta?.flashProtocol ?? 'none';
+        const isBinFile = proto === 'esptool' || file.name.toLowerCase().endsWith('.bin');
+        let artifact: FirmwareArtifact;
+        if (isBinFile) {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const defaultAppOffset = targetBoard.flashProfile?.defaultAppOffset ?? 0x10000;
+          const offset =
+            flashOffsetSelection === 'auto'
+              ? inspectEspBinary(bytes, defaultAppOffset).recommendedOffset
+              : parseFlashOffset(flashOffsetSelection);
+          artifact = createEspSingleBinArtifact(bytes, offset, file.name, targetBoard.id);
+        } else {
+          const rawText = await file.text();
+          artifact = createIHexArtifact(rawText, file.name, targetBoard.id);
+        }
+        const autoResetDipId = targetBoard.flashProfile?.autoResetDipSwitchId;
+        const s1 = autoResetDipId !== undefined
+          ? d.dipStates.find((dip) => dip.id === autoResetDipId)
+          : undefined;
+        const res = await deviceSession.flashArtifact(artifact, targetBoard, {
+          verify: targetBoard.flashProfile?.supportsVerify ?? true,
+          resetPreference,
+          autoResetDipOff: Boolean(s1 && !s1.on)
+        });
+        appBus.emit('ui:toast', {
+          msg: context.t('dev.flashSuccess', { bytes: res.bytesWritten, board: targetBoard.shortName })
+        });
+      } catch (err: unknown) {
+        if (!(err instanceof Error && (err.name === 'AbortError' || err.name === 'NotFoundError'))) {
+          appBus.emit('ui:toast', { msg: err instanceof Error ? err.message : String(err) });
+        }
+      }
     });
 
     host.querySelector<HTMLButtonElement>('#btnDevPause')?.addEventListener('click', () => {
@@ -614,6 +942,11 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
         themeUnsub();
         themeUnsub = null;
       }
+      if (flashInfoEscHandler) {
+        document.removeEventListener('keydown', flashInfoEscHandler);
+        flashInfoEscHandler = null;
+      }
+      flashInfoModalOpen = false;
       if (plotter) {
         plotter.destroy();
         plotter = null;

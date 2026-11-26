@@ -1360,6 +1360,285 @@ html[data-theme="light"] .settings-custom-pill {
   border-color: #c084fc;
 }
 
+/* v0.4.5-a: Browser Flash Progress Banner */
+.dev-flash-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--ink-bright);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.dev-flash-banner.hidden {
+  display: none;
+}
+.dev-flash-phase {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.22);
+  color: #38bdf8;
+}
+.dev-flash-bar-track {
+  flex: 0 1 180px;
+  min-width: 96px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+.dev-flash-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #38bdf8, #22c55e);
+  transition: width 120ms ease-out;
+}
+.dev-flash-pct {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 34px;
+  text-align: right;
+}
+.dev-flash-msg {
+  flex: 1 1 200px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html[data-theme="light"] .dev-flash-banner {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0f172a;
+}
+html[data-theme="light"] .dev-flash-phase {
+  background: #bae6fd;
+  color: #0369a1;
+}
+html[data-theme="light"] .dev-flash-msg {
+  color: #334155;
+}
+
+/* v0.4.5-b: Browser Upload BETA Badge & Compatibility Info Modal */
+.dev-flash-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.dev-flash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dev-beta-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.22);
+  color: #d8b4fe;
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  text-transform: uppercase;
+}
+.dev-info-icon-btn {
+  padding-left: 7px;
+  padding-right: 7px;
+  min-width: 28px;
+  font-weight: 600;
+}
+.dev-cap-info-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.dev-flash-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(2px);
+}
+.dev-flash-modal-backdrop.hidden {
+  display: none;
+}
+.dev-flash-modal-card {
+  width: min(680px, 100%);
+  max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--border-hi, rgba(148, 163, 184, 0.28));
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.dev-flash-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dev-flash-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dev-flash-modal-title-wrap h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-bright);
+}
+.dev-flash-modal-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.dev-flash-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+.dev-info-lead {
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+.dev-cap-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+}
+.dev-cap-check-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.dev-cap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.dev-cap-chip.is-ok {
+  background: rgba(34, 197, 94, 0.14);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.dev-cap-chip.is-no {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.dev-info-subhead {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.dev-compat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.dev-compat-table th,
+.dev-compat-table td {
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.dev-compat-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.dev-compat-ok { color: #4ade80; font-weight: 700; }
+.dev-compat-warn { color: #fbbf24; font-weight: 700; }
+.dev-compat-no { color: #f87171; font-weight: 700; }
+.dev-info-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dev-info-list li strong {
+  color: var(--ink-bright);
+}
+.dev-info-foot-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: var(--ink);
+  font-size: 12px;
+}
+html[data-theme="light"] .dev-beta-badge {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #c084fc;
+}
+html[data-theme="light"] .dev-flash-modal-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+html[data-theme="light"] .dev-cap-check-row {
+  background: #f8fafc;
+}
+html[data-theme="light"] .dev-cap-chip.is-ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+html[data-theme="light"] .dev-cap-chip.is-no {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+html[data-theme="light"] .dev-compat-ok { color: #15803d; }
+html[data-theme="light"] .dev-compat-warn { color: #b45309; }
+html[data-theme="light"] .dev-compat-no { color: #b91c1c; }
+html[data-theme="light"] .dev-info-foot-note {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0f172a;
+}
+
 @media (max-width: 640px) {
   .settings-preset-grid {
     grid-template-columns: 1fr;

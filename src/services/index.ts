@@ -8,3 +8,4 @@ export * from './web-serial-transport';
 export * from './simulator-transport';
 export * from './device-session';
 export * from './program-ir';
+export * from './flash';

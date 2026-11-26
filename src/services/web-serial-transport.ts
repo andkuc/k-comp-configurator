@@ -284,11 +284,74 @@ export class WebSerialTransport implements DeviceTransport {
     }
   }
 
+  /**
+   * Releases active reader/writer locks and closes the underlying port for flashing,
+   * while preserving the granted WebSerialPortLike handle for seamless monitor resumption
+   * (zero second browser port-picker dialog).
+   */
+  async suspendForFlash(): Promise<{ port: WebSerialPortLike; baudRate: number }> {
+    if (!this.port || this.stateMachine.getState() !== 'monitoring') {
+      throw new Error('Cannot suspend serial monitor: port is not actively monitoring.');
+    }
+    const port = this.port;
+    const baudRate = this.deviceInfo?.baudRate ?? 115200;
+
+    this.stateMachine.transition('releasing', 'Suspending monitor for flash');
+    this.readActive = false;
+
+    if (this.reader) {
+      try { await this.reader.cancel(); } catch (_) {}
+    }
+    if (this.readLoopPromise) {
+      try { await this.readLoopPromise; } catch (_) {}
+      this.readLoopPromise = null;
+    }
+
+    try { await port.close(); } catch (_) {}
+    await sleepMs(80);
+    this.stateMachine.transition('flashing', 'Flashing firmware');
+    return { port, baudRate };
+  }
+
+  /** Reopens the preserved port handle after flashing and resumes the Serial Monitor read loop. */
+  async resumeAfterFlash(baudRate: number, tolerateReenumeration = false): Promise<void> {
+    if (!this.port) {
+      if (this.stateMachine.canTransition('disconnected')) {
+        this.stateMachine.transition('disconnected', 'Port handle lost during flash');
+      }
+      return;
+    }
+    const port = this.port;
+    if (this.stateMachine.getState() === 'flashing') {
+      this.stateMachine.transition('reconnecting', 'Resuming serial monitor');
+    }
+    try {
+      await port.open({ baudRate });
+      if (this.deviceInfo) {
+        this.deviceInfo = { ...this.deviceInfo, baudRate };
+      }
+      this.stateMachine.transition('monitoring', 'Monitor resumed after flash');
+      this.startReadLoop(port);
+    } catch (err: unknown) {
+      if (tolerateReenumeration) {
+        if (this.stateMachine.canTransition('disconnected')) {
+          this.stateMachine.transition('disconnected');
+        }
+        throw err;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      if (this.stateMachine.canTransition('error')) {
+        this.stateMachine.transition('error', `Failed to reopen monitor after flash: ${msg}`);
+      }
+      throw err;
+    }
+  }
+
   async flash(
     _protocol: FlashProtocolId,
     _segments: FlashSegment[],
     _onProgress?: (p: FlashProgress) => void
   ): Promise<void> {
-    throw new Error('Browser flashing (STK500v1 / esptool) will be enabled in v0.4.5.');
+    throw new Error('Use DeviceSessionController.flashArtifact() or a FlashStrategy via suspendForFlash()/resumeAfterFlash().');
   }
 }

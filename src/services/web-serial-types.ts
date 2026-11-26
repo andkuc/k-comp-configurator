@@ -53,6 +53,9 @@ export function getNavigatorSerial(): WebSerialNavigatorApi | null {
 
 /** Identifies common educational MCU USB-UART bridges & native USB-CDC controllers from USB VID/PID. */
 export function identifyUsbSerialChip(vendorId?: number, productId?: number): string {
+  if (vendorId === 0x04d8 && productId === 0x00dd) {
+    return 'Microchip MCP2221 USB-UART/HID';
+  }
   if (vendorId === 0x303a) {
     return productId === 0x1001 ? 'Espressif USB-Serial/JTAG' : 'Espressif USB-CDC';
   }

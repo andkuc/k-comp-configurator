@@ -36,6 +36,7 @@ export default defineConfig({
           if (norm.includes('/src/i18n/sq') || norm.includes('/src/i18n/block-guides-sq')) return 'chunk-i18n-sq';
           if (norm.includes('/src/ui/charter')) return 'chunk-charter';
           if (norm.includes('/src/ui/block-guide')) return 'chunk-block-guide';
+          if (norm.includes('/node_modules/esptool-js')) return 'chunk-esptool';
           return undefined;
         }
       }
