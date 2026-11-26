@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.4.2)
+// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.4.3)
 import './styles/style.css';
 import { resolveAssetUrl } from './core/constants';
 import { CATALOG } from './catalog';
@@ -12,7 +12,7 @@ import {
   detectInitialAutoSaveEnabled, syncAutoSaveUI, setAutoSaveEnabled
 } from './core/state';
 import { discoverRepoDocumentationPdfs } from './core/docs-discovery';
-import { appBus, projectStore, type DerivedWorkspace } from './store';
+import { appBus, projectStore, settingsStore, type DerivedWorkspace } from './store';
 import {
   addComponent, removeComponent, computeDipStates, setPowerRailMode
 } from './core/hardware';
@@ -32,7 +32,7 @@ import { renderSketchCode } from './core/codegen';
 import { renderCodeBlocksUI, bindCodeBlocksEvents, setSpotlightBlock } from './ui/code-blocks-panel';
 // Lazy-loaded modules (block-guide & project charter are loaded on demand via dynamic import())
 import { renderApiBrowserUI, bindApiBrowserEvents } from './ui/api-browser';
-import { updateInfoModalDocLink, openComponentInfo, openPrintStopSheet, openSvgLibrary, openAboutModal } from './ui/modals';
+import { updateInfoModalDocLink, openComponentInfo, openPrintStopSheet, openSvgLibrary, openAboutModal, openSettingsModal, closeSettingsModal, renderSettingsModalBody } from './ui/modals';
 import {
   captureSnapshot, pushUndoState, updateHistoryButtons, performUndo, performRedo,
   applyProjectDocument, saveProjectFile, shareConfigLink, tryLoadFromUrlHash,
@@ -124,7 +124,7 @@ function syncCodeProfileUI() {
   if (!sel) return;
   const profiles = getSupportedProfiles(board);
   state.codeProfile = normalizeCodeProfile(state.codeProfile, board);
-  if (profiles.length <= 1) {
+  if (profiles.length <= 1 || !settingsStore.getFeature('codeProfiles')) {
     sel.classList.add('hidden');
     return;
   }
@@ -133,6 +133,58 @@ function syncCodeProfileUI() {
     `<option value="${p.id}"${p.id === state.codeProfile ? ' selected' : ''}>${t(p.labelKey)}</option>`
   ).join('');
   sel.value = state.codeProfile;
+}
+
+
+function applyFeatureSettingsToDom() {
+  const { preset, features } = settingsStore.get();
+
+  // Level badge inside Project menu
+  const lvlBadge = $('#menuSettingsBadge');
+  if (lvlBadge) {
+    const key = preset === 'beginner'
+      ? 'settings.badgeBeginner'
+      : (preset === 'intermediate'
+          ? 'settings.badgeIntermediate'
+          : (preset === 'professional' ? 'settings.badgePro' : 'settings.badgeCustom'));
+    lvlBadge.textContent = t(key);
+  }
+
+  // Advanced canvas wire/grid/breadboard HUD popover button
+  const hudBtn = $('#btnHudOptions');
+  if (hudBtn) {
+    hudBtn.classList.toggle('hidden', !features.advancedWireTools);
+    if (!features.advancedWireTools) closeHudOptions();
+  }
+
+  // Code Structure Blocks drawer & active chips bar
+  const blocksBtn = $('#btnToggleBlocksDrawer');
+  const blocksActive = $('#codeBlocksActive');
+  const blocksDrawer = $('#codeBlocksDrawer');
+  const blockEditor = $('#codeBlockEditor');
+  if (blocksBtn) blocksBtn.classList.toggle('hidden', !features.codeBlocks);
+  if (!features.codeBlocks) {
+    state.blocksDrawerOpen = false;
+    blocksActive?.classList.add('hidden');
+    blocksDrawer?.classList.add('hidden');
+    blockEditor?.classList.add('hidden');
+  } else {
+    blocksActive?.classList.remove('hidden');
+  }
+
+  // Library API Reference drawer
+  const apiBtn = $('#btnToggleApiDrawer');
+  const apiDrawer = $('#apiRefDrawer');
+  const apiResizer = $('#apiCodeResizer');
+  if (apiBtn) apiBtn.classList.toggle('hidden', !features.apiBrowser);
+  if (!features.apiBrowser) {
+    state.apiDrawerOpen = false;
+    apiDrawer?.classList.add('hidden');
+    apiResizer?.classList.add('hidden');
+  }
+
+  // Code Profile selector
+  syncCodeProfileUI();
 }
 
 async function switchBoard(targetBoardId: string, opts: any = {}) {
@@ -224,6 +276,10 @@ function recomputeAndRender() {
 
 // Wire central ProjectStore & Typed Application Event/Command Bus once before bootstrapping
 projectStore.subscribe(renderWorkspaceViews);
+settingsStore.subscribe(() => {
+  applyFeatureSettingsToDom();
+  if (state.bootComplete) recomputeAndRender();
+});
 appBus.on('ui:toast', ({ msg, opts }) => showToast(msg, opts ?? null));
 appBus.on('codeblock:spotlight', ({ blockId }) => setSpotlightBlock(blockId));
 appBus.on('history:push', () => pushUndoState());
@@ -296,8 +352,12 @@ function refreshLanguageUI() {
   if (!$('#svgModal')?.classList.contains('hidden')) {
     openSvgLibrary();
   }
+  applyFeatureSettingsToDom();
   if (!$('#aboutModal')?.classList.contains('hidden')) {
     openAboutModal();
+  }
+  if (!$('#settingsModal')?.classList.contains('hidden')) {
+    renderSettingsModalBody();
   }
   refreshOpenBlockInfoSafe();
 }
@@ -552,6 +612,7 @@ function bindUIEvents() {
       $('#svgModal').classList.add('hidden');
       $('#printModal').classList.add('hidden');
       $('#aboutModal')?.classList.add('hidden');
+      closeSettingsModal();
       closeBlockInfoModalSafe();
       $('#shortcutsPopover')?.classList.add('hidden');
       $('#btnShortcutsHelp')?.setAttribute('aria-expanded', 'false');
@@ -597,6 +658,9 @@ function bindUIEvents() {
   $('#btnSvgLibrary').addEventListener('click', () => { closeProjectMenu(); openSvgLibrary(); });
   $('#btnCloseModal').addEventListener('click', () => $('#svgModal').classList.add('hidden'));
   $('#svgModal').addEventListener('click', (e: any) => { if (e.target === $('#svgModal')) $('#svgModal').classList.add('hidden'); });
+  $('#btnOpenSettings')?.addEventListener('click', () => { closeProjectMenu(); openSettingsModal(); });
+  $('#btnCloseSettingsModal')?.addEventListener('click', () => closeSettingsModal());
+  $('#settingsModal')?.addEventListener('click', (e: any) => { if (e.target === $('#settingsModal')) closeSettingsModal(); });
   $('#btnOpenAbout')?.addEventListener('click', () => { closeProjectMenu(); openAboutModal(); });
   $('#btnFooterAbout')?.addEventListener('click', () => openAboutModal());
   $('#btnCloseAboutModal')?.addEventListener('click', () => $('#aboutModal')?.classList.add('hidden'));
@@ -611,7 +675,7 @@ function bindUIEvents() {
     const blob = new Blob([state.latestSketch || $('#codeOutput code').textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${getProjectSlug('kcomp_v2_init').replace(/-/g, '_')}.ino`; a.click();
+    a.href = url; a.download = `${getProjectSlug(`${getActiveBoard().id}_init`).replace(/-/g, '_')}.ino`; a.click();
     URL.revokeObjectURL(url);
   });
 
@@ -660,6 +724,7 @@ function bindUIEvents() {
 async function init() {
   try {
     await initI18nAsync();
+    settingsStore.init();
     initTheme();
     applyI18nToDom();
     applyThemeToDom();
@@ -718,12 +783,13 @@ async function init() {
     syncWorkbenchToggles();
     syncAutoSaveUI();
     applyThemeToDom();
+    applyFeatureSettingsToDom();
     initWorkspaceShell();
     recomputeAndRender();
 
     state.repoDocsPromise = discoverRepoDocumentationPdfs();
   } catch (err) {
-    console.error('K-Comp V2 init failed:', err);
+    console.error('K-Comp Configurator init failed:', err);
     const banner = $('#corsBanner');
     if (banner) {
       const isFileOrFetch = window.location.protocol === 'file:' ||

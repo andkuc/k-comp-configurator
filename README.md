@@ -1,6 +1,6 @@
 # K-Comp Configurator
 
-**Version `0.4.2`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
+**Version `0.4.3`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
 
 The application runs 100% client-side with zero runtime backend dependencies, lazy-loaded reference/locale chunks, and automated GitHub Actions CI & Pages deployment.
 
@@ -37,6 +37,7 @@ The application runs 100% client-side with zero runtime backend dependencies, la
 | `workspace` | `hardware` (default), `program`, `device`, `shield` | Initial top-level workspace view |
 | `lang` | `en` (default), `de`, `sq` | Initial interface language |
 | `theme` | `dark` (default), `light` / `white` | Initial color theme |
+| `level` | `professional` (default), `intermediate`, `beginner` | Initial skill-level feature preset |
 | `autosave` | `0` (default), `1` | Initial browser Auto-Save state |
 | `#cfg=...` | Deflate + Base64URL `kcomp-project/1` payload | Restores wiring, board & filled Project Charter |
 

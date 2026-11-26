@@ -17,9 +17,6 @@ export type SerialPortState =
   | 'reconnecting'
   | 'error';
 
-/** Backward-compatible alias covering both legacy and explicit port states. */
-export type ConnectionState = SerialPortState | 'connected';
-
 export interface DeviceInfo {
   portLabel: string;
   usbVendorId?: number;
@@ -41,7 +38,7 @@ export interface FlashProgress {
 export interface DeviceTransport {
   readonly id: string;
   isSupported(): boolean;
-  getState(): ConnectionState;
+  getState(): SerialPortState;
   connect(baudRate: number): Promise<DeviceInfo>;
   disconnect(): Promise<void>;
   writeText(text: string): Promise<void>;

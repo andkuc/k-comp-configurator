@@ -6,10 +6,11 @@ import { appBus, type DerivedWorkspace } from './bus';
 import { deriveWorkspace } from './derived';
 import { nodeGraphStore } from './nodes';
 import { DEFAULT_NODE_ID, uiSessionStore, type UiSessionSnapshot } from './ui-session';
+import { DEFAULT_SKILL_PRESET, SKILL_PRESETS, settingsStore, type FeatureKey, type FeatureSettings, type NamedSkillPreset, type SkillLevelPreset, type UserSettingsState } from './settings';
 
-export { appBus, deriveWorkspace, nodeGraphStore, uiSessionStore, DEFAULT_NODE_ID };
+export { appBus, deriveWorkspace, nodeGraphStore, uiSessionStore, settingsStore, DEFAULT_NODE_ID, DEFAULT_SKILL_PRESET, SKILL_PRESETS };
 export type { AppCommandMap, AppEventMap, DerivedWorkspace, ToastOptions } from './bus';
-export type { UiSessionSnapshot };
+export type { UiSessionSnapshot, FeatureKey, FeatureSettings, NamedSkillPreset, SkillLevelPreset, UserSettingsState };
 
 let latestDerived: DerivedWorkspace | null = null;
 let wiredRecompute = false;
@@ -106,6 +107,7 @@ export const projectStore = {
     appBus.reset();
     uiSessionStore.reset();
     nodeGraphStore.reset();
+    settingsStore.reset();
   }
 };
 

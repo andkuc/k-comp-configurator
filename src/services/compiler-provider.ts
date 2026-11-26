@@ -36,7 +36,6 @@ export interface CompileArtifact {
   filename: string;
   data: Uint8Array;
   address?: number;
-  flashOffset?: number;
 }
 
 export interface CompileResult {
@@ -75,11 +74,9 @@ export function getCompilerProvider(): CompilerProvider | null {
   return activeProvider;
 }
 
-/** Resolves the numeric flash offset of a compiled artifact (supports both `address` and `flashOffset`). */
+/** Resolves the numeric flash offset of a compiled artifact (defaults to 0). */
 export function getArtifactFlashAddress(artifact: CompileArtifact): number {
-  if (typeof artifact.address === 'number' && Number.isFinite(artifact.address)) return artifact.address;
-  if (typeof artifact.flashOffset === 'number' && Number.isFinite(artifact.flashOffset)) return artifact.flashOffset;
-  return 0;
+  return typeof artifact.address === 'number' && Number.isFinite(artifact.address) ? artifact.address : 0;
 }
 
 /**

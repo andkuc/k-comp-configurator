@@ -33,6 +33,7 @@
     "src/ui/inspector/**/*.ts",
     "src/ui/modals/about.ts",
     "src/ui/modals/svg-library.ts",
-    "src/ui/workbench/shared.ts"
+    "src/ui/workbench/shared.ts",
+    "src/ui/modals/settings.ts"
   ]
 }

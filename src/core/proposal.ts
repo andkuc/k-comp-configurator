@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Student Project Charter (Proposal) Data Model, Compact Base64URL Serialization & Sprint Estimator
+// Student Project Charter (Proposal) Canonical Data Model & Sprint Estimator
 import type { ProjectProposal, ProposalWorkPackage } from '../types';
 
 export interface WorkPackageTemplate {
@@ -51,47 +51,35 @@ export function createEmptyProposal(): ProjectProposal {
   };
 }
 
-export function normalizeProposal(raw: any): ProjectProposal {
+export function normalizeProposal(raw: unknown): ProjectProposal {
   const base = createEmptyProposal();
   if (!raw || typeof raw !== 'object') return base;
+  const obj = raw as Record<string, unknown>;
 
-  const str = (v: any, maxLen = 2000) => (typeof v === 'string' ? v.slice(0, maxLen) : '');
-  const pick = (longKey: string, shortKey: string, fallback = '', maxLen = 2000) => {
-    if (typeof raw[longKey] === 'string') return str(raw[longKey], maxLen);
-    if (typeof raw[shortKey] === 'string') return str(raw[shortKey], maxLen);
-    return fallback;
-  };
+  const str = (v: unknown, maxLen = 2000): string => (typeof v === 'string' ? v.slice(0, maxLen) : '');
 
-  base.schoolYear = pick('schoolYear', 'sy', base.schoolYear, 20);
-  base.className = pick('className', 'cl', '', 32);
-  base.teamName = pick('teamName', 'tm', '', 64);
-  base.date = pick('date', 'dt', '', 32);
-  base.student1 = pick('student1', 's1', '', 64);
-  base.student2 = pick('student2', 's2', '', 64);
-  base.slogan = pick('slogan', 'sl', '', 240);
-  base.userStories = pick('userStories', 'us', '', 2000);
-  base.functionalScope = pick('functionalScope', 'fs', '', 2000);
-  base.boardMods = pick('boardMods', 'bm', '', 1000);
-  base.includeGrading = !!(raw.includeGrading ?? raw.gr);
+  if (typeof obj.schoolYear === 'string' && obj.schoolYear.trim()) {
+    base.schoolYear = str(obj.schoolYear, 20);
+  }
+  base.className = str(obj.className, 32);
+  base.teamName = str(obj.teamName, 64);
+  base.date = str(obj.date, 32);
+  base.student1 = str(obj.student1, 64);
+  base.student2 = str(obj.student2, 64);
+  base.slogan = str(obj.slogan, 240);
+  base.userStories = str(obj.userStories, 2000);
+  base.functionalScope = str(obj.functionalScope, 2000);
+  base.boardMods = str(obj.boardMods, 1000);
+  base.includeGrading = Boolean(obj.includeGrading);
 
-  if (Array.isArray(raw.workPackages)) {
+  if (Array.isArray(obj.workPackages)) {
     for (let i = 0; i < base.workPackages.length; i++) {
-      const item = raw.workPackages[i];
+      const item = obj.workPackages[i] as Record<string, unknown> | null | undefined;
       if (!item || typeof item !== 'object') continue;
       base.workPackages[i] = {
         goal: str(item.goal, 240),
         hours: str(item.hours, 12),
         who: str(item.who, 16) || CHARTER_WORK_PACKAGES[i].defaultWho
-      };
-    }
-  } else if (raw.wp && typeof raw.wp === 'object') {
-    for (let i = 0; i < base.workPackages.length; i++) {
-      const tup = raw.wp[String(i)];
-      if (!Array.isArray(tup)) continue;
-      base.workPackages[i] = {
-        goal: str(tup[0], 240),
-        hours: str(tup[1], 12),
-        who: str(tup[2], 16) || CHARTER_WORK_PACKAGES[i].defaultWho
       };
     }
   }
@@ -107,54 +95,36 @@ export function cloneProposal(prop: ProjectProposal | null | undefined): Project
   };
 }
 
-/**
- * Serializes a ProjectProposal into a compact JSON object for .kcomp.json and Base64URL #cfg= links.
- * Returns null if the student has not filled out any proposal fields (keeps #cfg= links short!).
- */
-export function serializeProposalCompact(prop: ProjectProposal | null | undefined): Record<string, any> | null {
-  if (!prop) return null;
+export function hasProposalContent(prop: ProjectProposal | null | undefined): boolean {
+  if (!prop) return false;
   const p = normalizeProposal(prop);
-  const out: Record<string, any> = {};
   const defaultSy = getDefaultSchoolYear();
 
-  const addStr = (key: string, val: string) => {
-    const trimmed = val.trim();
-    if (trimmed) out[key] = val;
-  };
+  if (p.schoolYear.trim() && p.schoolYear.trim() !== defaultSy) return true;
+  if (
+    p.className.trim() ||
+    p.teamName.trim() ||
+    p.date.trim() ||
+    p.student1.trim() ||
+    p.student2.trim() ||
+    p.slogan.trim() ||
+    p.userStories.trim() ||
+    p.functionalScope.trim() ||
+    p.boardMods.trim() ||
+    p.includeGrading
+  ) {
+    return true;
+  }
 
-  if (p.schoolYear.trim() && p.schoolYear.trim() !== defaultSy) out.sy = p.schoolYear.trim();
-  addStr('cl', p.className);
-  addStr('tm', p.teamName);
-  addStr('dt', p.date);
-  addStr('s1', p.student1);
-  addStr('s2', p.student2);
-  addStr('sl', p.slogan);
-  addStr('us', p.userStories);
-  addStr('fs', p.functionalScope);
-  addStr('bm', p.boardMods);
-  if (p.includeGrading) out.gr = 1;
-
-  const wpOut: Record<string, [string, string, string]> = {};
   for (let i = 0; i < p.workPackages.length; i++) {
     const w = p.workPackages[i];
     const defWho = CHARTER_WORK_PACKAGES[i].defaultWho;
-    const g = (w.goal || '').trim();
-    const h = (w.hours || '').trim();
-    const who = (w.who || defWho).trim();
-    if (g || h || who !== defWho) {
-      wpOut[String(i)] = [w.goal || '', h, who];
+    if ((w.goal || '').trim() || (w.hours || '').trim() || ((w.who || defWho).trim() !== defWho)) {
+      return true;
     }
   }
-  if (Object.keys(wpOut).length) out.wp = wpOut;
 
-  if (!Object.keys(out).length) return null;
-  // Always keep schoolYear explicit once any field is filled so archival charters preserve their year
-  if (!out.sy && p.schoolYear.trim()) out.sy = p.schoolYear.trim();
-  return out;
-}
-
-export function hasProposalContent(prop: ProjectProposal | null | undefined): boolean {
-  return serializeProposalCompact(prop) !== null;
+  return false;
 }
 
 export interface ProposalHoursSummary {

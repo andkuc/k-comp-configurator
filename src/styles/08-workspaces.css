@@ -952,3 +952,416 @@ html[data-theme="light"] .dev-legend-chip.is-fft-selected {
   background: #e0f2fe;
   border-color: #0284c7;
 }
+
+
+/* =========================================================================
+   RESPONSIVE DESKTOP TOPBAR CLEANUP (1024px – 1440px+ SMALL MONITORS, v0.4.3)
+   ========================================================================= */
+.topbar {
+  padding: 0 12px;
+  gap: 8px;
+}
+.brand {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+}
+.brand-badge {
+  flex-shrink: 0;
+}
+.topbar h1 {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.board-select {
+  flex: 0 1 136px;
+  min-width: 96px;
+  max-width: 144px;
+  margin-left: 0;
+}
+.project-name-input {
+  flex: 0 1 180px;
+  width: 168px;
+  min-width: 86px;
+  transition: border-color 0.14s ease, background 0.14s ease, width 0.14s ease;
+}
+.project-name-input:focus {
+  width: 205px;
+}
+.topbar-controls {
+  flex-shrink: 0;
+  gap: 6px;
+}
+.topbar-actions {
+  gap: 6px;
+}
+#presetSelect {
+  max-width: 142px;
+  min-width: 96px;
+}
+.topbar .btn {
+  white-space: nowrap;
+}
+.workspace-switch.hidden {
+  display: none !important;
+}
+
+/* Medium laptops (<= 1420px): drop "Configurator" subtitle */
+@media (max-width: 1420px) and (min-width: 961px) {
+  .brand-sub {
+    display: none;
+  }
+}
+
+/* Standard 1280px–1366px PC monitors: drop redundant h1 (badge + boardSelect already show board!) */
+@media (max-width: 1360px) and (min-width: 961px) {
+  .topbar h1 {
+    display: none;
+  }
+  .project-name-input {
+    width: 148px;
+  }
+  .project-name-input:focus {
+    width: 176px;
+  }
+  #presetSelect {
+    max-width: 124px;
+  }
+}
+
+/* Compact PC monitors / classroom projectors (1024px–1220px): icon-compact tabs & tighter controls */
+@media (max-width: 1220px) and (min-width: 961px) {
+  .topbar {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .brand {
+    gap: 5px;
+  }
+  .topbar-controls,
+  .topbar-actions {
+    gap: 4px;
+  }
+  .topbar-sep {
+    display: none;
+  }
+  .board-select {
+    max-width: 118px;
+    font-size: 11px;
+    padding: 0 18px 0 6px;
+  }
+  .project-name-input {
+    width: 116px;
+    font-size: 11.5px;
+    padding: 4px 7px;
+  }
+  .project-name-input:focus {
+    width: 142px;
+  }
+  #presetSelect {
+    max-width: 106px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+  .topbar .btn {
+    padding: 4px 7px;
+    font-size: 11.5px;
+  }
+  .workspace-switch[data-tab-count="4"] .ws-tab-lbl,
+  .workspace-switch[data-tab-count="3"] .ws-tab-lbl {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) and (min-width: 961px) {
+  .ws-tab-lbl {
+    display: none;
+  }
+  .ws-tab-btn {
+    padding: 0 7px;
+  }
+  .brand-sep {
+    display: none;
+  }
+  .project-name-input {
+    width: 96px;
+  }
+  .project-name-input:focus {
+    width: 118px;
+  }
+  #presetSelect {
+    max-width: 92px;
+  }
+}
+
+/* =========================================================================
+   SETTINGS MODAL & SKILL-LEVEL PRESETS (v0.4.3, Dark & WCAG-AA White Mode)
+   ========================================================================= */
+.pm-level-badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.settings-modal-card {
+  width: min(640px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.settings-modal-body {
+  padding: 16px 20px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.settings-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.settings-custom-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  background: rgba(168, 85, 247, 0.2);
+  color: #e9d5ff;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+.settings-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.settings-preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border-hi);
+  background: var(--surface-2);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.settings-preset-card:hover {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+}
+.settings-preset-card.active {
+  border-color: #38bdf8;
+  background: rgba(2, 132, 199, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45);
+}
+.sp-card-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-bright);
+}
+.sp-card-ico {
+  font-size: 14px;
+}
+.sp-card-check {
+  margin-left: auto;
+  color: #38bdf8;
+  font-weight: 800;
+}
+.sp-card-desc {
+  font-size: 11px;
+  line-height: 1.38;
+  color: var(--muted);
+}
+
+.settings-groups-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-group-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.settings-group-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 12px;
+}
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border);
+}
+.settings-row-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-row-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-bright);
+}
+.settings-row-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.settings-tag {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.settings-tag.is-adv {
+  background: rgba(251, 146, 60, 0.18);
+  color: #fdba74;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+}
+.settings-tag.is-beta {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.settings-switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hi);
+  background: #1e293b;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.settings-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transition: transform 0.14s ease, background 0.14s ease;
+}
+.settings-switch.is-on {
+  background: #0284c7;
+  border-color: #38bdf8;
+}
+.settings-switch.is-on .settings-switch-thumb {
+  transform: translateX(16px);
+  background: #ffffff;
+}
+
+.settings-foot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.settings-foot-note {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Light theme overrides for Settings Modal */
+html[data-theme="light"] .pm-level-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
+html[data-theme="light"] .settings-preset-card {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .settings-preset-card.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+}
+html[data-theme="light"] .sp-card-check {
+  color: #0369a1;
+}
+html[data-theme="light"] .settings-group-list {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+html[data-theme="light"] .settings-switch {
+  background: #cbd5e1;
+  border-color: #94a3b8;
+}
+html[data-theme="light"] .settings-switch-thumb {
+  background: #ffffff;
+}
+html[data-theme="light"] .settings-switch.is-on {
+  background: #0369a1;
+  border-color: #0369a1;
+}
+html[data-theme="light"] .settings-tag.is-adv {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #fdba74;
+}
+html[data-theme="light"] .settings-tag.is-beta {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #d8b4fe;
+}
+html[data-theme="light"] .settings-custom-pill {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #c084fc;
+}
+
+@media (max-width: 640px) {
+  .settings-preset-grid {
+    grid-template-columns: 1fr;
+  }
+}

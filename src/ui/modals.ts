@@ -5,3 +5,4 @@ export { updateInfoModalDocLink, openComponentInfo } from './modals/component-in
 export { openPrintStopSheet } from './modals/labsheet';
 export { openSvgLibrary } from './modals/svg-library';
 export { openAboutModal } from './modals/about';
+export { openSettingsModal, closeSettingsModal, renderSettingsModalBody } from './modals/settings';

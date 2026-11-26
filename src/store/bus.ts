@@ -34,6 +34,7 @@ export interface AppEventMap {
   'workspace:updated': DerivedWorkspace;
   'workspace:changed': { workspaceId: string; previousId: string };
   'node:changed': { nodeId: string; previousNodeId: string };
+  'settings:changed': { preset: string };
   'ui:toast': { msg: string; opts?: ToastOptions | null };
   'codeblock:spotlight': { blockId: string | null };
   'history:push': void;

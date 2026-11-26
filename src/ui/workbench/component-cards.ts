@@ -16,6 +16,7 @@ import {
 } from './layout';
 import { setHoveredNet, renderWiresAndHandles, startWireDrag } from './wire-layer';
 import { appBus } from '../../store/bus';
+import { settingsStore } from '../../store/settings';
 
 export function startCompDrag(ev, instId) {
   const entry = state.placedEntries.find((e) => e.box.inst.instanceId === instId);
@@ -694,7 +695,9 @@ export function renderDockedComponentsAndWires() {
 
 
     // Interactive Pull-to-Activate / 1-Click pads for inactive optional pins (stripped in SVG export)
-    const inactiveOptPins = def.pins.filter((p) => p.tier === 'optional' && !box.inst.pinMap[p.id]);
+    const inactiveOptPins = settingsStore.getFeature('optionalPins')
+      ? def.pins.filter((p) => p.tier === 'optional' && !box.inst.pinMap[p.id])
+      : [];
     for (const op of inactiveOptPins) {
       const anc = def.pinAnchors?.[op.id];
       if (!anc) continue;

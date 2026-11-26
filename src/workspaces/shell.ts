@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Top-Level Workspace Shell with Strict Module Lifecycle (mount/unmount/onProjectChange/onActiveNodeChange) & Lazy Loading
 import { $, escapeHtml } from '../core/state';
-import { appBus, projectStore, uiSessionStore, type DerivedWorkspace } from '../store';
+import { appBus, projectStore, settingsStore, uiSessionStore, type DerivedWorkspace } from '../store';
 import { deviceSession } from '../services';
 import { t } from '../i18n/index';
 import {
@@ -25,6 +25,7 @@ let mountedContainer: HTMLElement | null = null;
 let nodeBusUnsub: (() => void) | null = null;
 let deviceStatusUnsub: (() => void) | null = null;
 let lastDeviceConnected = false;
+let settingsUnsub: (() => void) | null = null;
 
 const builtinModules = new Map<WorkspaceId, WorkspaceModule>();
 const customModules = new Map<WorkspaceId, WorkspaceModule>();
@@ -74,6 +75,20 @@ function ensureNodeChangeListener(): void {
       }
     });
   }
+  if (!settingsUnsub) {
+    settingsUnsub = settingsStore.subscribe(() => {
+      const feats = settingsStore.get().features;
+      if (activeWorkspaceId === 'device' && !feats.deviceWorkspace) {
+        setActiveWorkspace('hardware');
+        return;
+      }
+      if ((activeWorkspaceId === 'program' || activeWorkspaceId === 'shield') && !feats.previewWorkspaces) {
+        setActiveWorkspace('hardware');
+        return;
+      }
+      renderWorkspaceSwitcher();
+    });
+  }
 }
 
 function unmountCurrentModule(): void {
@@ -95,8 +110,16 @@ export function getActiveWorkspace(): WorkspaceId {
 export function renderWorkspaceSwitcher(): void {
   const slot = $('#workspaceSwitchSlot') as HTMLElement | null;
   if (!slot) return;
+  const feats = settingsStore.get().features;
+  const visibleWorkspaces = WORKSPACES.filter((w) => {
+    if (w.id === 'hardware') return true;
+    if (w.id === 'device') return feats.deviceWorkspace || activeWorkspaceId === 'device';
+    return feats.previewWorkspaces || activeWorkspaceId === w.id;
+  });
+  slot.classList.toggle('hidden', visibleWorkspaces.length <= 1);
+  slot.dataset.tabCount = String(visibleWorkspaces.length);
   const devLive = deviceSession.isConnected();
-  slot.innerHTML = WORKSPACES.map((w) => {
+  slot.innerHTML = visibleWorkspaces.map((w) => {
     const isActive = w.id === activeWorkspaceId;
     const isLiveDev = w.id === 'device' && devLive;
     const tagHtml = isLiveDev
@@ -223,6 +246,10 @@ export function resetWorkspaceShell(): void {
   if (deviceStatusUnsub) {
     deviceStatusUnsub();
     deviceStatusUnsub = null;
+  }
+  if (settingsUnsub) {
+    settingsUnsub();
+    settingsUnsub = null;
   }
   lastDeviceConnected = false;
   builtinModules.clear();

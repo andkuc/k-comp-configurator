@@ -249,7 +249,7 @@ describe('ESP32-S3 Hardware Constraint Rules', () => {
   });
 });
 
-describe('Extensible CodeProfile Engine & Project Format v24 Backward Compatibility', () => {
+describe('Extensible CodeProfile Engine & Canonical ProjectDocument v1', () => {
   beforeEach(() => resetForBoard('esp32-s3-devkit'));
 
   it('exposes future code profile extension slots (oss-standard, bare-metal, python-node)', () => {

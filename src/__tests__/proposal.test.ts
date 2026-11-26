@@ -10,8 +10,7 @@ import { addComponent } from '../core/hardware';
 import {
   computeProposalHours,
   createEmptyProposal,
-  hasProposalContent,
-  serializeProposalCompact
+  hasProposalContent
 } from '../core/proposal';
 import {
   applyProjectDocument,
@@ -61,7 +60,6 @@ describe('Student Project Charter — Data Model, Persistence & Base64URL #cfg= 
 
   it('omits empty proposal from ProjectDocument v1 and rejects malformed schemas', () => {
     expect(hasProposalContent(state.proposal)).toBe(false);
-    expect(serializeProposalCompact(state.proposal)).toBeNull();
     const doc = serializeProjectDocument();
     expect(doc.schema).toBe('kcomp-project/1');
     expect(doc.proposal).toBeUndefined();

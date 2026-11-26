@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // HiDPI Canvas 2D Live Serial Plotter (ECG Timebase, 2-Point Δt/BPM Cursor, Opt-In Radix-2 FFT & PNG Export)
 import { escapeHtml, isLightTheme } from '../../core/state';
+import { settingsStore } from '../../store/settings';
 import {
   computeChannelSpectrum,
   estimateSampleRate,
@@ -30,8 +31,6 @@ export const PLOT_TIMEBASE_OPTIONS: ReadonlyArray<PlotTimebaseOption> = [
   { id: '60s',        windowMs: 60000, sampleCount: null, majorStepSec: 10.0, minorStepSec: 10.0 },
   { id: 'samples300', windowMs: null,  sampleCount: 300,  majorStepSec: 0,   minorStepSec: 0 }
 ];
-
-export const PLOT_WINDOW_OPTIONS: ReadonlyArray<number> = [100, 300, 600];
 
 export const PLOT_PALETTE_DARK: ReadonlyArray<string> = [
   '#38bdf8', // sky
@@ -225,8 +224,6 @@ export interface DevicePlotterController {
   getAnalysisMode(): PlotAnalysisMode;
   setTimebase(tb: PlotTimebaseId): void;
   getTimebase(): PlotTimebaseId;
-  setWindowSize(size: number): void;
-  getWindowSize(): number;
   setScaleConfig(partial: Partial<PlotScaleConfig>): void;
   getScaleConfig(): Readonly<PlotScaleConfig>;
   toggleChannel(channel: string): boolean;
@@ -251,7 +248,6 @@ export function createDevicePlotter(
 ): DevicePlotterController {
   let analysisMode: PlotAnalysisMode = 'time';
   let timebaseId: PlotTimebaseId = '5s';
-  let sampleWindowSize = 300;
   let scaleConfig: PlotScaleConfig = {
     autoScale: true,
     fixedMin: 0,
@@ -268,6 +264,7 @@ export function createDevicePlotter(
   let dragStartX = 0;
   let activeMeasure: ActiveMeasureSelection | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  let settingsUnsub: (() => void) | null = null;
 
   const pad = { top: 14, right: 16, bottom: 26, left: 54 };
 
@@ -330,6 +327,11 @@ export function createDevicePlotter(
   }
 
   function syncToolbarControls(): void {
+    const fftAllowed = settingsStore.getFeature('plotterFft');
+    const modeSwitch = container.querySelector<HTMLElement>('.dev-plot-mode-switch');
+    if (modeSwitch) {
+      modeSwitch.classList.toggle('hidden', !fftAllowed);
+    }
     container.querySelectorAll<HTMLButtonElement>('[data-plot-mode]').forEach((btn) => {
       const act = btn.dataset.plotMode === analysisMode;
       btn.classList.toggle('active', act);
@@ -472,7 +474,7 @@ export function createDevicePlotter(
       tStartMs = sliced.tStartMs;
       tEndMs = sliced.tEndMs;
     } else {
-      const lim = tb.sampleCount || sampleWindowSize;
+      const lim = tb.sampleCount || 300;
       slice = latestSamples.length > lim ? latestSamples.slice(latestSamples.length - lim) : latestSamples;
       sliceTimes = slice.map((s) => s.hwTimestampMs ?? s.timestampMs);
       tStartMs = sliceTimes.length ? sliceTimes[0] : 0;
@@ -1227,16 +1229,6 @@ export function createDevicePlotter(
       return timebaseId;
     },
 
-    setWindowSize(size: number): void {
-      if (!Number.isFinite(size) || size < 10) return;
-      sampleWindowSize = Math.round(size);
-      renderCanvas();
-    },
-
-    getWindowSize(): number {
-      return sampleWindowSize;
-    },
-
     setScaleConfig(partial: Partial<PlotScaleConfig>): void {
       scaleConfig = { ...scaleConfig, ...partial };
       if (scaleConfig.autoScale) {
@@ -1314,9 +1306,22 @@ export function createDevicePlotter(
         resizeObserver.disconnect();
         resizeObserver = null;
       }
+      if (settingsUnsub) {
+        settingsUnsub();
+        settingsUnsub = null;
+      }
       container.innerHTML = '';
     }
   };
+
+  settingsUnsub = settingsStore.subscribe((st) => {
+    if (!st.features.plotterFft && analysisMode === 'fft') {
+      analysisMode = 'time';
+    }
+    syncToolbarControls();
+    renderLegend();
+    renderCanvas();
+  });
 
   syncToolbarControls();
   updateRateBadge();

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // K-Comp Configurator — Shared Constants, Canvas Base Geometry & Version Metadata
-export const ASSET_VERSION = '0.4.2';
-export const APP_VERSION = '0.4.2';
+export const ASSET_VERSION = '0.4.3';
+export const APP_VERSION = '0.4.3';
 export const COPYRIGHT_AUTHOR = 'Andreas Kucher';
 export const COPYRIGHT_YEARS = '2025-2026';
 export const COPYRIGHT_NOTICE = 'Copyright (c) 2025-2026 Andreas Kucher';

@@ -57,6 +57,7 @@
             <div class="pm-group-lbl" data-i18n="menu.groupReset">Reset</div>
             <button id="btnClearAll" class="pm-item pm-danger" type="button" role="menuitem"><span>✕</span><span class="pm-label" data-i18n="menu.clear">Clear External Modules</span></button>
             <div class="pm-sep" role="separator"></div>
+            <button id="btnOpenSettings" class="pm-item" type="button" role="menuitem"><span>⚙</span><span class="pm-label" data-i18n="menu.settings">Settings</span><span id="menuSettingsBadge" class="pm-level-badge">Pro</span></button>
             <button id="btnOpenAbout" class="pm-item" type="button" role="menuitem"><span>ⓘ</span><span class="pm-label" data-i18n="menu.about">About</span></button>
           </div>
         </div>
@@ -218,7 +219,7 @@
             </div>
           </div>
           <button id="btnAutoSaveToggle" class="autosave-toggle" type="button" aria-pressed="false" title="Toggle automatic saving of your design in this browser" data-i18n-title="bottom.autoSaveToggleTitle"><span class="autosave-dot" aria-hidden="true"></span><span id="autoSaveLabel">Auto-Save: OFF</span></button>
-          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.4.2 · © Andreas Kucher</button>
+          <button id="btnFooterAbout" class="footer-credit-btn" type="button" title="About K-Comp Configurator" data-i18n-title="about.footerTitle">v0.4.3 · © Andreas Kucher</button>
         </div>
         <div class="bottom-right-controls">
           <div class="sram-compact">
@@ -405,6 +406,21 @@
     </div>
   </div>
 
+
+
+  <!-- SETTINGS & SKILL-LEVEL PRESETS MODAL -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="modal-card settings-modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="settingsModalTitle" data-i18n="settings.title">Settings &amp; Experience Level</h2>
+          <p class="info-model-sub" data-i18n="settings.subtitle">Choose a preset or toggle individual features based on your skill level.</p>
+        </div>
+        <button id="btnCloseSettingsModal" class="btn btn-ghost btn-sm" type="button" data-i18n="modal.close">Close</button>
+      </div>
+      <div id="settingsModalBody" class="settings-modal-body"></div>
+    </div>
+  </div>
 
   <!-- ABOUT, COPYRIGHT & LICENSE MODAL -->
   <div id="aboutModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">

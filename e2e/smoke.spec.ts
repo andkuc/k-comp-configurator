@@ -18,7 +18,7 @@ test.describe('K-Comp Configurator Smoke Journeys', () => {
   });
 
   test('2. switches board to ESP32-S3 DevKitC-1 and updates workspace KPIs', async ({ page }) => {
-    await page.goto('/?board=esp32-s3-devkit');
+    await page.goto('/?board=esp32-s3-devkit&level=professional');
     await expect(page.locator('#boardSelect')).toHaveValue('esp32-s3-devkit');
     await page.locator('[data-ws-id="shield"]').click();
     await expect(page.locator('#workspaceStage')).toContainText('27.9 × 69.0 mm');

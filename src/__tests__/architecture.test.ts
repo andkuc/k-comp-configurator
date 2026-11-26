@@ -15,7 +15,7 @@ import {
   type HardwareConstraintRule
 } from '../core/hardware';
 import { initI18n } from '../i18n';
-import { DEFAULT_NODE_ID, appBus, projectStore, uiSessionStore, type DerivedWorkspace } from '../store';
+import { DEFAULT_NODE_ID, appBus, projectStore, settingsStore, uiSessionStore, type DerivedWorkspace } from '../store';
 import { applyProjectDocument, serializeProjectDocument } from '../core/persistence';
 import {
   SerialLogRingBuffer,
@@ -447,11 +447,69 @@ describe('Multi-Node Graph Store & Headless Core Isolation (v0.3.4)', () => {
       'src/store/derived.ts',
       'src/store/index.ts',
       'src/store/nodes.ts',
-      'src/store/ui-session.ts'
+      'src/store/ui-session.ts',
+      'src/store/settings.ts'
     ];
     for (const rel of headlessFiles) {
       const code = readFileSync(resolve(ROOT, rel), 'utf-8');
       expect(code, `Unexpected document.* access in headless module ${rel}`).not.toMatch(/\bdocument\./);
     }
+  });
+});
+
+
+describe('Skill-Level Presets & Granular Feature Settings (v0.4.3)', () => {
+  beforeEach(() => resetArchEnv('esp32-s3-devkit'));
+
+  it('defaults to Professional preset, switches presets cleanly, and auto-detects Custom vs exact preset matches', () => {
+    expect(settingsStore.getPreset()).toBe('professional');
+    expect(settingsStore.getFeature('optionalPins')).toBe(true);
+    expect(settingsStore.getFeature('powerRailSwitch')).toBe(true);
+    expect(settingsStore.getFeature('i2cAddressSwitch')).toBe(true);
+    expect(settingsStore.getFeature('plotterFft')).toBe(true);
+    expect(settingsStore.getFeature('previewWorkspaces')).toBe(true);
+    expect(settingsStore.getFeature('codeProfiles')).toBe(true);
+    expect(settingsStore.getFeature('deviceWorkspace')).toBe(true);
+
+    // Beginner hides advanced pin, power, address, FFT & preview controls for a clutter-free start
+    settingsStore.applyPreset('beginner', false);
+    expect(settingsStore.getPreset()).toBe('beginner');
+    expect(settingsStore.getFeature('optionalPins')).toBe(false);
+    expect(settingsStore.getFeature('powerRailSwitch')).toBe(false);
+    expect(settingsStore.getFeature('i2cAddressSwitch')).toBe(false);
+    expect(settingsStore.getFeature('plotterFft')).toBe(false);
+    expect(settingsStore.getFeature('previewWorkspaces')).toBe(false);
+    expect(settingsStore.getFeature('deviceWorkspace')).toBe(true);
+
+    // Intermediate unlocks optional pins & I2C address switcher without exposing power rail or FFT
+    settingsStore.applyPreset('intermediate', false);
+    expect(settingsStore.getPreset()).toBe('intermediate');
+    expect(settingsStore.getFeature('optionalPins')).toBe(true);
+    expect(settingsStore.getFeature('i2cAddressSwitch')).toBe(true);
+    expect(settingsStore.getFeature('powerRailSwitch')).toBe(false);
+    expect(settingsStore.getFeature('plotterFft')).toBe(false);
+
+    // Flipping an individual toggle transitions preset to 'custom'
+    settingsStore.setFeature('plotterFft', true, false);
+    expect(settingsStore.getPreset()).toBe('custom');
+    expect(settingsStore.getFeature('plotterFft')).toBe(true);
+  });
+
+  it('gates Preview Workspace tabs in the topbar switcher based on settingsStore.previewWorkspaces', () => {
+    initWorkspaceShell();
+    const getTabIds = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('#workspaceSwitchSlot [data-ws-id]')).map((el) => el.dataset.wsId);
+
+    // Professional default shows all 4 workspace tabs
+    expect(getTabIds()).toEqual(['hardware', 'program', 'device', 'shield']);
+
+    // Beginner hides preview workspaces (Program & Shield PCB) so topbar stays compact on small monitors
+    settingsStore.applyPreset('beginner', false);
+    expect(getTabIds()).toEqual(['hardware', 'device']);
+
+    // Disabling Device while active returns safely to Hardware
+    setActiveWorkspace('device');
+    settingsStore.setFeature('deviceWorkspace', false, false);
+    expect(getActiveWorkspace()).toBe('hardware');
   });
 });

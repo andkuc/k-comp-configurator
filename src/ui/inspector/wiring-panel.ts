@@ -28,6 +28,7 @@ import { t, tComp, tOnboard, tBlockedPin } from '../../i18n/index';
 import { getActiveBoard } from '../../boards';
 import { appBus } from '../../store/bus';
 import { uiSessionStore } from '../../store/ui-session';
+import { settingsStore } from '../../store/settings';
 import type { DipSwitchState } from '../../types';
 
 export function buildAllBoardPinsHtml(_dipStates: DipSwitchState[]): string {
@@ -401,7 +402,7 @@ export function renderActiveComponentsInspector(dipStates: DipSwitchState[]): vo
 
       // Compact inline controls for Dual Power Rail (3.3V/5V), Configurable I2C Address & Optional Pins
       const ctrlChunks: string[] = [];
-      if (moduleSupportsDualPower(def)) {
+      if (settingsStore.getFeature('powerRailSwitch') && moduleSupportsDualPower(def)) {
         const curRail = getInstancePowerRail(inst);
         ctrlChunks.push(`
           <div class="comp-rail-toggle" role="group" aria-label="${escapeHtml(t('inspector.powerRailLabel'))}">
@@ -409,7 +410,7 @@ export function renderActiveComponentsInspector(dipStates: DipSwitchState[]): vo
             <button type="button" class="rail-opt-btn is-5v ${curRail === '5V' ? 'active' : ''}" data-set-rail-inst="${inst.instanceId}" data-set-rail="5V" title="${escapeHtml(t('inspector.rail5vTitle'))}">5V</button>
           </div>`);
       }
-      if (def.i2cAddrOptions && def.i2cAddrOptions.length > 1) {
+      if (settingsStore.getFeature('i2cAddressSwitch') && def.i2cAddrOptions && def.i2cAddrOptions.length > 1) {
         const curAddr = (addr || def.i2cAddr || '').toLowerCase();
         const addrBtns = def.i2cAddrOptions.map((o) => {
           const isSel = o.addr.toLowerCase() === curAddr;
@@ -417,7 +418,8 @@ export function renderActiveComponentsInspector(dipStates: DipSwitchState[]): vo
         }).join('');
         ctrlChunks.push(`<div class="comp-addr-toggle" role="group" aria-label="${escapeHtml(t('inspector.i2cAddrLabel'))}">${addrBtns}</div>`);
       }
-      const optPins = def.pins.filter((p) => p.tier === 'optional');
+      const showAllOpt = settingsStore.getFeature('optionalPins');
+      const optPins = def.pins.filter((p) => p.tier === 'optional' && (showAllOpt || Boolean(inst.pinMap[p.id])));
       if (optPins.length) {
         const optBtns = optPins.map((op) => {
           const wiredPin = inst.pinMap[op.id];
