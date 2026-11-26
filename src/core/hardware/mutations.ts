@@ -198,7 +198,7 @@ export async function addComponent(compId: string, opts: AddComponentOptions = {
       }
     }
     if (p.selectable) {
-      const cands = getSuitableBoardPins(p).filter((c) => c.shared || !pickedThisInst.has(c.id));
+      const cands = getSuitableBoardPins(p, inst.instanceId, p.id, def).filter((c) => c.shared || !pickedThisInst.has(c.id));
       const trulyFree = cands.find((c) => !c.takenBy && !c.onboardBy);
       if (trulyFree) {
         inst.pinMap[p.id] = trulyFree.id;

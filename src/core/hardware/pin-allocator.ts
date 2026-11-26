@@ -335,12 +335,38 @@ export function getSuitableBoardPins(
     });
   }
 
+  // On ATmega328P, auto-deprioritize Timer1 (~D9/~D10) or Timer2 (~D3/~D11) PWM pins when that timer is busy
+  const avrAvoidPwmPins = new Set<string>();
+  if (board.mcu === 'atmega328p' && pinSpec.role === 'PWM') {
+    const isServoOrIrTx = Boolean(compDef && (compDef.id === 'sg90-180' || compDef.id === 'sg90-360' || compDef.id === 'hcsr04-sg90' || compDef.id === 'ir-tx'));
+    if (!isServoOrIrTx) {
+      const hasTimer1Owner = state.active.some((i) =>
+        i.instanceId !== excludeInstId &&
+        (i.compId === 'sg90-180' || i.compId === 'sg90-360' || i.compId === 'hcsr04-sg90' || i.compId === 'rf433-tx' || i.compId === 'rf433-rx')
+      );
+      if (hasTimer1Owner) {
+        avrAvoidPwmPins.add('D9');
+        avrAvoidPwmPins.add('D10');
+      }
+      if (state.onboard.onboard_buzzer) {
+        avrAvoidPwmPins.add('D3');
+        avrAvoidPwmPins.add('D11');
+      }
+    }
+  }
+
   const pref = pinSpec.preferred || [];
   results.sort((a, b) => {
     const aFree = !a.takenBy && !a.onboardBy;
     const bFree = !b.takenBy && !b.onboardBy;
     if (aFree !== bFree) return aFree ? -1 : 1;
     if (!!a.takenBy !== !!b.takenBy) return a.takenBy ? 1 : -1;
+
+    if (avrAvoidPwmPins.size > 0) {
+      const aBusyTimer = avrAvoidPwmPins.has(a.id);
+      const bBusyTimer = avrAvoidPwmPins.has(b.id);
+      if (aBusyTimer !== bBusyTimer) return aBusyTimer ? 1 : -1;
+    }
 
     if (board.capabilities.hasPinMux) {
       if (Boolean(a.isDefaultI2c) !== Boolean(b.isDefaultI2c)) return a.isDefaultI2c ? 1 : -1;

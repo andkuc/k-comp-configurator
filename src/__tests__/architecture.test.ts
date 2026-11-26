@@ -12,6 +12,7 @@ import {
   addComponent,
   computeCriticalWarnings,
   evaluateConstraintRules,
+  reassignComponentPin,
   type HardwareConstraintRule
 } from '../core/hardware';
 import { initI18n } from '../i18n';
@@ -169,10 +170,11 @@ describe('Strict Workspace Module Lifecycle & Lazy Loading (v0.3.3)', () => {
 describe('Declarative Pluggable Hardware Constraint Rules (v0.3.3)', () => {
   beforeEach(() => resetArchEnv('esp32-s3-devkit'));
 
-  it('registers all 10 built-in rules with unique IDs and supports custom board-scoped rule plugins', () => {
+  it('registers all 11 built-in rules with unique IDs and supports custom board-scoped rule plugins', () => {
     const ids = DEFAULT_CONSTRAINT_RULES.map((r) => r.id);
-    expect(ids.length).toBe(10);
-    expect(new Set(ids).size).toBe(10);
+    expect(ids.length).toBe(11);
+    expect(new Set(ids).size).toBe(11);
+    expect(ids).toContain('avr-hardware-timers');
 
     const customAvrRule: HardwareConstraintRule = {
       id: 'custom-avr-only-rule',
@@ -511,5 +513,64 @@ describe('Skill-Level Presets & Granular Feature Settings (v0.4.3)', () => {
     setActiveWorkspace('device');
     settingsStore.setFeature('deviceWorkspace', false, false);
     expect(getActiveWorkspace()).toBe('hardware');
+  });
+});
+
+
+describe('ATmega328P Hardware Timer Conflict Guard (v0.4.4)', () => {
+  beforeEach(() => resetArchEnv('kcomp-v2'));
+
+  it('flags critical Timer1 ISR collision between Servo and 433 MHz RH_ASK on K-Comp V2, but stays silent on ESP32-S3', async () => {
+    await addComponent('sg90-180', { skipUndo: true });
+    await addComponent('rf433-tx', { skipUndo: true });
+
+    const k2Warns = computeCriticalWarnings();
+    expect(k2Warns.some((w) => w.critical && /Timer1/i.test(w.text))).toBe(true);
+
+    // Same combination on ESP32-S3 has independent LEDC / hardware timers -> zero AVR Timer1 warning!
+    resetArchEnv('esp32-s3-devkit');
+    await addComponent('sg90-180', { skipUndo: true });
+    await addComponent('rf433-tx', { skipUndo: true });
+    const espWarns = computeCriticalWarnings();
+    expect(espWarns.some((w) => /Timer1|Timer2/i.test(w.text))).toBe(false);
+  });
+
+  it('auto-avoids busy Timer1/Timer2 PWM pins on placement and offers 1-click Quick-Fix when manually wired to a conflicting pin', async () => {
+    // 1. Place SG90 Servo (claims Timer1) and enable Buzzer (claims Timer2)
+    await addComponent('sg90-180', { pinOverrides: { PWM: 'D6' }, skipUndo: true });
+    state.onboard.onboard_buzzer = true;
+
+    // 2. Adding vib-motor automatically dodges Timer1 (D9/D10) AND Timer2 (D3/D11) -> picks D5!
+    await addComponent('vib-motor', { skipUndo: true });
+    const vib = state.active.find((a) => a.compId === 'vib-motor')!;
+    expect(vib.pinMap.IN).toBe('D5');
+    expect(computeCriticalWarnings().filter((w) => w.critical)).toHaveLength(0);
+
+    // 3. Manually rewire vib-motor onto D10 (Timer1 PWM) -> triggers critical Timer1 PWM warning with Quick-Fix to D5!
+    reassignComponentPin(vib.instanceId, 'IN', 'D10');
+    const t1Warn = computeCriticalWarnings().find((w) => w.critical && /Timer1/i.test(w.text) && /D10/.test(w.text));
+    expect(t1Warn).toBeDefined();
+    expect(t1Warn?.quickActions?.[0]?.pinReassign?.newPinId).toBe('D5');
+
+    // 4. Manually rewire vib-motor onto D3 (Timer2 PWM while Buzzer is ON) -> triggers critical Timer2 warning with Quick-Fix to D5!
+    reassignComponentPin(vib.instanceId, 'IN', 'D3');
+    const t2Warn = computeCriticalWarnings().find((w) => w.critical && /Timer2/i.test(w.text) && /D3/.test(w.text));
+    expect(t2Warn).toBeDefined();
+    expect(t2Warn?.quickActions?.[0]?.pinReassign?.newPinId).toBe('D5');
+
+    // Applying the 1-click Quick-Fix resolves the conflict cleanly
+    const qa = t2Warn!.quickActions![0].pinReassign!;
+    reassignComponentPin(qa.instanceId, qa.compPinId, qa.newPinId);
+    expect(computeCriticalWarnings().some((w) => w.critical && /Timer2/i.test(w.text))).toBe(false);
+  });
+
+  it('emits a non-critical Timer2 advisory when IR-TX is combined with Onboard Buzzer on K-Comp V2', async () => {
+    state.onboard.onboard_buzzer = true;
+    await addComponent('ir-tx', { skipUndo: true });
+
+    const warns = computeCriticalWarnings();
+    const adv = warns.find((w) => !w.critical && w.advisory && /Timer2/i.test(w.text));
+    expect(adv).toBeDefined();
+    expect(adv!.text).toContain('kcomp_ir_transmitter.h');
   });
 });

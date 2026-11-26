@@ -1,6 +1,6 @@
 # K-Comp Configurator
 
-**Version `0.4.3`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
+**Version `0.4.4`** — A browser-based interactive multi-board hardware configurator, pin-constraint solver, flat-C scaffold generator, and student project charter tool for the **K-Comp** ecosystem (**K-Comp V2 / ATmega328P** and **ESP32-S3 DevKitC-1 N16R8**), built with **TypeScript, Vite, and Vitest**.
 
 The application runs 100% client-side with zero runtime backend dependencies, lazy-loaded reference/locale chunks, and automated GitHub Actions CI & Pages deployment.
 

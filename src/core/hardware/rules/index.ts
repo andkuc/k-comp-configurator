@@ -13,6 +13,7 @@ import { logicLevel3v3Rule } from './voltage-level';
 import { strappingPinRule } from './strapping';
 import { adc2WifiConflictRule } from './adc2-wifi';
 import { pendingPinsRule, usbPowerBudgetRule } from './pending-and-power';
+import { avrHardwareTimerRule } from './avr-timers';
 
 export type { HardwareConstraintRule, HardwareRuleContext } from './types';
 export {
@@ -25,7 +26,8 @@ export {
   strappingPinRule,
   adc2WifiConflictRule,
   pendingPinsRule,
-  usbPowerBudgetRule
+  usbPowerBudgetRule,
+  avrHardwareTimerRule
 };
 
 export const DEFAULT_CONSTRAINT_RULES: ReadonlyArray<HardwareConstraintRule> = [
@@ -37,6 +39,7 @@ export const DEFAULT_CONSTRAINT_RULES: ReadonlyArray<HardwareConstraintRule> = [
   logicLevel3v3Rule,
   strappingPinRule,
   adc2WifiConflictRule,
+  avrHardwareTimerRule,
   pendingPinsRule,
   usbPowerBudgetRule
 ];
