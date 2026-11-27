@@ -25,6 +25,7 @@ import {
 import { getNavigatorSerial, type WebSerialNavigatorApi } from './web-serial-types';
 import { WebSerialTransport, type WebSerialTransportOptions } from './web-serial-transport';
 import { SimulatorTransport, type SimulatorContextSnapshot } from './simulator-transport';
+import { parseKTestLine, type SelfTestFrame } from './selftest-runner';
 
 export type LineEndingMode = 'lf' | 'crlf' | 'none';
 export type DeviceTransportMode = 'none' | 'web-serial' | 'simulator';
@@ -53,6 +54,7 @@ export interface DeviceSessionSnapshot {
   readonly sampleCount: number;
   readonly flashActive: boolean;
   readonly flashProgress: FlashProgress | null;
+  readonly latestSelfTestFrame: SelfTestFrame | null;
 }
 
 export interface SessionFlashOptions extends FlashRunOptions {
@@ -120,6 +122,7 @@ export class DeviceSessionController {
   private flashActive = false;
   private flashProgress: FlashProgress | null = null;
   private flashAbortController: AbortController | null = null;
+  private latestSelfTestFrame: SelfTestFrame | null = null;
 
   private txHistory: string[] = [];
   private activeWebSerial: WebSerialTransport | null = null;
@@ -151,7 +154,8 @@ export class DeviceSessionController {
       latestSample: samples.length ? samples[samples.length - 1] : null,
       sampleCount: samples.length,
       flashActive: this.flashActive,
-      flashProgress: this.flashProgress ? { ...this.flashProgress } : null
+      flashProgress: this.flashProgress ? { ...this.flashProgress } : null,
+      latestSelfTestFrame: this.latestSelfTestFrame
     };
   }
 
@@ -253,9 +257,14 @@ export class DeviceSessionController {
       const now = monotonicNowMs();
       this.rxLinesTotal++;
       this.appendEntry('rx', line, Math.round(now));
-      const sample = parseSerialPlotLine(line, now);
-      if (sample) {
-        this.plotRing.push(sample);
+      const ktest = parseKTestLine(line, Math.round(now));
+      if (ktest) {
+        this.latestSelfTestFrame = ktest;
+      } else {
+        const sample = parseSerialPlotLine(line, now);
+        if (sample) {
+          this.plotRing.push(sample);
+        }
       }
       this.notify();
     }));
@@ -576,12 +585,19 @@ export class DeviceSessionController {
     }
   }
 
+  clearSelfTestFrame(): void {
+    if (!this.latestSelfTestFrame) return;
+    this.latestSelfTestFrame = null;
+    this.notify();
+  }
+
   clear(): void {
     this.entries = [];
     this.rawRing.clear();
     this.plotRing.clear();
     this.rxBytesTotal = 0;
     this.rxLinesTotal = 0;
+    this.latestSelfTestFrame = null;
     this.notify();
   }
 
@@ -614,6 +630,7 @@ export class DeviceSessionController {
     }
     this.flashActive = false;
     this.flashProgress = null;
+    this.latestSelfTestFrame = null;
     await this.disconnect();
     this.clear();
     this.txHistory = [];

@@ -1,0 +1,6 @@
+node_modules
+*.test.mjs
+docker-compose*.yml
+Caddyfile
+README.md
+.env*

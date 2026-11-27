@@ -1,0 +1,17 @@
+{
+  "name": "k-comp-compile-service",
+  "version": "0.4.5",
+  "private": true,
+  "description": "Zero-dependency Node.js 22 LTS HTTP compile service for K-Comp Configurator (ATmega328P & ESP32-S3).",
+  "author": "Andreas Kucher",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test server.test.mjs"
+  },
+  "dependencies": {}
+}

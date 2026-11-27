@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Automatic HTTPS Reverse Proxy for Self-Hosted K-Comp Compile Service
+
+{$COMPILE_DOMAIN} {
+  # Privacy-by-default: do not persist client IP access logs
+  log {
+    output discard
+  }
+
+  encode zstd gzip
+
+  request_body {
+    max_size 1MB
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+    -Server
+  }
+
+  reverse_proxy compile-service:8787 {
+    transport http {
+      response_header_timeout 120s
+    }
+  }
+}

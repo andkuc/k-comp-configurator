@@ -35,6 +35,7 @@ export interface AppEventMap {
   'workspace:changed': { workspaceId: string; previousId: string };
   'node:changed': { nodeId: string; previousNodeId: string };
   'settings:changed': { preset: string };
+  'compiler:changed': { serverId: string | null };
   'ui:toast': { msg: string; opts?: ToastOptions | null };
   'codeblock:spotlight': { blockId: string | null };
   'history:push': void;
@@ -54,6 +55,7 @@ export interface AppEventMap {
   'modal:openComponentInfo': { compId: string };
   'modal:openBlockInfo': { type: string };
   'modal:openBlocksOverview': void;
+  'modal:openSettings': void;
   'modal:updateInfoDocLink': { def: ComponentDef };
   'preset:load': { presetId: string };
 }
@@ -64,6 +66,10 @@ export interface AppCommandMap {
     res: Promise<void> | void;
   };
   'history:captureSnapshot': {
+    req: void;
+    res: string;
+  };
+  'codegen:getSketch': {
     req: void;
     res: string;
   };

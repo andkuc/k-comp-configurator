@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "K-Comp: Doctor (Check Environment)",
+      "type": "npm",
+      "script": "doctor",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "K-Comp: Dev Full (Compile-Server + Vite)",
+      "type": "npm",
+      "script": "dev:full",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "K-Comp: Check All (Arch + Tests + Strict Build)",
+      "type": "npm",
+      "script": "check",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "K-Comp: Build Compile-Server (AVR Fast ~1 min)",
+      "type": "npm",
+      "script": "compiler:avr",
+      "problemMatcher": []
+    },
+    {
+      "label": "K-Comp: Build Compile-Server (Full AVR + ESP32-S3)",
+      "type": "npm",
+      "script": "compiler:build",
+      "problemMatcher": []
+    },
+    {
+      "label": "K-Comp: Stop Compile-Server",
+      "type": "npm",
+      "script": "compiler:down",
+      "problemMatcher": []
+    }
+  ]
+}

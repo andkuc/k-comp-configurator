@@ -14,11 +14,14 @@ import {
 } from './device-transport';
 
 export interface SimulatorContextSnapshot {
+  boardId?: string;
   boardName: string;
   boardShortName: string;
   mcu: McuArchitecture;
   activeCompIds: string[];
   onboardIds: string[];
+  expectedI2cAddrs?: number[];
+  inputPinIds?: string[];
 }
 
 export class SimulatorTransport implements DeviceTransport {
@@ -241,8 +244,20 @@ export class SimulatorTransport implements DeviceTransport {
     const upper = clean.toUpperCase();
     if (!clean) return;
 
-    if (upper === 'HELP' || upper === '?') {
-      this.emitLine('[SIM] Available commands: HELP, STATUS, LED, HUM, PAUSE, RESUME, RESET, or any single char.');
+    if (upper === 'SCAN' || upper === 'ACT') {
+      const ctx = this.contextProvider();
+      const boardId = ctx.boardId || (ctx.mcu === 'esp32s3' ? 'esp32-s3-devkit' : 'kcomp-v2');
+      const i2c = Array.isArray(ctx.expectedI2cAddrs)
+        ? Array.from(new Set(ctx.expectedI2cAddrs)).sort((a, b) => a - b)
+        : (ctx.onboardIds.includes('onboard_oled') ? [0x3c] : []);
+      const pins: Record<string, number> = {};
+      for (const pinId of ctx.inputPinIds || []) {
+        pins[pinId] = pinId.startsWith('A') ? 512 : 1;
+      }
+      const actFlag = upper === 'ACT' ? 1 : 0;
+      this.emitLine(`@KTEST ${JSON.stringify({ v: 1, board: boardId, i2c, pins, act: actFlag })}`);
+    } else if (upper === 'HELP' || upper === '?') {
+      this.emitLine('[SIM] Available commands: HELP, STATUS, SCAN, ACT, LED, HUM, PAUSE, RESUME, RESET, or any single char.');
     } else if (upper === 'STATUS') {
       const ctx = this.contextProvider();
       this.emitLine(`[SIM] Board=${ctx.boardShortName} MCU=${ctx.mcu} Modules=${ctx.activeCompIds.length} LED=${this.ledOn ? 'ON' : 'OFF'} HUM50=${this.ecgMainsHumEnabled ? 'ON' : 'OFF'}`);
@@ -321,13 +336,17 @@ export class SimulatorTransport implements DeviceTransport {
 export function buildSimulatorContextFromBoard(
   board: BoardProfile,
   activeCompIds: string[],
-  onboardMap: Record<string, boolean>
+  onboardMap: Record<string, boolean>,
+  extras?: { expectedI2cAddrs?: number[]; inputPinIds?: string[] }
 ): SimulatorContextSnapshot {
   return {
+    boardId: board.id,
     boardName: board.name,
     boardShortName: board.shortName,
     mcu: board.mcu,
     activeCompIds: [...activeCompIds],
-    onboardIds: Object.entries(onboardMap).filter(([, on]) => Boolean(on)).map(([id]) => id)
+    onboardIds: Object.entries(onboardMap).filter(([, on]) => Boolean(on)).map(([id]) => id),
+    ...(extras?.expectedI2cAddrs ? { expectedI2cAddrs: [...extras.expectedI2cAddrs] } : {}),
+    ...(extras?.inputPinIds ? { inputPinIds: [...extras.inputPinIds] } : {})
   };
 }

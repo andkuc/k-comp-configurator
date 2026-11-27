@@ -9,7 +9,7 @@ function copyRootLegalFiles() {
     name: 'kcomp-copy-legal-files',
     closeBundle() {
       const distDir = resolve(__dirname, 'dist');
-      for (const file of ['LICENSE', 'NOTICE']) {
+      for (const file of ['LICENSE', 'NOTICE', 'THIRD_PARTY_LICENSES.md']) {
         const src = resolve(__dirname, file);
         if (existsSync(src)) {
           copyFileSync(src, resolve(distDir, file));

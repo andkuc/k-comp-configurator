@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Production Self-Hosted Setup with Caddy Auto-HTTPS (Let's Encrypt)
+# Required .env variables: COMPILE_DOMAIN, AUTH_TOKEN, CORS_ORIGINS (e.g. https://andkuc.github.io)
+
+services:
+  compile-service:
+    image: ${COMPILE_IMAGE:-k-comp-compile-server:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8787"
+    environment:
+      PORT: "8787"
+      MAX_CONCURRENT_BUILDS: "${MAX_CONCURRENT_BUILDS:-3}"
+      MAX_QUEUE_LENGTH: "${MAX_QUEUE_LENGTH:-32}"
+      MAX_CACHE_ENTRIES: "${MAX_CACHE_ENTRIES:-256}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-https://andkuc.github.io}"
+      AUTH_TOKEN: "${AUTH_TOKEN:?Set AUTH_TOKEN in .env for public deployments}"
+    read_only: true
+    tmpfs:
+      - /tmp/kcomp-builds:rw,noexec,nosuid,mode=1777,size=1g
+      - /var/cache/kcomp-compile:rw,noexec,nosuid,mode=1777,size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 384
+    mem_limit: 3g
+    networks:
+      - compile-internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - compile-service
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      COMPILE_DOMAIN: "${COMPILE_DOMAIN:?Set COMPILE_DOMAIN (e.g. compile.example.org) in .env}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - compile-internal
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  compile-internal:
+    driver: bridge

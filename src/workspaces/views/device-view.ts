@@ -1,14 +1,17 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Device Workspace View Module (v0.4.1): Web Serial Monitor, Canvas 2D Live Plotter & Monitor/Split/Plotter Switcher
+// Device Workspace View Module (v0.4.5): Serial Monitor, Live Plotter, Browser Flasher, Multi-Server Compile & L0 Self-Test
 import { state, escapeHtml, getProjectSlug } from '../../core/state';
+import { CATALOG } from '../../catalog';
 import { parseCharList } from '../../core/code-blocks';
+import { buildSelfTestSpec, generateSelfTestSketch } from '../../core/selftest';
 import {
   COMMON_BAUD_RATES,
   buildSimulatorContextFromBoard,
   createEspSingleBinArtifact,
   createIHexArtifact,
   deviceSession,
+  evaluateSelfTestReport,
   formatTimestampMs,
   getCompilerProvider,
   hasPairedMcp2221WebHid,
@@ -17,10 +20,17 @@ import {
   isWebSerialAvailable,
   parseFlashOffset,
   requestMcp2221WebHidPairing,
+  type CompileDiagnostic,
+  type CompileMemoryUsage,
+  type CompileRequest,
+  type CompileResult,
+  type CompilerHealthStatus,
   type DeviceSessionSnapshot,
   type FirmwareArtifact,
   type FlashResetPreference,
   type LineEndingMode,
+  type SelfTestCheckItem,
+  type SelfTestSpec,
   type SerialLogEntry
 } from '../../services';
 import { appBus, type DerivedWorkspace } from '../../store/bus';
@@ -31,12 +41,31 @@ import { createDevicePlotter, type DevicePlotterController } from './device-plot
 
 export type DeviceViewMode = 'monitor' | 'split' | 'plotter';
 
+function extractSketchLibraries(source: string): string[] {
+  const libs = new Set<string>();
+  const re = /^\s*#include\s*<([^>]+)>/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const hdr = m[1].trim();
+    if (hdr) libs.add(hdr);
+  }
+  return Array.from(libs).sort();
+}
+
+function formatByteCount(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
 export function createDeviceWorkspaceModule(): WorkspaceModule {
   let host: HTMLElement | null = null;
   let context: WorkspaceContext | null = null;
   let currentDerived: DerivedWorkspace | null = null;
   let sessionUnsub: (() => void) | null = null;
   let themeUnsub: (() => void) | null = null;
+  let settingsUnsub: (() => void) | null = null;
+  let compilerBusUnsub: (() => void) | null = null;
   let plotter: DevicePlotterController | null = null;
   let viewMode: DeviceViewMode = 'split';
   let rafId = 0;
@@ -54,6 +83,16 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
   let mcp2221HidPaired = false;
   let flashInfoModalOpen = false;
   let flashInfoEscHandler: ((ev: KeyboardEvent) => void) | null = null;
+
+  // v0.4.5-c1: Compiler Health, Build & Diagnostics State
+  let compilerHealth: CompilerHealthStatus | null = null;
+  let compilerChecking = false;
+  let compileActive = false;
+  let compileAbortController: AbortController | null = null;
+  let healthAbortController: AbortController | null = null;
+  let lastCompileResult: CompileResult | null = null;
+  let compilePanelVisible = false;
+  let selfTestPanelOpen = false;
 
   function triggerDownload(filename: string, content: string, mime: string): void {
     const blob = new Blob([content], { type: mime });
@@ -103,6 +142,446 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       : '';
     const prefix = entry.dir === 'tx' ? '<span class="dev-log-dir">TX &gt;</span>' : '';
     return `<div class="dev-log-line is-${entry.dir}">${tsHtml}${prefix}<span class="dev-log-txt">${escapeHtml(entry.text)}</span></div>`;
+  }
+
+  function buildCurrentCompileRequest(derived: DerivedWorkspace): CompileRequest {
+    const invoked = appBus.invoke('codegen:getSketch');
+    const source = typeof invoked === 'string' && invoked.length > 0 ? invoked : (state.latestSketch || '');
+    return {
+      boardId: derived.board.id,
+      mcu: derived.board.mcu,
+      codeProfile: state.codeProfile,
+      files: [{ path: 'main.ino', content: source }],
+      libraries: extractSketchLibraries(source),
+      optimizeForSize: false
+    };
+  }
+
+  function refreshCompilerHealth(): void {
+    if (healthAbortController) {
+      healthAbortController.abort();
+      healthAbortController = null;
+    }
+    const provider = getCompilerProvider();
+    if (!provider) {
+      compilerHealth = null;
+      compilerChecking = false;
+      updateCompilerDom();
+      return;
+    }
+    const ac = new AbortController();
+    healthAbortController = ac;
+    compilerChecking = true;
+    updateCompilerDom();
+
+    void provider
+      .checkHealth(ac.signal)
+      .then((status) => {
+        if (healthAbortController !== ac) return;
+        healthAbortController = null;
+        compilerChecking = false;
+        compilerHealth = status;
+        updateCompilerDom();
+      })
+      .catch(() => {
+        if (healthAbortController !== ac) return;
+        healthAbortController = null;
+        compilerChecking = false;
+        updateCompilerDom();
+      });
+  }
+
+  function renderMemoryMeterHtml(label: string, used: number, max: number): string {
+    const pct = Math.max(0, Math.min(100, Math.round((used / Math.max(1, max)) * 100)));
+    const levelCls = pct >= 90 ? 'is-crit' : (pct >= 75 ? 'is-warn' : 'is-ok');
+    return `
+      <div class="dev-mem-meter ${levelCls}">
+        <span class="dev-mem-lbl">${escapeHtml(label)}</span>
+        <div class="dev-mem-track" aria-hidden="true"><div class="dev-mem-fill" style="width:${pct}%"></div></div>
+        <span class="dev-mem-val">${escapeHtml(formatByteCount(used))} / ${escapeHtml(formatByteCount(max))} (${pct}%)</span>
+      </div>`;
+  }
+
+  function renderDiagnosticRowHtml(diag: CompileDiagnostic): string {
+    const loc = diag.column ? `${diag.file}:${diag.line}:${diag.column}` : `${diag.file}:${diag.line}`;
+    const tag = diag.severity === 'error' ? 'ERR' : (diag.severity === 'warning' ? 'WARN' : 'NOTE');
+    return `
+      <div class="dev-diag-row is-${diag.severity}">
+        <span class="dev-diag-sev">${tag}</span>
+        <code class="dev-diag-loc">${escapeHtml(loc)}</code>
+        <span class="dev-diag-msg">${escapeHtml(diag.message)}</span>
+      </div>`;
+  }
+
+  function updateCompilerDom(): void {
+    if (!host || !context) return;
+    const { t } = context;
+    const snap = deviceSession.getSnapshot();
+    const derived = currentDerived || context.getDerived();
+    const board = derived.board;
+    const provider = getCompilerProvider();
+    const webSerialOk = isWebSerialAvailable();
+    const simActive = snap.portState === 'monitoring' && snap.mode === 'simulator';
+    const protoId = board.flashProfile?.protocol ?? board.targetMeta?.flashProtocol ?? 'none';
+    const flashSupported = protoId === 'stk500v1' || protoId === 'esptool' || simActive;
+
+    // 1. Pending ?compiler= URL confirmation banner
+    const urlBanner = host.querySelector<HTMLElement>('#devCompilerUrlBanner');
+    if (urlBanner) {
+      const pendingUrl = settingsStore.getPendingCompilerUrl();
+      if (pendingUrl) {
+        urlBanner.classList.remove('hidden');
+        const urlCode = urlBanner.querySelector<HTMLElement>('#devPendingCompilerUrl');
+        if (urlCode) urlCode.textContent = pendingUrl;
+      } else {
+        urlBanner.classList.add('hidden');
+      }
+    }
+
+    // 2. Server Health Chip in toolbar
+    const chipBtn = host.querySelector<HTMLButtonElement>('#btnDevCompilerChip');
+    if (chipBtn) {
+      chipBtn.classList.remove('is-online', 'is-offline', 'is-checking', 'is-serverless');
+      if (!provider) {
+        chipBtn.classList.add('is-serverless');
+        chipBtn.innerHTML = `<span class="dev-srv-dot" aria-hidden="true"></span><span>${escapeHtml(t('dev.compilerServerless'))}</span>`;
+        chipBtn.title = t('dev.compilerChipTitleServerless');
+      } else if (compilerChecking) {
+        chipBtn.classList.add('is-checking');
+        chipBtn.innerHTML = `<span class="dev-srv-dot" aria-hidden="true"></span><span>${escapeHtml(provider.name)} · ${escapeHtml(t('dev.compilerChecking'))}</span>`;
+        chipBtn.title = t('dev.compilerChipTitle');
+      } else if (compilerHealth?.online) {
+        chipBtn.classList.add('is-online');
+        const lat = compilerHealth.latencyMs !== undefined ? ` · ${compilerHealth.latencyMs} ms` : '';
+        chipBtn.innerHTML = `<span class="dev-srv-dot" aria-hidden="true"></span><span>${escapeHtml(provider.name)}${escapeHtml(lat)}</span>`;
+        chipBtn.title = t('dev.compilerChipTitle');
+      } else {
+        chipBtn.classList.add('is-offline');
+        chipBtn.innerHTML = `<span class="dev-srv-dot" aria-hidden="true"></span><span>${escapeHtml(provider.name)} · ${escapeHtml(t('dev.compilerOffline'))}</span>`;
+        chipBtn.title = compilerHealth?.message || t('dev.compilerChipTitle');
+      }
+    }
+
+    // 3. Verify & Build+Flash buttons (only visible when a CompilerProvider is active)
+    const btnVerify = host.querySelector<HTMLButtonElement>('#btnDevVerify');
+    if (btnVerify) {
+      btnVerify.classList.toggle('hidden', !provider);
+      btnVerify.disabled = !provider || compileActive || snap.flashActive;
+    }
+
+    const btnBuildFlash = host.querySelector<HTMLButtonElement>('#btnDevBuildFlash');
+    if (btnBuildFlash) {
+      btnBuildFlash.classList.toggle('hidden', !provider);
+      btnBuildFlash.disabled =
+        !provider || compileActive || snap.flashActive || !flashSupported || (!webSerialOk && !simActive);
+    }
+
+    // 4. Target chip text
+    const targetChip = host.querySelector<HTMLElement>('.dev-target-chip');
+    if (targetChip) {
+      const proto = (board.targetMeta?.flashProtocol || 'none').toUpperCase();
+      targetChip.textContent = `${board.shortName} · ${proto}`;
+    }
+
+    // 5. Compile Status / Memory / Diagnostics Panel
+    const panel = host.querySelector<HTMLElement>('#devCompilePanel');
+    if (panel) {
+      if (!compilePanelVisible && !compileActive) {
+        panel.classList.add('hidden');
+      } else {
+        panel.classList.remove('hidden');
+        panel.classList.toggle('is-busy', compileActive);
+        panel.classList.toggle('is-ok', !compileActive && Boolean(lastCompileResult?.ok));
+        panel.classList.toggle('is-err', !compileActive && Boolean(lastCompileResult && !lastCompileResult.ok));
+
+        const statusEl = panel.querySelector<HTMLElement>('#devCompileStatus');
+        const memEl = panel.querySelector<HTMLElement>('#devCompileMem');
+        const diagsEl = panel.querySelector<HTMLElement>('#devCompileDiags');
+        const cancelBtn = panel.querySelector<HTMLButtonElement>('#btnDevCompileCancel');
+        const closeBtn = panel.querySelector<HTMLButtonElement>('#btnDevCompileClose');
+
+        if (cancelBtn) cancelBtn.classList.toggle('hidden', !compileActive);
+        if (closeBtn) closeBtn.classList.toggle('hidden', compileActive);
+
+        if (compileActive) {
+          if (statusEl) {
+            statusEl.textContent = t('dev.compilingMsg', { board: board.shortName });
+          }
+          if (memEl) memEl.innerHTML = '';
+          if (diagsEl) diagsEl.innerHTML = '';
+        } else if (lastCompileResult) {
+          const res = lastCompileResult;
+          const errCount = res.diagnostics.filter((d) => d.severity === 'error').length;
+          const warnCount = res.diagnostics.filter((d) => d.severity === 'warning').length;
+          if (statusEl) {
+            if (res.ok) {
+              const cacheTag = res.cacheHit ? ` · ${t('dev.compileCached')}` : '';
+              const warnTag = warnCount > 0 ? ` · ${t('dev.compileWarnCount', { count: warnCount })}` : '';
+              statusEl.textContent = `${t('dev.compileOk', { ms: res.durationMs })}${cacheTag}${warnTag}`;
+            } else if (res.error && errCount === 0) {
+              statusEl.textContent = `${t('dev.compileFailed')}: ${res.error}`;
+            } else {
+              statusEl.textContent = t('dev.compileFailSummary', { errors: errCount, warnings: warnCount });
+            }
+          }
+
+          if (memEl) {
+            const mem: CompileMemoryUsage | undefined = res.memory;
+            if (mem) {
+              memEl.innerHTML =
+                renderMemoryMeterHtml('Flash', mem.flashUsed, mem.flashMax) +
+                renderMemoryMeterHtml('RAM', mem.ramUsed, mem.ramMax);
+              memEl.classList.remove('hidden');
+            } else {
+              memEl.innerHTML = '';
+              memEl.classList.add('hidden');
+            }
+          }
+
+          if (diagsEl) {
+            if (res.diagnostics.length > 0) {
+              diagsEl.innerHTML = res.diagnostics.map(renderDiagnosticRowHtml).join('');
+              diagsEl.classList.remove('hidden');
+            } else {
+              diagsEl.innerHTML = '';
+              diagsEl.classList.add('hidden');
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function getCurrentSelfTestSpec(derived: DerivedWorkspace): SelfTestSpec {
+    return buildSelfTestSpec({
+      board: derived.board,
+      catalog: state.catalog || CATALOG,
+      active: state.active || [],
+      onboard: state.onboard || {},
+      dipStates: derived.dipStates,
+      netlist: derived.netlist
+    });
+  }
+
+  function renderSelfTestItemHtml(item: SelfTestCheckItem): string {
+    const icon =
+      item.status === 'pass'
+        ? '✓'
+        : (item.status === 'fail'
+            ? '✕'
+            : (item.status === 'warn' ? '⚠' : (item.status === 'info' ? '•' : '○')));
+    const hintHtml = item.hint ? `<span class="dev-st-hint">${escapeHtml(item.hint)}</span>` : '';
+    return `
+      <div class="dev-st-row is-${item.status}">
+        <span class="dev-st-ico" aria-hidden="true">${icon}</span>
+        <span class="dev-st-lbl">${escapeHtml(item.label)}</span>
+        <code class="dev-st-detail">${escapeHtml(item.detail)}</code>
+        ${hintHtml}
+      </div>`;
+  }
+
+  function updateSelfTestDom(): void {
+    if (!host || !context) return;
+    const { t } = context;
+    const snap = deviceSession.getSnapshot();
+    const derived = currentDerived || context.getDerived();
+    const spec = getCurrentSelfTestSpec(derived);
+    const report = evaluateSelfTestReport(spec, snap.latestSelfTestFrame);
+    const provider = getCompilerProvider();
+    const connected = snap.portState === 'monitoring';
+    const webSerialOk = isWebSerialAvailable();
+    const simActive = connected && snap.mode === 'simulator';
+    const protoId = derived.board.flashProfile?.protocol ?? derived.board.targetMeta?.flashProtocol ?? 'none';
+    const flashSupported = protoId === 'stk500v1' || protoId === 'esptool' || simActive;
+
+    const toggleBtn = host.querySelector<HTMLButtonElement>('#btnDevSelfTest');
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('is-active', selfTestPanelOpen);
+      toggleBtn.setAttribute('aria-expanded', String(selfTestPanelOpen));
+    }
+
+    const panel = host.querySelector<HTMLElement>('#devSelfTestPanel');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !selfTestPanelOpen);
+    if (!selfTestPanelOpen) return;
+
+    const badgeEl = panel.querySelector<HTMLElement>('#devSelfTestBadge');
+    if (badgeEl) {
+      badgeEl.className = `dev-st-badge is-${report.overall}`;
+      const lblKey =
+        report.overall === 'pass'
+          ? 'dev.selfTestPass'
+          : (report.overall === 'fail'
+              ? 'dev.selfTestFail'
+              : (report.overall === 'warn' ? 'dev.selfTestWarn' : 'dev.selfTestPending'));
+      badgeEl.textContent = t(lblKey);
+    }
+
+    const metaEl = panel.querySelector<HTMLElement>('#devSelfTestMeta');
+    if (metaEl) {
+      metaEl.textContent = t('dev.selfTestBusMeta', {
+        board: spec.boardShortName,
+        sda: spec.i2cPins.sda,
+        scl: spec.i2cPins.scl,
+        i2c: spec.expectedI2c.length,
+        pins: spec.inputPins.length
+      });
+    }
+
+    const btnFlashSt = panel.querySelector<HTMLButtonElement>('#btnDevSelfTestFlash');
+    if (btnFlashSt) {
+      btnFlashSt.classList.toggle('hidden', !provider);
+      btnFlashSt.disabled = !provider || compileActive || snap.flashActive || !flashSupported || (!webSerialOk && !simActive);
+    }
+
+    const btnScan = panel.querySelector<HTMLButtonElement>('#btnDevSelfTestScan');
+    if (btnScan) {
+      btnScan.disabled = !connected || snap.flashActive;
+    }
+
+    const btnAct = panel.querySelector<HTMLButtonElement>('#btnDevSelfTestAct');
+    if (btnAct) {
+      btnAct.classList.toggle('hidden', spec.actuators.length === 0);
+      btnAct.disabled = !connected || snap.flashActive;
+    }
+
+    const listEl = panel.querySelector<HTMLElement>('#devSelfTestList');
+    if (listEl) {
+      if (report.items.length === 0) {
+        listEl.innerHTML = `<div class="dev-st-empty">${escapeHtml(t('dev.selfTestEmptyBoard'))}</div>`;
+      } else {
+        listEl.innerHTML = report.items.map(renderSelfTestItemHtml).join('');
+      }
+    }
+
+    const noteEl = panel.querySelector<HTMLElement>('#devSelfTestFootNote');
+    if (noteEl) {
+      if (spec.actuators.length > 0 && spec.deadmanPin) {
+        noteEl.textContent = t('dev.selfTestDeadmanNote', { pin: spec.deadmanPin.label });
+      } else {
+        noteEl.textContent = t('dev.selfTestStandaloneNote');
+      }
+    }
+  }
+
+  async function runCompileFlow(
+    alsoFlash: boolean,
+    customRequest?: { filename: string; content: string; label?: string }
+  ): Promise<void> {
+    if (!context || compileActive) return;
+    const provider = getCompilerProvider();
+    if (!provider) {
+      appBus.emit('ui:toast', { msg: context.t('dev.compilerRequiredToast') });
+      return;
+    }
+
+    const d = currentDerived || context.getDerived();
+    const targetBoard = d.board;
+    const req: CompileRequest = customRequest
+      ? {
+          boardId: targetBoard.id,
+          mcu: targetBoard.mcu,
+          codeProfile: state.codeProfile,
+          files: [{ path: customRequest.filename, content: customRequest.content }],
+          libraries: extractSketchLibraries(customRequest.content),
+          optimizeForSize: false
+        }
+      : buildCurrentCompileRequest(d);
+    const ac = new AbortController();
+    compileAbortController = ac;
+    compileActive = true;
+    compilePanelVisible = true;
+    lastCompileResult = null;
+    updateCompilerDom();
+    updateLiveDom();
+
+    deviceSession.logSystem(
+      `[BUILD] Compiling ${req.files[0]?.path || 'main.ino'} for ${targetBoard.shortName} via ${provider.name}…`
+    );
+
+    try {
+      const result = await provider.compile(req, { signal: ac.signal });
+      lastCompileResult = result;
+      compileActive = false;
+      compileAbortController = null;
+
+      if (result.ok) {
+        const memNote = result.memory
+          ? ` · Flash ${formatByteCount(result.memory.flashUsed)}/${formatByteCount(result.memory.flashMax)} · RAM ${formatByteCount(result.memory.ramUsed)}/${formatByteCount(result.memory.ramMax)}`
+          : '';
+        const cacheNote = result.cacheHit ? ' (cached)' : '';
+        deviceSession.logSystem(`[BUILD] Succeeded in ${result.durationMs} ms${cacheNote}${memNote}.`);
+        for (const diag of result.diagnostics) {
+          if (diag.severity === 'warning') {
+            deviceSession.logSystem(`[BUILD WARN] ${diag.file}:${diag.line}: ${diag.message}`);
+          }
+        }
+      } else {
+        const errCount = result.diagnostics.filter((dg) => dg.severity === 'error').length;
+        deviceSession.logError(
+          `[BUILD FAILED] ${result.error || `${errCount} compiler error(s) in ${targetBoard.shortName}.`}`
+        );
+        for (const diag of result.diagnostics) {
+          deviceSession.logError(`[${diag.severity.toUpperCase()}] ${diag.file}:${diag.line}: ${diag.message}`);
+        }
+      }
+
+      updateCompilerDom();
+      updateLiveDom();
+
+      if (!result.ok) {
+        appBus.emit('ui:toast', { msg: context.t('dev.compileFailed') });
+        return;
+      }
+
+      if (!alsoFlash) {
+        appBus.emit('ui:toast', { msg: context.t('dev.compileOk', { ms: result.durationMs }) });
+        return;
+      }
+
+      if (!result.firmwareArtifact) {
+        deviceSession.logError('[BUILD] Server returned ok=true without a flashable firmware artifact.');
+        appBus.emit('ui:toast', { msg: context.t('dev.compileNoArtifact') });
+        return;
+      }
+
+      const autoResetDipId = targetBoard.flashProfile?.autoResetDipSwitchId;
+      const s1 = autoResetDipId !== undefined
+        ? d.dipStates.find((dip) => dip.id === autoResetDipId)
+        : undefined;
+
+      const flashRes = await deviceSession.flashArtifact(result.firmwareArtifact, targetBoard, {
+        verify: targetBoard.flashProfile?.supportsVerify ?? true,
+        resetPreference,
+        autoResetDipOff: Boolean(s1 && !s1.on)
+      });
+      appBus.emit('ui:toast', {
+        msg: context.t('dev.flashSuccess', { bytes: flashRes.bytesWritten, board: targetBoard.shortName })
+      });
+    } catch (err: unknown) {
+      compileActive = false;
+      compileAbortController = null;
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      const isCancel = err instanceof Error && err.name === 'NotFoundError';
+      if (isAbort) {
+        deviceSession.logSystem('[BUILD] Compilation canceled.');
+        if (!lastCompileResult) compilePanelVisible = false;
+      } else if (!isCancel) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!lastCompileResult) {
+          lastCompileResult = {
+            ok: false,
+            durationMs: 0,
+            diagnostics: [],
+            artifacts: [],
+            error: msg
+          };
+        }
+        appBus.emit('ui:toast', { msg });
+      }
+      updateCompilerDom();
+      updateLiveDom();
+    }
   }
 
   function applyViewModeToDom(): void {
@@ -182,7 +661,7 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
     if (btnFlashFile) {
       const flashLabel = isEspBoard ? t('dev.flashBin') : t('dev.flashHex');
       btnFlashFile.innerHTML = `⚡ ${escapeHtml(flashLabel)} <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span>`;
-      btnFlashFile.disabled = snap.flashActive || !flashSupported || (!webSerialOk && !simActive);
+      btnFlashFile.disabled = snap.flashActive || compileActive || !flashSupported || (!webSerialOk && !simActive);
       btnFlashFile.title = !flashSupported
         ? t('dev.flashUnsupportedBoard')
         : (isEspBoard ? t('dev.flashBinTitle') : t('dev.flashHexTitle'));
@@ -255,6 +734,9 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
         flashBanner.classList.add('hidden');
       }
     }
+
+    updateCompilerDom();
+    updateSelfTestDom();
 
     const btnPause = host.querySelector<HTMLButtonElement>('#btnDevPause');
     if (btnPause) {
@@ -424,7 +906,6 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
     const board = derived.board;
     const snap = deviceSession.getSnapshot();
     const webSerialOk = isWebSerialAvailable();
-    const compiler = getCompilerProvider();
     const proto = (board.targetMeta?.flashProtocol || 'none').toUpperCase();
     const defaultBaud = board.targetMeta?.defaultBaud || 115200;
 
@@ -454,6 +935,9 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
             <button type="button" id="btnDevSim" class="btn btn-ghost btn-sm">${escapeHtml(t('dev.startSim'))}</button>
             <select id="devBaudSelect" class="dev-select" aria-label="${escapeHtml(t('dev.baudLabel'))}">${baudOptions}</select>
             <button type="button" id="btnDevReset" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.resetTitle'))}">↻ ${escapeHtml(t('dev.reset'))}</button>
+            <button type="button" id="btnDevVerify" class="btn btn-ghost btn-sm hidden" title="${escapeHtml(t('dev.verifyTitle'))}">✓ ${escapeHtml(t('dev.verify'))}</button>
+            <button type="button" id="btnDevBuildFlash" class="btn btn-primary btn-sm dev-flash-btn hidden" title="${escapeHtml(t('dev.buildFlashTitle'))}">⚡ ${escapeHtml(t('dev.buildFlash'))} <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span></button>
+            <button type="button" id="btnDevSelfTest" class="btn btn-ghost btn-sm" aria-expanded="false" title="${escapeHtml(t('dev.selfTestBtnTitle'))}">🧪 ${escapeHtml(t('dev.selfTestBtn'))}</button>
             <div class="dev-flash-btn-group">
               <button type="button" id="btnDevFlashFile" class="btn btn-ghost btn-sm dev-flash-btn" title="${escapeHtml(t('dev.flashHexTitle'))}">⚡ ${escapeHtml(t('dev.flashHex'))} <span class="dev-beta-badge">${escapeHtml(t('dev.flashBetaBadge'))}</span></button>
               <button type="button" id="btnDevFlashInfo" class="btn btn-ghost btn-sm dev-info-icon-btn" title="${escapeHtml(t('dev.flashInfoBtnTitle'))}" aria-label="${escapeHtml(t('dev.flashInfoBtnTitle'))}" aria-haspopup="dialog">ⓘ</button>
@@ -475,7 +959,8 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
               <button type="button" class="dev-vmode-btn ${viewMode === 'split' ? 'active' : ''}" data-dev-view-mode="split" aria-pressed="${String(viewMode === 'split')}">${escapeHtml(t('dev.viewSplit'))}</button>
               <button type="button" class="dev-vmode-btn ${viewMode === 'plotter' ? 'active' : ''}" data-dev-view-mode="plotter" aria-pressed="${String(viewMode === 'plotter')}">${escapeHtml(t('dev.viewPlotter'))}</button>
             </div>
-            <span class="dev-target-chip" title="${escapeHtml(t('ws.kpiFlashProto'))}">${escapeHtml(board.shortName)} · ${escapeHtml(proto)}${compiler ? ` · ${escapeHtml(compiler.name)}` : ''}</span>
+            <button type="button" id="btnDevCompilerChip" class="dev-compiler-chip is-serverless" title="${escapeHtml(t('dev.compilerChipTitleServerless'))}"></button>
+            <span class="dev-target-chip" title="${escapeHtml(t('ws.kpiFlashProto'))}">${escapeHtml(board.shortName)} · ${escapeHtml(proto)}</span>
             <button type="button" id="btnDevPause" class="btn btn-ghost btn-sm">⏸ ${escapeHtml(t('dev.pause'))}</button>
             <button type="button" id="btnDevClear" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.clearTitle'))}">⌫ ${escapeHtml(t('dev.clear'))}</button>
             <button type="button" class="btn btn-ghost btn-sm" data-ws-return="hardware">← ${escapeHtml(t('ws.backToHardware'))}</button>
@@ -484,12 +969,57 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
 
         ${browserGateHtml}
         <div id="devErrorBanner" class="dev-error-banner hidden" role="alert"></div>
+
+        <div id="devCompilerUrlBanner" class="dev-compiler-url-banner hidden" role="region" aria-label="${escapeHtml(t('compiler.urlConfirmTitle'))}">
+          <div class="dev-compiler-url-txt">
+            <strong>${escapeHtml(t('compiler.urlConfirmTitle'))}</strong>
+            <code id="devPendingCompilerUrl"></code>
+            <span>${escapeHtml(t('compiler.urlConfirmDesc'))}</span>
+          </div>
+          <div class="dev-compiler-url-actions">
+            <button type="button" id="btnDevConfirmCompilerUrl" class="btn btn-primary btn-sm">✓ ${escapeHtml(t('compiler.urlConfirmAccept'))}</button>
+            <button type="button" id="btnDevDismissCompilerUrl" class="btn btn-ghost btn-sm">✕ ${escapeHtml(t('compiler.urlConfirmDismiss'))}</button>
+          </div>
+        </div>
+
         <div id="devFlashBanner" class="dev-flash-banner hidden" role="status" aria-live="polite">
           <span id="devFlashPhase" class="dev-flash-phase">SYNC</span>
           <div class="dev-flash-bar-track" aria-hidden="true"><div id="devFlashBarFill" class="dev-flash-bar-fill"></div></div>
           <span id="devFlashPct" class="dev-flash-pct">0%</span>
           <span id="devFlashMsg" class="dev-flash-msg"></span>
           <button type="button" id="btnDevFlashCancel" class="btn btn-ghost btn-sm">✕ ${escapeHtml(t('dev.flashCancel'))}</button>
+        </div>
+
+        <div id="devCompilePanel" class="dev-compile-panel hidden" role="status" aria-live="polite">
+          <div class="dev-compile-head">
+            <span id="devCompileStatus" class="dev-compile-status"></span>
+            <div id="devCompileMem" class="dev-compile-mem hidden"></div>
+            <div class="dev-compile-head-actions">
+              <button type="button" id="btnDevCompileCancel" class="btn btn-ghost btn-sm hidden">✕ ${escapeHtml(t('dev.flashCancel'))}</button>
+              <button type="button" id="btnDevCompileClose" class="btn btn-ghost btn-sm" aria-label="${escapeHtml(t('dev.flashInfoClose'))}">✕</button>
+            </div>
+          </div>
+          <div id="devCompileDiags" class="dev-compile-diags hidden"></div>
+        </div>
+
+        <div id="devSelfTestPanel" class="dev-selftest-panel hidden" role="region" aria-label="${escapeHtml(t('dev.selfTestTitle'))}">
+          <div class="dev-st-head">
+            <div class="dev-st-head-left">
+              <strong class="dev-st-title">🧪 ${escapeHtml(t('dev.selfTestTitle'))}</strong>
+              <span id="devSelfTestBadge" class="dev-st-badge is-pending">${escapeHtml(t('dev.selfTestPending'))}</span>
+              <span id="devSelfTestMeta" class="dev-st-meta"></span>
+            </div>
+            <div class="dev-st-actions">
+              <button type="button" id="btnDevSelfTestFlash" class="btn btn-primary btn-sm hidden" title="${escapeHtml(t('dev.selfTestFlashTitle'))}">⚡ ${escapeHtml(t('dev.selfTestFlashBtn'))}</button>
+              <button type="button" id="btnDevSelfTestScan" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.selfTestScanTitle'))}">↻ ${escapeHtml(t('dev.selfTestScanBtn'))}</button>
+              <button type="button" id="btnDevSelfTestAct" class="btn btn-ghost btn-sm hidden" title="${escapeHtml(t('dev.selfTestActTitle'))}">⚡ ${escapeHtml(t('dev.selfTestActBtn'))}</button>
+              <button type="button" id="btnDevSelfTestCopy" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.selfTestCopyTitle'))}">📋 ${escapeHtml(t('dev.selfTestCopyBtn'))}</button>
+              <button type="button" id="btnDevSelfTestDownload" class="btn btn-ghost btn-sm" title="${escapeHtml(t('dev.selfTestDownloadTitle'))}">⬇ .ino</button>
+              <button type="button" id="btnDevSelfTestClose" class="btn btn-ghost btn-sm" aria-label="${escapeHtml(t('dev.flashInfoClose'))}">✕</button>
+            </div>
+          </div>
+          <div id="devSelfTestList" class="dev-st-list"></div>
+          <div id="devSelfTestFootNote" class="dev-st-foot"></div>
         </div>
 
         <div id="devBodyGrid" class="dev-body-grid mode-${viewMode}">
@@ -518,8 +1048,8 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
             <form id="devSendForm" class="dev-send-bar" autocomplete="off">
               <input type="text" id="devSendInput" class="dev-send-input" placeholder="${escapeHtml(t('dev.sendPlaceholder'))}" aria-label="${escapeHtml(t('dev.sendPlaceholder'))}" />
               <select id="devLineEndingSelect" class="dev-select" aria-label="${escapeHtml(t('dev.lineEndingLabel'))}">
-                <option value="lf" ${snap.lineEnding === 'lf' ? 'selected' : ''}>LF (\\n)</option>
-                <option value="crlf" ${snap.lineEnding === 'crlf' ? 'selected' : ''}>CRLF (\\r\\n)</option>
+                <option value="lf" ${snap.lineEnding === 'lf' ? 'selected' : ''}>LF (\n)</option>
+                <option value="crlf" ${snap.lineEnding === 'crlf' ? 'selected' : ''}>CRLF (\r\n)</option>
                 <option value="none" ${snap.lineEnding === 'none' ? 'selected' : ''}>${escapeHtml(t('dev.lineEndingNone'))}</option>
               </select>
               <button type="submit" id="btnDevSend" class="btn btn-primary btn-sm">${escapeHtml(t('dev.send'))}</button>
@@ -568,6 +1098,87 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       void context?.switchWorkspace('hardware');
     });
 
+    host.querySelector<HTMLButtonElement>('#btnDevCompilerChip')?.addEventListener('click', () => {
+      appBus.emit('modal:openSettings');
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevVerify')?.addEventListener('click', () => {
+      void runCompileFlow(false);
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevBuildFlash')?.addEventListener('click', () => {
+      void runCompileFlow(true);
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevCompileCancel')?.addEventListener('click', () => {
+      compileAbortController?.abort();
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevCompileClose')?.addEventListener('click', () => {
+      compilePanelVisible = false;
+      updateCompilerDom();
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTest')?.addEventListener('click', () => {
+      selfTestPanelOpen = !selfTestPanelOpen;
+      updateSelfTestDom();
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestClose')?.addEventListener('click', () => {
+      selfTestPanelOpen = false;
+      updateSelfTestDom();
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestFlash')?.addEventListener('click', () => {
+      if (!context) return;
+      const d = currentDerived || context.getDerived();
+      const spec = getCurrentSelfTestSpec(d);
+      const sketch = generateSelfTestSketch(spec);
+      void runCompileFlow(true, { filename: 'kcomp_selftest.ino', content: sketch, label: 'L0 Self-Test' });
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestScan')?.addEventListener('click', () => {
+      if (!deviceSession.isConnected()) return;
+      void deviceSession.sendText('SCAN');
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestAct')?.addEventListener('click', () => {
+      if (!deviceSession.isConnected()) return;
+      void deviceSession.sendText('ACT');
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestCopy')?.addEventListener('click', async () => {
+      if (!context) return;
+      const d = currentDerived || context.getDerived();
+      const sketch = generateSelfTestSketch(getCurrentSelfTestSpec(d));
+      try {
+        await navigator.clipboard.writeText(sketch);
+        appBus.emit('ui:toast', { msg: context.t('dev.selfTestCopied') });
+      } catch {
+        appBus.emit('ui:toast', { msg: context.t('dev.selfTestDownloadTitle') });
+      }
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevSelfTestDownload')?.addEventListener('click', () => {
+      if (!context) return;
+      const d = currentDerived || context.getDerived();
+      const sketch = generateSelfTestSketch(getCurrentSelfTestSpec(d));
+      triggerDownload(`${getProjectSlug(d.board.id)}_selftest_l0.ino`, sketch, 'text/plain;charset=utf-8');
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevConfirmCompilerUrl')?.addEventListener('click', () => {
+      const added = settingsStore.confirmPendingCompilerUrl();
+      if (added && context) {
+        appBus.emit('ui:toast', { msg: context.t('compiler.urlConfirmActivated', { label: added.label }) });
+      }
+      updateCompilerDom();
+    });
+
+    host.querySelector<HTMLButtonElement>('#btnDevDismissCompilerUrl')?.addEventListener('click', () => {
+      settingsStore.dismissPendingCompilerUrl();
+      updateCompilerDom();
+    });
+
     host.querySelectorAll<HTMLButtonElement>('[data-dev-view-mode]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const m = btn.dataset.devViewMode;
@@ -602,10 +1213,15 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       }
       await deviceSession.connectSimulator(() => {
         const d = currentDerived || context!.getDerived();
+        const spec = getCurrentSelfTestSpec(d);
         return buildSimulatorContextFromBoard(
           d.board,
           state.active.map((a) => a.compId),
-          state.onboard
+          state.onboard,
+          {
+            expectedI2cAddrs: spec.expectedI2c.map((dev) => dev.address),
+            inputPinIds: spec.inputPins.map((p) => p.boardPinId)
+          }
         );
       }, s.baudRate);
     });
@@ -906,6 +1522,7 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
     applyViewModeToDom();
     renderQuickSendRow();
     updateLiveDom();
+    refreshCompilerHealth();
   }
 
   return {
@@ -928,12 +1545,32 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
           plotter?.render();
         }
       });
+
+      if (settingsUnsub) settingsUnsub();
+      settingsUnsub = settingsStore.subscribe(() => {
+        updateCompilerDom();
+      });
+
+      if (compilerBusUnsub) compilerBusUnsub();
+      compilerBusUnsub = appBus.on('compiler:changed', () => {
+        refreshCompilerHealth();
+      });
     },
     unmount(): void {
       if (rafId && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafId);
         rafId = 0;
       }
+      if (compileAbortController) {
+        compileAbortController.abort();
+        compileAbortController = null;
+      }
+      if (healthAbortController) {
+        healthAbortController.abort();
+        healthAbortController = null;
+      }
+      compileActive = false;
+      compilerChecking = false;
       if (sessionUnsub) {
         sessionUnsub();
         sessionUnsub = null;
@@ -941,6 +1578,14 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       if (themeUnsub) {
         themeUnsub();
         themeUnsub = null;
+      }
+      if (settingsUnsub) {
+        settingsUnsub();
+        settingsUnsub = null;
+      }
+      if (compilerBusUnsub) {
+        compilerBusUnsub();
+        compilerBusUnsub = null;
       }
       if (flashInfoEscHandler) {
         document.removeEventListener('keydown', flashInfoEscHandler);
@@ -960,12 +1605,6 @@ export function createDeviceWorkspaceModule(): WorkspaceModule {
       currentDerived = derived;
       if (!host || !context) return;
       const board = derived.board;
-      const targetChip = host.querySelector<HTMLElement>('.dev-target-chip');
-      if (targetChip) {
-        const compiler = getCompilerProvider();
-        const proto = (board.targetMeta?.flashProtocol || 'none').toUpperCase();
-        targetChip.textContent = `${board.shortName} · ${proto}${compiler ? ` · ${compiler.name}` : ''}`;
-      }
       if (!deviceSession.isConnected() && initializedBaudForBoard !== board.id) {
         initializedBaudForBoard = board.id;
         deviceSession.setBaudRate(board.targetMeta?.defaultBaud || 115200);

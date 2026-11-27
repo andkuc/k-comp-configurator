@@ -5,11 +5,17 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Local secrets & environment overrides
+.env
+.env.local
+server/compile-service/.env
+
 # OS & Editor files
 .DS_Store
 Thumbs.db
 Desktop.ini
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .idea/
 *.swp
 *.bak

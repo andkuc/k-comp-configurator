@@ -19,6 +19,7 @@
     "src/core/code-blocks.ts",
     "src/core/docs-discovery.ts",
     "src/core/netlist.ts",
+    "src/core/selftest.ts",
     "src/core/document.ts",
     "src/core/persistence.ts",
     "src/core/state.ts",

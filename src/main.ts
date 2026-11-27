@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.4.4)
+// K-Comp Configurator — TypeScript + Vite Entrypoint (v0.4.5)
 import './styles/style.css';
 import { resolveAssetUrl } from './core/constants';
 import { CATALOG } from './catalog';
@@ -28,7 +28,7 @@ import {
   renderWarnings, renderActiveComponentsInspector,
   showPinTooltip, showCustomTooltip, moveTooltip, hideTooltip
 } from './ui/inspector';
-import { renderSketchCode } from './core/codegen';
+import { buildSketchString, renderSketchCode } from './core/codegen';
 import { renderCodeBlocksUI, bindCodeBlocksEvents, setSpotlightBlock } from './ui/code-blocks-panel';
 // Lazy-loaded modules (block-guide & project charter are loaded on demand via dynamic import())
 import { renderApiBrowserUI, bindApiBrowserEvents } from './ui/api-browser';
@@ -41,7 +41,8 @@ import {
 import {
   initI18nAsync, t, applyI18nToDom, renderLanguageSwitcher, onLocaleChange, closeLanguageMenu
 } from './i18n/index';
-import { initWorkspaceShell, renderActiveWorkspaceStage, renderWorkspaceSwitcher } from './workspaces';
+import { HttpCompilerProvider, getCompilerProvider, registerCompilerProvider } from './services';
+import { activateWorkspace, initWorkspaceShell, renderActiveWorkspaceStage, renderWorkspaceSwitcher } from './workspaces';
 
 
 
@@ -136,6 +137,26 @@ function syncCodeProfileUI() {
 }
 
 
+let lastSyncedCompilerKey: string | null = null;
+function syncCompilerProviderFromSettings() {
+  const activeSrv = settingsStore.getActiveCompilerServer();
+  const nextKey = activeSrv ? `${activeSrv.id}|${activeSrv.url}|${activeSrv.authToken || ''}` : null;
+  if (nextKey === lastSyncedCompilerKey) return;
+  lastSyncedCompilerKey = nextKey;
+  if (!activeSrv) {
+    if (getCompilerProvider() instanceof HttpCompilerProvider) {
+      registerCompilerProvider(null);
+    }
+    return;
+  }
+  try {
+    registerCompilerProvider(new HttpCompilerProvider({ profile: activeSrv }));
+  } catch (err) {
+    console.warn('Invalid compiler server profile:', err);
+    registerCompilerProvider(null);
+  }
+}
+
 function applyFeatureSettingsToDom() {
   const { preset, features } = settingsStore.get();
 
@@ -182,6 +203,10 @@ function applyFeatureSettingsToDom() {
     apiDrawer?.classList.add('hidden');
     apiResizer?.classList.add('hidden');
   }
+
+  // Code-Tab Flash shortcut
+  const codeFlashBtn = $('#btnCodeToDevice');
+  if (codeFlashBtn) codeFlashBtn.classList.toggle('hidden', !features.deviceWorkspace);
 
   // Code Profile selector
   syncCodeProfileUI();
@@ -277,6 +302,7 @@ function recomputeAndRender() {
 // Wire central ProjectStore & Typed Application Event/Command Bus once before bootstrapping
 projectStore.subscribe(renderWorkspaceViews);
 settingsStore.subscribe(() => {
+  syncCompilerProviderFromSettings();
   applyFeatureSettingsToDom();
   if (state.bootComplete) recomputeAndRender();
 });
@@ -288,6 +314,7 @@ appBus.on('history:updateButtons', () => updateHistoryButtons());
 appBus.on('modal:openComponentInfo', ({ compId }) => openComponentInfo(compId));
 appBus.on('modal:openBlockInfo', ({ type }) => openBlockInfoLazy(type));
 appBus.on('modal:openBlocksOverview', () => openBlocksOverviewLazy());
+appBus.on('modal:openSettings', () => openSettingsModal());
 appBus.on('modal:updateInfoDocLink', ({ def }) => {
   if (!$('#compInfoModal')?.classList.contains('hidden')) updateInfoModalDocLink(def);
 });
@@ -304,6 +331,7 @@ appBus.on('viewport:panToComponent', ({ instanceId }) => panToComponent(instance
 appBus.on('target:flash', (opts) => flashTarget(opts));
 appBus.on('preset:load', ({ presetId }) => { void loadPreset(presetId); });
 appBus.handle('history:captureSnapshot', () => captureSnapshot());
+appBus.handle('codegen:getSketch', () => buildSketchString(projectStore.getDerived().dipStates));
 appBus.handle('board:switch', ({ boardId, opts }) => switchBoard(boardId, opts));
 
 function closeProjectMenu() {
@@ -678,6 +706,9 @@ function bindUIEvents() {
     a.href = url; a.download = `${getProjectSlug(`${getActiveBoard().id}_init`).replace(/-/g, '_')}.ino`; a.click();
     URL.revokeObjectURL(url);
   });
+  $('#btnCodeToDevice')?.addEventListener('click', () => {
+    void activateWorkspace('device');
+  });
 
   document.querySelectorAll<any>('.itab').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -725,6 +756,7 @@ async function init() {
   try {
     await initI18nAsync();
     settingsStore.init();
+    syncCompilerProviderFromSettings();
     initTheme();
     applyI18nToDom();
     applyThemeToDom();
@@ -787,6 +819,13 @@ async function init() {
     initWorkspaceShell();
     recomputeAndRender();
 
+    if (settingsStore.getPendingCompilerUrl()) {
+      showToast(t('compiler.urlPendingToast'), {
+        actionLabel: t('ws.device'),
+        duration: 7000,
+        onAction: () => { void activateWorkspace('device'); }
+      });
+    }
     state.repoDocsPromise = discoverRepoDocumentationPdfs();
   } catch (err) {
     console.error('K-Comp Configurator init failed:', err);

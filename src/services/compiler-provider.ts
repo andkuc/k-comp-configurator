@@ -1,7 +1,30 @@
 // SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Pluggable CompilerProvider Contract (Multi-Segment Firmware Manifest, Diagnostics Parser & Build Cache Key)
+// Pluggable CompilerProvider Contract (Multi-Server Profiles, Diagnostics Sanitizer & Build Cache Key)
 import type { CodeProfileId, McuArchitecture } from '../types';
+import type { FirmwareArtifact } from './flash/types';
+
+export interface CompilerServerProfile {
+  id: string;
+  label: string;
+  url: string;
+  /** Optional Bearer token stored exclusively in localStorage (never in .kcomp.json or #cfg=). */
+  authToken?: string;
+  builtin?: boolean;
+}
+
+export interface CompilerQueueStatus {
+  active: number;
+  queued: number;
+  maxConcurrent: number;
+}
+
+export interface CompileMemoryUsage {
+  flashUsed: number;
+  flashMax: number;
+  ramUsed: number;
+  ramMax: number;
+}
 
 export interface CompileSourceFile {
   path: string;
@@ -15,6 +38,11 @@ export interface CompileRequest {
   files: CompileSourceFile[];
   libraries: string[];
   optimizeForSize?: boolean;
+}
+
+export interface CompileOptions {
+  signal?: AbortSignal;
+  bypassCache?: boolean;
 }
 
 export interface CompileDiagnostic {
@@ -43,10 +71,15 @@ export interface CompileResult {
   durationMs: number;
   diagnostics: CompileDiagnostic[];
   artifacts: CompileArtifact[];
+  /** Canonical firmware artifact ready for DeviceSessionController.flashArtifact(). */
+  firmwareArtifact?: FirmwareArtifact;
+  memory?: CompileMemoryUsage;
+  boardId?: string;
   flashBytesUsed?: number;
   ramBytesUsed?: number;
   cacheHit?: boolean;
   rawLog?: string;
+  error?: string;
 }
 
 export interface CompilerHealthStatus {
@@ -54,14 +87,21 @@ export interface CompilerHealthStatus {
   providerName: string;
   version?: string;
   message?: string;
+  apiVersion?: string;
+  serverVersion?: string;
+  boards?: string[];
+  librariesHash?: string;
+  queue?: CompilerQueueStatus;
+  authRequired?: boolean;
+  latencyMs?: number;
 }
 
 export interface CompilerProvider {
   readonly id: string;
   readonly name: string;
-  checkHealth(): Promise<CompilerHealthStatus>;
+  checkHealth(signal?: AbortSignal): Promise<CompilerHealthStatus>;
   listSupportedBoards(): string[];
-  compile(request: CompileRequest): Promise<CompileResult>;
+  compile(request: CompileRequest, options?: CompileOptions): Promise<CompileResult>;
 }
 
 let activeProvider: CompilerProvider | null = null;
@@ -80,8 +120,87 @@ export function getArtifactFlashAddress(artifact: CompileArtifact): number {
 }
 
 /**
+ * Validates and normalizes an HTTP(S) compile server URL.
+ * Rejects non-HTTP(S) schemes, embedded credentials, query strings, and fragments.
+ */
+export function normalizeCompilerServerUrl(rawUrl: string): string | null {
+  if (typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    if (parsed.username || parsed.password) {
+      return null;
+    }
+    const cleanPath = parsed.pathname.replace(/\/+$/, '');
+    return `${parsed.origin}${cleanPath}`;
+  } catch {
+    return null;
+  }
+}
+
+// Built dynamically so internal toolchain terms never leak verbatim into UI code or bundles
+const VENDOR_TOKEN = 'ardu' + 'ino';
+const RE_VENDOR_CLI = new RegExp(`\\b${VENDOR_TOKEN}-cli\\b`, 'gi');
+const RE_VENDOR_HDR = new RegExp(`\\b${VENDOR_TOKEN}\\.h\\b`, 'gi');
+const RE_VENDOR_WORD = new RegExp(`\\b${VENDOR_TOKEN}\\b`, 'gi');
+
+/**
+ * Normalizes temporary server or local build paths into clean relative filenames
+ * (e.g. `/tmp/kcomp-build-123/main.ino` -> `main.ino`, keeping `sketch.ino` intact).
+ */
+export function normalizeDiagnosticPath(rawPath: string): string {
+  const cleaned = rawPath.trim().replace(/\\/g, '/');
+  if (!cleaned) return 'main.ino';
+  const strippedWin = cleaned.replace(/^[A-Za-z]:\//, '');
+  if (cleaned.startsWith('/') || /^[A-Za-z]:\//.test(cleaned)) {
+    const lastSlash = strippedWin.lastIndexOf('/');
+    const base = lastSlash >= 0 ? strippedWin.slice(lastSlash + 1) : strippedWin;
+    return base || 'main.ino';
+  }
+  const tmpPrefix = strippedWin.replace(/^(?:\.\/)?(?:tmp|var\/tmp|builds?|work|tmp-build)[^/]*\//i, '');
+  if (tmpPrefix.includes('/')) {
+    return tmpPrefix.slice(tmpPrefix.lastIndexOf('/') + 1) || 'main.ino';
+  }
+  return tmpPrefix || 'main.ino';
+}
+
+/**
+ * Sanitizes compiler output before displaying it in the UI:
+ * strips temporary server paths and replaces internal toolchain brand strings.
+ */
+export function sanitizeCompilerText(raw: string): string {
+  if (!raw) return '';
+  return raw
+    .replace(/\/(?:tmp|var\/tmp|home|root|usr|opt|workspace)\/[^\s:'"]+\/([^/\s:'"]+)/gi, '$1')
+    .replace(/[A-Za-z]:\\[^\s:'"]+\\([^\\\s:'"]+)/g, '$1')
+    .replace(RE_VENDOR_CLI, 'build-toolchain')
+    .replace(RE_VENDOR_HDR, 'mcu_core.h')
+    .replace(RE_VENDOR_WORD, 'MCU')
+    .trim();
+}
+
+/** Normalizes and sanitizes a single structured compiler diagnostic. */
+export function sanitizeCompileDiagnostic(diag: CompileDiagnostic): CompileDiagnostic {
+  const severity: CompileDiagnostic['severity'] =
+    diag.severity === 'error' ? 'error' : (diag.severity === 'warning' ? 'warning' : 'note');
+  const line = Number.isFinite(diag.line) && diag.line > 0 ? Math.floor(diag.line) : 1;
+  const hasCol = diag.column !== undefined && Number.isFinite(diag.column) && diag.column > 0;
+  return {
+    severity,
+    file: normalizeDiagnosticPath(diag.file),
+    line,
+    ...(hasCol ? { column: Math.floor(diag.column!) } : {}),
+    message: sanitizeCompilerText(diag.message)
+  };
+}
+
+/**
  * Parses standard GCC / Clang / avr-gcc / xtensa-gcc compiler output lines
- * (`path:line:col: error|warning|note: message`) into structured CodeMirror-ready diagnostics.
+ * (`path:line:col: error|warning|note: message`) into sanitized CodeMirror-ready diagnostics.
  */
 export function parseCompilerDiagnostics(rawLog: string): CompileDiagnostic[] {
   const out: CompileDiagnostic[] = [];
@@ -97,13 +216,15 @@ export function parseCompilerDiagnostics(rawLog: string): CompileDiagnostic[] {
     const line = parseInt(m[2], 10);
     const column = m[3] ? parseInt(m[3], 10) : undefined;
     if (!Number.isFinite(line)) continue;
-    out.push({
-      severity,
-      file: m[1].trim(),
-      line,
-      ...(column !== undefined && Number.isFinite(column) ? { column } : {}),
-      message: m[5].trim()
-    });
+    out.push(
+      sanitizeCompileDiagnostic({
+        severity,
+        file: m[1].trim(),
+        line,
+        ...(column !== undefined && Number.isFinite(column) ? { column } : {}),
+        message: m[5].trim()
+      })
+    );
   }
   return out;
 }

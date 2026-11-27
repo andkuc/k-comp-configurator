@@ -7,8 +7,8 @@ authors:
     given-names: "Andreas"
 repository-code: "https://github.com/andkuc/k-comp-configurator"
 license: PolyForm-Noncommercial-1.0.0
-version: "0.4.4"
-date-released: "2026-11-24"
+version: "0.4.5"
+date-released: "2026-11-27"
 keywords:
   - "k-comp-configurator"
   - "K-Comp"

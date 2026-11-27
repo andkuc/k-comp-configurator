@@ -1,0 +1,35 @@
+{
+  "schema": "kcomp-compile-boards/1",
+  "boards": {
+    "kcomp-v2": {
+      "label": "K-Comp V2 (ATmega328P)",
+      "mcu": "atmega328p",
+      "core": "arduino:avr",
+      "fqbn": "arduino:avr:uno",
+      "artifactFormat": "ihex",
+      "outputFilename": "kcomp-v2.hex",
+      "flashMax": 32256,
+      "ramMax": 2048,
+      "timeoutMs": 30000,
+      "prewarmSketch": "#include <Wire.h>\nvoid setup() { Serial.begin(115200); Wire.begin(); }\nvoid loop() {}\n"
+    },
+    "esp32-s3-devkit": {
+      "label": "ESP32-S3 DevKitC-1 (N16R8)",
+      "mcu": "esp32s3",
+      "core": "esp32:esp32",
+      "fqbn": "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,PartitionScheme=app3M_fat9M_16MB,USBMode=hwcdc,CDCOnBoot=cdc",
+      "artifactFormat": "esp-segments",
+      "outputFilename": "esp32-s3-devkit.bin",
+      "flashMax": 3145728,
+      "ramMax": 327680,
+      "timeoutMs": 90000,
+      "espSegments": [
+        { "label": "bootloader", "offset": 0, "suffix": ".ino.bootloader.bin", "optional": true },
+        { "label": "partitions", "offset": 32768, "suffix": ".ino.partitions.bin", "optional": true },
+        { "label": "boot_app0", "offset": 57344, "filename": "boot_app0.bin", "optional": true },
+        { "label": "app", "offset": 65536, "suffix": ".ino.bin", "optional": false }
+      ],
+      "prewarmSketch": "#include <Wire.h>\nvoid setup() { Serial.begin(115200); Wire.begin(8, 9); }\nvoid loop() {}\n"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "k-comp-configurator",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "private": true,
   "description": "Interactive browser-based hardware configurator, pin-constraint solver, and flat-C scaffold generator for the K-Comp ecosystem.",
   "author": "Andreas Kucher",
@@ -12,13 +12,23 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:full": "node scripts/dev-full.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && tsc -p tsconfig.strict.json --noEmit && vite build",
-    "preview": "vite preview",
+    "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit",
+    "check:arch": "node scripts/check-boundaries.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit",
-    "check:arch": "node scripts/check-boundaries.mjs"
+    "test:backend": "node --test server/compile-service/server.test.mjs",
+    "test:all": "npm test && npm run test:backend",
+    "check": "npm run check:arch && npm run test:all && npm run build",
+    "build": "tsc --noEmit && tsc -p tsconfig.strict.json --noEmit && vite build",
+    "preview": "vite preview",
+    "compiler:avr": "docker compose -f server/compile-service/docker-compose.yml build --build-arg INSTALL_ESP32_CORE=false && docker compose -f server/compile-service/docker-compose.yml up -d",
+    "compiler:build": "docker compose -f server/compile-service/docker-compose.yml up --build -d",
+    "compiler:up": "docker compose -f server/compile-service/docker-compose.yml up -d",
+    "compiler:down": "docker compose -f server/compile-service/docker-compose.yml down",
+    "compiler:logs": "docker compose -f server/compile-service/docker-compose.yml logs -f"
   },
   "dependencies": {
     "esptool-js": "^0.5.0"

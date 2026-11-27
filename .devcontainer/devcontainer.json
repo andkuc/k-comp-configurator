@@ -1,0 +1,28 @@
+{
+  "name": "K-Comp Configurator & Compile Service",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [5173, 8787],
+  "portsAttributes": {
+    "5173": {
+      "label": "K-Comp Configurator (Vite)",
+      "onAutoForward": "openBrowser"
+    },
+    "8787": {
+      "label": "K-Comp Compile Service (/api/v1)",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "npm ci && node --test server/compile-service/server.test.mjs",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

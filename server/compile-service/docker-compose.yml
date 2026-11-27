@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2025-2026 Andreas Kucher
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Local Compile Service (http://localhost:8787) — built locally on demand
+# From repo root:
+#   npm run compiler:avr    (fast ~1 min build, K-Comp V2 / ATmega328P only)
+#   npm run compiler:build  (full build, K-Comp V2 + ESP32-S3)
+#   npm run compiler:up     (start existing local image)
+#   npm run compiler:down   (stop container)
+
+services:
+  compile-service:
+    image: ${COMPILE_IMAGE:-k-comp-compile-server:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kcomp-compile-service
+    restart: unless-stopped
+    ports:
+      # Bind localhost by default; set COMPILE_BIND_ADDR=0.0.0.0 in .env to share on a private LAN
+      - "${COMPILE_BIND_ADDR:-127.0.0.1}:${COMPILE_PORT:-8787}:8787"
+    environment:
+      PORT: "8787"
+      MAX_CONCURRENT_BUILDS: "${MAX_CONCURRENT_BUILDS:-2}"
+      MAX_QUEUE_LENGTH: "${MAX_QUEUE_LENGTH:-24}"
+      MAX_CACHE_ENTRIES: "${MAX_CACHE_ENTRIES:-128}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-*}"
+      AUTH_TOKEN: "${AUTH_TOKEN:-}"
+    read_only: true
+    tmpfs:
+      - /tmp/kcomp-builds:rw,noexec,nosuid,mode=1777,size=512m
+      - /var/cache/kcomp-compile:rw,noexec,nosuid,mode=1777,size=512m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 2g
