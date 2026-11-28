@@ -655,7 +655,9 @@ export function buildSketchModel(dipStates) {
   // =========================================================================
   const out = [];
   const dipSummary = dipStates.map((d) => `S1-${d.id}:${d.on ? 'ON' : 'OFF'}`).join(' ');
-  const projTitle = getCleanProjectName();
+  // The name sits inside the header comment, so a "*/" or a line break in it
+  // would end the comment early and break the sketch.
+  const projTitle = getCleanProjectName().replace(/[\r\n\t]+/g, ' ').replace(/\*\//g, '* /');
 
   out.push(makeLine('/*'));
   if (projTitle) out.push(makeLine(` * Project: ${projTitle}`));
