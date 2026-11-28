@@ -4,6 +4,11 @@
 import type { PinAttachment, ProjectDocument, ProjectNode } from '../types';
 import { hasProposalContent, normalizeProposal } from './proposal';
 
+// Values from a share link go straight into the generated code that gets flashed,
+// so only accept real I2C addresses like 0x76 and plain pin names like GPIO8.
+const I2C_ADDR_RE = /^0x[0-9A-Fa-f]{2}$/;
+const PIN_ID_RE = /^[A-Za-z0-9_]{1,32}$/;
+
 export const PROJECT_SCHEMA_ID = 'kcomp-project/1' as const;
 
 export function encodeBytesBase64Url(bytes: Uint8Array): string {
@@ -128,11 +133,17 @@ export function validateProjectDocument(raw: unknown): ProjectDocument {
                 if (clean) attachments[k] = clean;
               }
             }
+            const pinMap: Record<string, string> = {};
+            if (m.pinMap && typeof m.pinMap === 'object') {
+              for (const [k, v] of Object.entries(m.pinMap)) {
+                if (typeof v === 'string' && PIN_ID_RE.test(v)) pinMap[k] = v;
+              }
+            }
             return {
               compId: String(m.compId),
               i2cHeader: typeof m.i2cHeader === 'string' ? m.i2cHeader : null,
-              ...(typeof m.i2cAddrOverride === 'string' && m.i2cAddrOverride ? { i2cAddrOverride: m.i2cAddrOverride } : {}),
-              pinMap: m.pinMap && typeof m.pinMap === 'object' ? { ...m.pinMap } : {},
+              ...(typeof m.i2cAddrOverride === 'string' && I2C_ADDR_RE.test(m.i2cAddrOverride) ? { i2cAddrOverride: m.i2cAddrOverride } : {}),
+              pinMap,
               ...(Object.keys(attachments).length ? { attachments } : {}),
               position: m.position && typeof m.position === 'object' ? { ...m.position } : null,
               rotation: Number(m.rotation) || 0

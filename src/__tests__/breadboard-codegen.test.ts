@@ -99,4 +99,12 @@ describe('Flat-C Sketch Code Generator', () => {
     expect(sketch).toContain('uint8_t gameState = STATE_MENU;');
     expect(sketch).not.toMatch(/Arduino/i);
   });
+
+  it('keeps the header comment intact when the project name contains */ or line breaks', () => {
+    state.projectName = 'Test */ int x = 1; /*\nsecond line';
+    const sketch = buildSketchString(computeDipStates());
+    const header = sketch.slice(0, sketch.indexOf('*/') + 2);
+    expect(header).toContain(' * Project: Test * / int x = 1; /* second line');
+    expect(header).toContain('Generated with');
+  });
 });
